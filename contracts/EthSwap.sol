@@ -16,7 +16,7 @@ contract EthSwap{
     function swap(bytes memory  recipient, uint256 amount) public{
         require(
             address(msg.sender).balance >= amount,
-            "No available funds."
+            "Not enough funds avilable."
             );
         emit Swap(msg.sender, recipient, amount);
         balance += amount;
@@ -36,11 +36,10 @@ contract EthSwap{
 
         require(
             address(this).balance >= amount,
-            "Not enough funds to approve tx."
+            "Not enough funds avilable."
             ); 
         recipient.transfer(amount);
         emit Credit(recipient, amount);
         balance -= amount;
-
     }
 }
