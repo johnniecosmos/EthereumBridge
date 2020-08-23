@@ -2,24 +2,23 @@ pragma solidity >0.5.99 <0.8.0;  //this is random, check it.
 
 contract EthSwap{
     address public minter;
-    uint256 public balance;
-    mapping(uint256 => bool) public nounces;
+    mapping(uint256 => bool) public nounces; //TODO: Can be converted to last nounce received to save storage. 
 
     event Swap(address from, bytes to, uint256 amount);
     event Credit(address to, uint256 amount);
 
 
-      constructor() {
+    constructor() {
         minter = msg.sender;
     }
 
-    function swap(bytes memory  recipient, uint256 amount) public{
+    function swap(bytes memory  recipient, uint256 amount) payable public{
         require(
             address(msg.sender).balance >= amount,
             "Not enough funds avilable."
             );
+
         emit Swap(msg.sender, recipient, amount);
-        balance += amount;
     }
 
     function credit(address payable recipient, uint256 amount, uint256 nounce) public{
@@ -35,11 +34,11 @@ contract EthSwap{
         );
 
         require(
-            address(this).balance >= amount,
+            address(this).balance <= amount,
             "Not enough funds avilable."
             ); 
+
         recipient.transfer(amount);
         emit Credit(recipient, amount);
-        balance -= amount;
     }
 }
