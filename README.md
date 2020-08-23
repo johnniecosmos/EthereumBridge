@@ -1,1 +1,1 @@
-# Ethereum-Bridge
+# Ethereum Bridge
