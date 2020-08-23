@@ -1,0 +1,5 @@
+events = []
+
+
+class Event:
+    pass

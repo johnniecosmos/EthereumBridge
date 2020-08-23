@@ -1,7 +1,8 @@
 pragma solidity >0.5.99 <0.8.0;  //this is random, check it.
 
+// SPDX-License-Identifier: MIT  //TODO: Check why required
 contract EthSwap{
-    address public minter;
+    address public minter;  //TODO: Check if address coresponds to wallet or node.
     mapping(uint256 => bool) public nounces; //TODO: Can be converted to last nounce received to save storage. 
 
     event Swap(address from, bytes to, uint256 amount);
