@@ -1,5 +1,0 @@
-events = []
-
-
-class Event:
-    pass

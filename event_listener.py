@@ -10,7 +10,7 @@ from temp import abi, address, provider_address
 
 class EventListener:
     def __init__(self):
-        self.contract_address = address
+        self.contract_address = address  # TODO: Receive from ctor
         self.provider_address = provider_address  # TODO: Receive from ctor
         self.abi = loads(abi)  # TODO: Receive from ctor
         self.callbacks = []
@@ -21,6 +21,7 @@ class EventListener:
     def register(self, callback: callable):
         self.callbacks.append(callback)
 
+    # TODO: check if provider can recover from node downtime
     def run(self):
         provider = self.web3_provider(self.provider_address)
         address_ = self.contract_address
