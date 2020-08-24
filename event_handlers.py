@@ -1,6 +1,6 @@
+import subprocess
 from typing import List
 
-import subprocess
 from commands import create_multisign_account
 from config import signing_accounts, threshold, multisig_account
 from db.eth_swap import ETHSwap, Status

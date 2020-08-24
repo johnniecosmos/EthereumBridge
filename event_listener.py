@@ -24,7 +24,7 @@ class EventListener:
     def run(self):
         provider = self.web3_provider(self.provider_address)
         address_ = self.contract_address
-        try:    # TODO: Verify desired behaviour
+        try:  # TODO: Verify desired behaviour
             address_ = Web3.toChecksumAddress(address_)
         except:
             pass
@@ -48,5 +48,5 @@ class EventListener:
             return Web3(Web3.HTTPProvider(address_))
         elif address_.startswith('ws'):  # WebSocket
             return Web3(Web3.WebsocketProvider(address_))
-        else:                            # IPC
+        else:  # IPC
             return Web3(Web3.IPCProvider(address_))
