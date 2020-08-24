@@ -124,3 +124,4 @@ abi = """[
 ]"""
 
 address = "0xfc4589c481538f29ad738a13da49af79d93ecb21"
+provider_address = "wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74"
