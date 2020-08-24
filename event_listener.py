@@ -1,9 +1,8 @@
 from json import loads
+from threading import Thread
 from time import sleep
 
 from web3 import Web3
-
-from threading import Thread
 
 from temp import abi, address, provider_address
 
