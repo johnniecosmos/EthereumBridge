@@ -1,11 +1,12 @@
+import json
 import subprocess
-from threading import Thread
+from threading import Thread, Event
 from typing import List
 
 from commands import create_multisign_account
-from config import signing_accounts, threshold, multisig_account
-from db.eth_swap import ETHSwap, Status
-from db.signatures import Signatures
+from config import signing_accounts, threshold, multisig_account, manager_sleep_time_seconds
+from db.collections.eth_swap import ETHSwap, Status
+from db.collections.signatures import Signatures
 from event_listener import EventListener
 
 
@@ -15,24 +16,24 @@ class Manager:
     def __init__(self, event_listener: EventListener, multisig_threshold=2):
         event_listener.register(self._handle)
         self.multisig_threshold = multisig_threshold
-        self.multisig_account = multisig_account
-        self.multisig_account_address = self._init_multisig_account()
 
+        self.stop_signal = Event()
         Thread(target=self.run).start()
 
     def run(self):
-        """Scans for signed transactions and updates status"""
-        while True:
-            for transaction in ETHSwap.objects(status=Status.SWAP_STATUS_UNSIGNED):
-                if Signatures.objects(tx=transaction.tx_id).count() > self.multisig_threshold:
-                    transaction.status = Status.SWAP_STATUS_CONFIRMED
+        """Scans for signed transactions and updates status of multisig threshold achieved"""
+        while not self.stop_signal.is_set():
+            for transaction in ETHSwap.objects(status=Status.SWAP_STATUS_UNSIGNED.value):
+                if Signatures.objects(tx_id=transaction.id).count() >= self.multisig_threshold:
+                    transaction.status = Status.SWAP_STATUS_CONFIRMED.value
                     transaction.save()
+            self.stop_signal.wait(manager_sleep_time_seconds)
 
     def _handle(self, event_logs: List[any]):
         """Registers transaction to the db"""
         for event in event_logs:
-            if ETHSwap.objects(tx_hash=event.hash).count() == 0:  # TODO: might be too slow
-                ETHSwap(tx_hash=event.hash, signer=self.multisig_account, status=Status.SWAP_STATUS_UNSIGNED,
+            if ETHSwap.objects(tx_hash=event.transactionHash.hex()).count() == 0:
+                ETHSwap(tx_hash=event.transactionHash.hex(), status=Status.SWAP_STATUS_UNSIGNED.value,
                         unsigned_tx=self._unsigned_tx()).save()
 
     @classmethod
@@ -47,4 +48,4 @@ class Manager:
 
     @staticmethod
     def _unsigned_tx(contract: str = "0xabcdefg...", recipient: str = "0xABCDEFG...", amount: int = 1):
-        return {"contract": contract, "recipient": recipient, "amount": amount}
+        return json.dumps({"contract": contract, "recipient": recipient, "amount": amount})

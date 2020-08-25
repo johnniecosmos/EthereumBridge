@@ -1,1 +1,1 @@
-# This module will scan the DB and periodically alert leader of un-served transactions.
+# This module will scan the DB and periodically alert of un-served transactions.
