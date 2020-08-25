@@ -2,10 +2,10 @@ from hexbytes import HexBytes
 from mongoengine import connect
 from pytest import fixture
 from web3.datastructures import AttributeDict
+
 from event_listener import EventListener
 from manager import Manager
 from tests.unit.config import db as test_db
-
 
 tx = AttributeDict({
         'args': AttributeDict({
@@ -46,7 +46,7 @@ def db():
 
     # handle cleanup, fresh db
     db = res.get_database(test_db["name"])
-    for collection in db.collection_names():
+    for collection in db.list_collection_names():
         db.drop_collection(collection)
 
 

@@ -4,13 +4,14 @@ from time import sleep
 
 from web3 import Web3
 
-from temp import abi, address, provider_address
+import config
+from temp import abi
 
 
 class EventListener:
-    def __init__(self):
-        self.contract_address = address  # TODO: Receive from ctor
-        self.provider_address = provider_address  # TODO: Receive from ctor
+    def __init__(self, contract_address="", provider_address=""):
+        self.contract_address = contract_address if contract_address else config.contract_address
+        self.provider_address = provider_address if provider_address else config.provider_address
         self.abi = loads(abi)  # TODO: Receive from ctor
         self.callbacks = []
         Thread(target=self.run).start()

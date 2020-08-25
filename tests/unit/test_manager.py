@@ -5,6 +5,9 @@ from db.collections.signatures import Signatures
 
 
 def test_handle(mock_manager, swap_tx):
+    """Verify addition of record in the DB for swap transaction"""
+
+    # logic occurs at mock_manager initiation, here we simply validate
     assert ETHSwap.objects(tx_hash=swap_tx.transactionHash.hex()).count() == 1
 
 
