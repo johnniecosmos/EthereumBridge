@@ -1,4 +1,5 @@
 import subprocess
+from threading import Thread
 from typing import List
 
 from commands import create_multisign_account
@@ -8,17 +9,19 @@ from db.signatures import Signatures
 from event_listener import EventListener
 
 
-class Leader:
+class Manager:
+    """Responsible of listening to new events Ethereum and generating corresponding records in DB """
+
     def __init__(self, event_listener: EventListener, multisig_threshold=2):
         event_listener.register(self._handle)
         self.multisig_threshold = multisig_threshold
         self.multisig_account = multisig_account
         self.multisig_account_address = self._init_multisig_account()
 
-        self.run()
+        Thread(target=self.run).start()
 
     def run(self):
-        """Scans for signed transactions, verifies and mints token in scrt"""
+        """Scans for signed transactions and updates status"""
         while True:
             for transaction in ETHSwap.objects(status=Status.SWAP_STATUS_UNSIGNED):
                 if Signatures.objects(tx=transaction.tx_id).count() > self.multisig_threshold:
@@ -30,7 +33,7 @@ class Leader:
         for event in event_logs:
             if ETHSwap.objects(tx_hash=event.hash).count() == 0:  # TODO: might be too slow
                 ETHSwap(tx_hash=event.hash, signer=self.multisig_account, status=Status.SWAP_STATUS_UNSIGNED,
-                        unsigned_tx=self._generate_tx()).save()
+                        unsigned_tx=self._unsigned_tx()).save()
 
     @classmethod
     def _init_multisig_account(cls):
@@ -42,5 +45,6 @@ class Leader:
             raise RuntimeError(f"Couldn't create multisig account. {err}")
         return out
 
-    def _generate_tx(self):
-        raise NotImplementedError
+    @staticmethod
+    def _unsigned_tx(contract: str = "0xabcdefg...", recipient: str = "0xABCDEFG...", amount: int = 1):
+        return {"contract": contract, "recipient": recipient, "amount": amount}

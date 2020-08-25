@@ -15,8 +15,6 @@ class EventListener:
         self.callbacks = []
         Thread(target=self.run).start()
 
-        self.stop_signal = False
-
     def register(self, callback: callable):
         self.callbacks.append(callback)
 
@@ -33,7 +31,7 @@ class EventListener:
         filter = contract.events.Swap.createFilter(fromBlock='latest', address=address_)
 
         # Main execution loop, waits new events on confirmed blocks
-        while not self.stop_signal:
+        while True:
             new_entries = filter.get_new_entries()
             if new_entries:
                 for callback in self.callbacks:
