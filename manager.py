@@ -8,6 +8,7 @@ from config import signing_accounts, threshold, multisig_account, manager_sleep_
 from db.collections.eth_swap import ETHSwap, Status
 from db.collections.signatures import Signatures
 from event_listener import EventListener
+from util.web3 import unsigned_tx
 
 
 class Manager:
@@ -34,7 +35,7 @@ class Manager:
         for event in event_logs:
             if ETHSwap.objects(tx_hash=event.transactionHash.hex()).count() == 0:
                 ETHSwap(tx_hash=event.transactionHash.hex(), status=Status.SWAP_STATUS_UNSIGNED.value,
-                        unsigned_tx=self._unsigned_tx()).save()
+                        unsigned_tx=unsigned_tx()).save()
 
     @classmethod
     def _init_multisig_account(cls):
@@ -45,7 +46,3 @@ class Manager:
         if err:
             raise RuntimeError(f"Couldn't create multisig account. {err}")
         return out
-
-    @staticmethod
-    def _unsigned_tx(contract: str = "0xabcdefg...", recipient: str = "0xABCDEFG...", amount: int = 1):
-        return json.dumps({"contract": contract, "recipient": recipient, "amount": amount})

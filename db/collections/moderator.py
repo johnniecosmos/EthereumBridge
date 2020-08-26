@@ -1,5 +1,5 @@
 from mongoengine import Document, IntField
 
 
-class Moderator(Document):
-    last_block = IntField
+class ModeratorData(Document):
+    last_block = IntField(required=True)

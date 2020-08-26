@@ -3,6 +3,7 @@ from threading import Thread
 from time import sleep
 
 from web3 import Web3
+from util.web3 import web3_provider
 
 import config
 from temp import abi
@@ -21,7 +22,7 @@ class EventListener:
 
     # TODO: check if provider can recover from node downtime
     def run(self):
-        provider = self.web3_provider(self.provider_address)
+        provider = web3_provider(self.provider_address)
         address_ = self.contract_address
         try:  # TODO: Verify desired behaviour
             address_ = Web3.toChecksumAddress(address_)
@@ -39,13 +40,3 @@ class EventListener:
                     callback(new_entries)
                 continue
             sleep(5)
-
-    # TODO: Use the auto detection of web3, will be good for docker setup
-    @staticmethod
-    def web3_provider(address_: str) -> Web3:
-        if address_.startswith('http'):  # HTTP
-            return Web3(Web3.HTTPProvider(address_))
-        elif address_.startswith('ws'):  # WebSocket
-            return Web3(Web3.WebsocketProvider(address_))
-        else:  # IPC
-            return Web3(Web3.IPCProvider(address_))
