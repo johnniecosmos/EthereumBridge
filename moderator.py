@@ -5,7 +5,7 @@ import config
 
 from db.collections.eth_swap import ETHSwap, Status
 from db.collections.moderator import ModeratorData
-from util.web3 import web3_provider, unsigned_tx
+from util.web3 import web3_provider, unsigned_tx, last_confirmable_block
 
 
 # noinspection PyUnresolvedReferences
@@ -46,12 +46,7 @@ class Moderator:
         return doc
 
     def extract_contract_tx(self, block) -> list:
-        res = []
-        for tx in block.transactions:
-            if self.contract_address == tx.to:
-                res.append(tx)
-
-        return res
+        return extract_tx_by_address(self.contract_address, block)
 
     @staticmethod
     def save(transactions):
@@ -67,9 +62,9 @@ class Moderator:
         :param block_num: the tested block
         :return: True if thresh holds else False
         """
-        latest = self.provider.eth.getBlock('latest')
-        if latest.number - block_num >= threshold:
+        if last_confirmable_block(self.provider, threshold) - block_num >= 0:
             return True
+
         return False
 
 

@@ -15,3 +15,17 @@ def web3_provider(address_: str) -> Web3:
 
 def unsigned_tx(contract: str = "0xabcdefg...", recipient: str = "0xABCDEFG...", amount: int = 1):
     return json.dumps({"contract": contract, "recipient": recipient, "amount": amount})
+
+
+def last_confirmable_block(provider: Web3, threshold: int = 12):
+    latest_block = provider.eth.getBlock('latest')
+    return latest_block.number - threshold
+
+
+def extract_tx_by_address(address, block) -> list:
+    res = []
+    for tx in block.transactions:
+        if address == tx.to:
+            res.append(tx)
+
+    return res
