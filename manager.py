@@ -25,7 +25,7 @@ class Manager:
         while not self.stop_signal.is_set():
             for transaction in ETHSwap.objects(status=Status.SWAP_STATUS_UNSIGNED.value):
                 if Signatures.objects(tx_id=transaction.id).count() >= self.multisig_threshold:
-                    transaction.status = Status.SWAP_STATUS_CONFIRMED.value
+                    transaction.status = Status.SWAP_STATUS_SIGNED.value
                     transaction.save()
             self.stop_signal.wait(manager_sleep_time_seconds)
 

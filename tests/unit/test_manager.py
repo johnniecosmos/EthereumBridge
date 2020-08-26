@@ -20,4 +20,4 @@ def test_run(mock_manager, swap_tx):
         Signatures(tx_id=doc.id, signed_tx="tx signature").save()
 
     sleep(6)  # give manager time to process the signatures (wakeup from sleep loop)
-    assert ETHSwap.objects(tx_hash=swap_tx.transactionHash.hex()).get().status == Status.SWAP_STATUS_CONFIRMED.value
+    assert ETHSwap.objects(tx_hash=swap_tx.transactionHash.hex()).get().status == Status.SWAP_STATUS_SIGNED.value
