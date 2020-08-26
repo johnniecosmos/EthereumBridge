@@ -3,10 +3,10 @@ from threading import Thread
 from time import sleep
 
 from web3 import Web3
-from util.web3 import web3_provider
 
 import config
 from temp import abi
+from util.web3 import web3_provider
 
 
 class EventListener:
