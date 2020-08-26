@@ -6,6 +6,7 @@ from web3.datastructures import AttributeDict
 from db.collections.eth_swap import ETHSwap, Status
 from event_listener import EventListener
 from manager import Manager
+from moderator import Moderator
 from signer import Signer
 from tests.unit.config import db as test_db
 
@@ -73,3 +74,8 @@ def offline_data(db):
 @fixture(scope="module")
 def signer(db, offline_data):
     return Signer(enc_key="Signer test encryption key")
+
+
+@fixture(scope="module")
+def moderator(db):
+    return Moderator()

@@ -1,9 +1,6 @@
 from time import sleep
 
 from mongoengine import DoesNotExist
-from web3.datastructures import AttributeDict
-from web3.exceptions import BlockNotFound
-
 import config
 
 from db.collections.eth_swap import ETHSwap, Status
@@ -11,6 +8,7 @@ from db.collections.moderator import ModeratorData
 from util.web3 import web3_provider, unsigned_tx
 
 
+# noinspection PyUnresolvedReferences
 class Moderator:
     """Iterates the blockchain and inserts contract tx to DB"""
 
@@ -25,12 +23,12 @@ class Moderator:
     # noinspection PyTypeChecker
     def run(self):
         while True:
-            try:
-                block = self.provider.eth.getBlock(self.doc.last_block + 1, full_transactions=True)
-            except BlockNotFound:  # Should happen only when trying to access block which doesn't exist
+            block_number = self.doc.last_block + 1
+            if not confirm_threshold(block_number):
                 sleep(60)
                 continue
 
+            block = self.provider.eth.getBlock(block_number, full_transactions=True)
             transactions = self.extract_contract_tx(block)
             self.save(transactions)
 
@@ -62,8 +60,15 @@ class Moderator:
             if ETHSwap.objects(tx_hash=tx_hash).count() == 0:
                 ETHSwap(tx_hash=tx_hash, status=Status.SWAP_STATUS_UNSIGNED.value, unsigned_tx=unsigned_tx()).save()
 
+    def confirm_threshold(self, block, thresh_hold=12):
+        latest = self.provider.eth.getBlock('latest')
+        if latest.number - block.numer >= thresh_hold:
+            return True
+        return False
+
 
 if __name__ == "__main__":
     from db.setup import connect_default
+
     connect_default()
     Moderator()
