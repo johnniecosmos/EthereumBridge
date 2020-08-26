@@ -10,21 +10,22 @@ from util.web3 import web3_provider, unsigned_tx
 
 # noinspection PyUnresolvedReferences
 class Moderator:
-    """Iterates the blockchain and inserts contract tx to DB"""
+    """Iterates the block-chain and inserts contract tx to DB"""
 
     def __init__(self, contract_address="", provider_address=""):
         self.contract_address = contract_address if contract_address else config.contract_address
         self.provider_address = provider_address if provider_address else config.provider_address
         self.provider = web3_provider(self.provider_address)
+        self.blocks_threshold = config.blocks_confirmation_required
 
-        self.doc = self.resolve_last_block_scanned()
+        self.doc = self._resolve_last_block_scanned()
         self.run()
 
     # noinspection PyTypeChecker
-    def run(self):
+    def run(self):      # TODO: IN CR, talk about the speed (55,170 per h)
         while True:
             block_number = self.doc.last_block + 1
-            if not confirm_threshold(block_number):
+            if not self.confirm_threshold(block_number, self.blocks_threshold):
                 sleep(60)
                 continue
 
@@ -32,12 +33,11 @@ class Moderator:
             transactions = self.extract_contract_tx(block)
             self.save(transactions)
 
-            self.doc.last_block += 1  # might be heavy to the db
+            self.doc.last_block += 1
             self.doc.save()
 
-    # TODO: IN CR, talk about the speed (55,170 per h)
     @staticmethod
-    def resolve_last_block_scanned():
+    def _resolve_last_block_scanned():
         try:
             doc = ModeratorData.objects.get()
         except DoesNotExist:
@@ -60,9 +60,15 @@ class Moderator:
             if ETHSwap.objects(tx_hash=tx_hash).count() == 0:
                 ETHSwap(tx_hash=tx_hash, status=Status.SWAP_STATUS_UNSIGNED.value, unsigned_tx=unsigned_tx()).save()
 
-    def confirm_threshold(self, block, thresh_hold=12):
+    def confirm_threshold(self, block_num: int, threshold):
+        """
+        Validates that enough blocks (at least @thresh_hold) were generated after block number
+        :param threshold: number of blocks that has to be generated after block_num
+        :param block_num: the tested block
+        :return: True if thresh holds else False
+        """
         latest = self.provider.eth.getBlock('latest')
-        if latest.number - block.numer >= thresh_hold:
+        if latest.number - block_num >= threshold:
             return True
         return False
 
