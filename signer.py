@@ -1,40 +1,31 @@
-# Scan for tx with status SWAP_STATUS_UNSIGNED
-# Add transaction to Signatures collection
-from time import sleep
-
 from db.collections.eth_swap import ETHSwap, Status
 from db.collections.signatures import Signatures
 from mongoengine import signals
-from threading import Thread, Lock
+from threading import Lock
 
 
 class Signer:
-    def __init__(self, some_key=""):  # TODO: Figure out the keys that signers are required to have
-        self.some_key = some_key
-        self.processed_transactions = set()
+    def __init__(self, enc_key=""):  # TODO: Figure out the keys that signers are required to have
+        self.enc_key = enc_key
         self.lock = Lock()
         signals.post_save.connect(self.new_tx_signal, sender=ETHSwap)
 
-        Thread(target=self.catch_up).start()  # if notifications work, not needed
+        self.catch_up()
 
     def catch_up(self):
-        while True:
-            for tx in ETHSwap.objects(status=Status.SWAP_STATUS_UNSIGNED.value):
-                if tx.tx_hash not in self.processed_transactions:
-                    try:
-                        self.sign_tx(tx)
-                    except:
-                        pass # TODO, log it - shouldn't happen, ever, sanity check.
-
-            sleep(5)
+        for tx in ETHSwap.objects(status=Status.SWAP_STATUS_UNSIGNED.value):
+            self.sign_tx(tx)
 
     def sign_tx(self, tx: ETHSwap):
-        if not Signatures.objects(tx_id=tx.id, signed_tx=self.some_key).count() == 0:
+        signed_tx = self.enc_key  # TODO: use secretcli to sign
+        if not Signatures.objects(tx_id=tx.id, signed_tx=signed_tx).count() == 0:
             return  # avoid duplicate records in db
 
-        with self.lock:
-            Signatures(tx_id=tx.id, signed_tx=self.some_key).save()
-            self.processed_transactions.add(tx.tx_hash)
+        with self.lock:  # used by two threads, the main thread and the signals thread
+            Signatures(tx_id=tx.id, signed_tx=signed_tx).save()
 
+    # noinspection PyUnusedLocal
     def new_tx_signal(self, sender, document, **kwargs):
+        if not document.status == Status.SWAP_STATUS_UNSIGNED.value:
+            return  # TODO: might be able to improve notification filter
         self.sign_tx(document)
