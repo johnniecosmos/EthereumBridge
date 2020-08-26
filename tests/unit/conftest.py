@@ -33,7 +33,7 @@ class MockEventListener(EventListener):
         pass
 
     def register(self, callback):
-        callback([tx])  # TODO: check fixture usage valid
+        callback([tx])
 
 
 class MockManager(Manager):

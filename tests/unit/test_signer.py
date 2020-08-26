@@ -12,7 +12,7 @@ def test_catch_up(signer, offline_data):
 def test_db_notifications(signer):
     # Check notification processed
     d = ETHSwap(tx_hash="test hash", status=Status.SWAP_STATUS_UNSIGNED.value,
-                   unsigned_tx="{test_key: test_value}").save()
+                unsigned_tx="{test_key: test_value}").save()
 
     sleep(0.5)  # give signer time to process notification from DB
     assert Signatures.objects(tx_id=d.id, signed_tx=signer.enc_key).count() == 1

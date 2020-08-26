@@ -1,7 +1,9 @@
+from threading import Lock
+
+from mongoengine import signals
+
 from db.collections.eth_swap import ETHSwap, Status
 from db.collections.signatures import Signatures
-from mongoengine import signals
-from threading import Lock
 
 
 class Signer:
