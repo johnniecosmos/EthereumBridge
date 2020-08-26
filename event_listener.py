@@ -21,20 +21,16 @@ class EventListener:
     def register(self, callback: callable):
         self.callbacks.append(callback)
 
-    # TODO: check if provider can recover from node downtime
     def run(self):
-        # address_ = self.contract_address
-        # try:  # TODO: Verify desired behaviour
-        #     address_ = Web3.toChecksumAddress(address_)
-        # except:
-        #     pass
-
         current_block = self.provider.eth.getBlock('latest')
 
         while True:
             if current_block.number > last_confirmable_block(self.provider_address,
                                                              config.blocks_confirmation_required):
-                sleep(5)
+                sleep(5)  # TODO: Code Review: so, I used to have a notification over here - however you can't
+                          #  filter with confirmation threshold, so i changed it to pooling. I can create my own
+                          #  notification mechanisem, but it will add complexity to somethign that should be simple.
+                          #  let me know what you thinking.
             else:
                 transactions = extract_tx_by_address(self.contract_address, current_block)
                 for tx in transactions:

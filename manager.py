@@ -7,7 +7,6 @@ from config import signing_accounts, threshold, multisig_account, manager_sleep_
 from db.collections.eth_swap import ETHSwap, Status
 from db.collections.signatures import Signatures
 from event_listener import EventListener
-from util.web3 import unsigned_tx
 
 
 class Manager:
@@ -29,12 +28,11 @@ class Manager:
                     transaction.save()
             self.stop_signal.wait(manager_sleep_time_seconds)
 
-    def _handle(self, event_logs: List[any]):
+    @classmethod
+    def _handle(cls, event_logs: List[any]):
         """Registers transaction to the db"""
         for event in event_logs:
-            if ETHSwap.objects(tx_hash=event.transactionHash.hex()).count() == 0:
-                ETHSwap(tx_hash=event.transactionHash.hex(), status=Status.SWAP_STATUS_UNSIGNED.value,
-                        unsigned_tx=unsigned_tx()).save()
+            ETHSwap.save_web3_tx(event)
 
     @classmethod
     def _init_multisig_account(cls):

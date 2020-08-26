@@ -10,6 +10,8 @@ from moderator import Moderator
 from signer import Signer
 from tests.unit.config import db as test_db
 
+from util.web3 import web3_provider
+
 tx = AttributeDict({
     'args': AttributeDict({
         'from': '0x53c22DBaFAFCcA28F6E2644b82eca5F8D66be96E',
@@ -21,6 +23,27 @@ tx = AttributeDict({
     'address': '0xFc4589c481538F29aD738a13dA49Af79d93ECb21',
     'blockHash': HexBytes('0x19649a5e66cc4b02e3b0c3108feb02e54627d0c07876a92333874adf2794cfe8'),
     'blockNumber': 8554171})
+
+tx_2 = AttributeDict({
+    'blockHash': HexBytes('0x38c335ccf8374fa0f92b0da0cc888616fd503f58ad1fa06fe20ecb2986669701'),
+    'blockNumber': 500001,
+    'from': '0x201354729f8d0f8b64e9a0c353c672C6a66B3857',
+    'gas': 90000,
+    'gasPrice': 20000000000,
+    'hash': HexBytes('0x8c3ee756a51dee99b43d79e17a25f9791be7796bb1fcfea6a75839786267c28c'),
+    'input': '0xe1fa8e844821981498b480c160559d8f6e45fd4d1e1242a149370b62b74747733bc31a8d',
+    'nonce': 19469,
+    'r': HexBytes('0xb2f27c551e1b6bc928bdf6044951405981412d722d82f2fbcff6c560159602a8'),
+    's': HexBytes('0x3fc3f6e45a3cfc7885a287db591bd00063b9e0c15556a7cc59664ceec0ebe066'),
+    'to': '0xd10e3Be2bc8f959Bc8C41CF65F60dE721cF89ADF',
+    'transactionIndex': 0,
+    'v': 41,
+    'value': 0})
+
+
+@fixture(scope="module")
+def new_tx():
+    return tx_2
 
 
 @fixture(scope="module")
@@ -79,3 +102,42 @@ def signer(db, offline_data):
 @fixture(scope="module")
 def moderator(db):
     return Moderator()
+
+
+class MyMock:
+    def __getattr__(self, item):
+        return self
+
+    def __call__(self, *args, **kwargs):
+        return self
+
+
+class IntegerMock(MyMock):
+    def __call__(self, *args, **kwargs):
+        return 42
+
+
+class BlockMock(MyMock):
+    transactions = [tx_2]
+
+
+@fixture(scope="module")
+def block():
+    return BlockMock()
+
+
+@fixture(scope="module")
+def http_provider():
+    raise NotImplementedError
+    # return web3_provider("")
+
+
+@fixture(scope="module")
+def ipc_provider():
+    raise NotImplementedError
+    # return web3_provider("")
+
+
+@fixture(scope="module")
+def websocket_provider():
+    return web3_provider("wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74")

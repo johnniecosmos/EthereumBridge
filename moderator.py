@@ -1,14 +1,14 @@
 from time import sleep
+from typing import List
 
-from mongoengine import DoesNotExist
+from mongoengine import DoesNotExist, MultipleObjectsReturned
 import config
 
 from db.collections.eth_swap import ETHSwap, Status
 from db.collections.moderator import ModeratorData
-from util.web3 import web3_provider, unsigned_tx, last_confirmable_block
+from util.web3 import web3_provider, unsigned_tx, last_confirmable_block, extract_tx_by_address
 
 
-# noinspection PyUnresolvedReferences
 class Moderator:
     """Iterates the block-chain and inserts contract tx to DB"""
 
@@ -31,7 +31,7 @@ class Moderator:
 
             block = self.provider.eth.getBlock(block_number, full_transactions=True)
             transactions = self.extract_contract_tx(block)
-            self.save(transactions)
+            ETHSwap.save_web3_tx(transactions)
 
             self.doc.last_block += 1
             self.doc.save()
@@ -42,18 +42,14 @@ class Moderator:
             doc = ModeratorData.objects.get()
         except DoesNotExist:
             doc = ModeratorData(last_block=-1).save()
+        except MultipleObjectsReturned as e:  # Corrupted DB
+            # TODO: log it
+            raise e
 
         return doc
 
     def extract_contract_tx(self, block) -> list:
         return extract_tx_by_address(self.contract_address, block)
-
-    @staticmethod
-    def save(transactions):
-        for tx in transactions:
-            tx_hash = tx.hash.hex()
-            if ETHSwap.objects(tx_hash=tx_hash).count() == 0:
-                ETHSwap(tx_hash=tx_hash, status=Status.SWAP_STATUS_UNSIGNED.value, unsigned_tx=unsigned_tx()).save()
 
     def confirm_threshold(self, block_num: int, threshold):
         """
