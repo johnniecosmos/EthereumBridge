@@ -12,7 +12,7 @@ from util.web3 import event_logs
 
 
 class Manager:
-    """Responsible of accepting to new events generating corresponding records in DB """
+    """Responsible of accepting to new events and generating corresponding records in DB """
 
     def __init__(self, event_listener: EventListener, contract: Contract, provider: Web3, multisig_threshold=2):
         event_listener.register(self._handle)

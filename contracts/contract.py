@@ -8,9 +8,9 @@ from util.web3 import normalize_address
 # TODO: deploy with script?
 class Contract:
     def __init__(self, provider: Web3, contract_address, abi=temp_abi):
-        self.contract = provider.eth.contract(address=contract_address, abi=abi)
         self.address = contract_address
+        self.contract = provider.eth.contract(address=self.normalized_address(), abi=abi)
         self.abi = abi
 
-    def normalized(self):
+    def normalized_address(self):
         return normalize_address(self.address)
