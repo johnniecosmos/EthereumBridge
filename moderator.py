@@ -14,9 +14,9 @@ from util.web3 import last_confirmable_block, extract_tx_by_address, event_logs,
 class Moderator:
     """Iterates the block-chain and inserts contract tx to DB"""
 
-    def __init__(self, contract: Contract, provider: Web3):
-        self.provider = provider
-        self.contract = contract
+    def __init__(self, contract_: Contract, provider_: Web3):
+        self.provider = provider_
+        self.contract = contract_
 
         self.blocks_threshold = config.blocks_confirmation_required
 

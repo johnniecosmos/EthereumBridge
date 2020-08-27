@@ -6,8 +6,8 @@ from db.collections.signatures import Signatures
 
 def test_catch_up(signer, offline_data):
     # offline data writes new tx in db, and here we verify that signer is notified and signs them
-    # Note: if signer is initialized before offline_data, the test will pass however, 'catchup' won't be used
-    # ass all new tx will be confirmed by the notification mechanisem.
+    # Note: if signer is initialized before offline_data, the test will passת however, 'catchup' won't be used
+    # as all new tx will be confirmed by the notification mechanisem.
     for swap in offline_data:
         assert Signatures.objects(tx_id=swap.id, signed_tx=signer.enc_key).count() == 1
 

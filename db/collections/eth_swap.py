@@ -12,7 +12,7 @@ class Status(Enum):
 
 
 class ETHSwap(Document):
-    tx_hash = StringField(required=True)  # TODO: check unique + index
+    tx_hash = StringField(required=True, unique=True)
     status = IntField(required=True)
     unsigned_tx = StringField(required=True)
 
