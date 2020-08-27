@@ -9,7 +9,6 @@ from manager import Manager
 from moderator import Moderator
 from signer import Signer
 from tests.unit.config import db as test_db
-
 from util.web3 import web3_provider
 
 tx = AttributeDict({

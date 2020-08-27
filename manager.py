@@ -1,26 +1,31 @@
-import subprocess
 from threading import Thread, Event
 from typing import List
 
-from commands import create_multisign_account
-from config import signing_accounts, threshold, multisig_account, manager_sleep_time_seconds
+from web3 import Web3
+
+from config import manager_sleep_time_seconds
+from contracts.contract import Contract
 from db.collections.eth_swap import ETHSwap, Status
 from db.collections.signatures import Signatures
 from event_listener import EventListener
+from util.web3 import event_logs
 
 
 class Manager:
-    """Responsible of listening to new events Ethereum and generating corresponding records in DB """
+    """Responsible of accepting to new events generating corresponding records in DB """
 
-    def __init__(self, event_listener: EventListener, multisig_threshold=2):
+    def __init__(self, event_listener: EventListener, contract: Contract, provider: Web3, multisig_threshold=2):
         event_listener.register(self._handle)
+        self.contract = contract.contract
+        self.provider = provider
+
         self.multisig_threshold = multisig_threshold
 
         self.stop_signal = Event()
-        Thread(target=self.run).start()
+        Thread(target=self.run()).start()
 
     def run(self):
-        """Scans for signed transactions and updates status of multisig threshold achieved"""
+        """Scans for signed transactions and updates status if multisig threshold achieved"""
         while not self.stop_signal.is_set():
             for transaction in ETHSwap.objects(status=Status.SWAP_STATUS_UNSIGNED.value):
                 if Signatures.objects(tx_id=transaction.id).count() >= self.multisig_threshold:
@@ -28,18 +33,12 @@ class Manager:
                     transaction.save()
             self.stop_signal.wait(manager_sleep_time_seconds)
 
-    @classmethod
-    def _handle(cls, event_logs: List[any]):
+    def _handle(self, transactions: List[any]):
         """Registers transaction to the db"""
-        for event in event_logs:
-            ETHSwap.save_web3_tx(event)
+        self._handle_swap_events(transactions)
 
-    @classmethod
-    def _init_multisig_account(cls):
-        command = create_multisign_account.format(accounts=" ".join(signing_accounts), threshold=threshold,
-                                                  account_name=multisig_account)
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = process.communicate()
-        if err:
-            raise RuntimeError(f"Couldn't create multisig account. {err}")
-        return out
+    def _handle_swap_events(self, events: List[any]):
+        """Extracts tx of event 'swap' and saves to db"""
+        for event in events:
+            log = event_logs(tx_hash=event.hash, event='Swap', provider=self.provider, contract=self.contract)
+            ETHSwap.save_web3_tx(log)

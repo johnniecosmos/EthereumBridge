@@ -7,4 +7,3 @@ def test_extract_tx_by_address(block, new_tx):
 
 def test_last_confirmable_block(websocket_provider):
     assert type(last_confirmable_block(websocket_provider)) == int  # sanity check
-

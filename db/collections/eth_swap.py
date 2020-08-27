@@ -3,8 +3,6 @@ from typing import List
 
 from mongoengine import Document, StringField, IntField
 
-from util.web3 import unsigned_tx
-
 
 class Status(Enum):
     SWAP_STATUS_UNSIGNED = 1
@@ -20,8 +18,8 @@ class ETHSwap(Document):
     unsigned_tx = StringField(required=True)
 
     @classmethod
-    def save_web3_tx(cls, transactions: List):
+    def save_web3_tx(cls, transactions: List, unsigned_tx=str):
         for tx in transactions:
-            tx_hash = tx.hash.hex()
+            tx_hash = tx.transactionHash.hex()
             if ETHSwap.objects(tx_hash=tx_hash).count() == 0:
-                ETHSwap(tx_hash=tx_hash, status=Status.SWAP_STATUS_UNSIGNED.value, unsigned_tx=unsigned_tx()).save()
+                ETHSwap(tx_hash=tx_hash, status=Status.SWAP_STATUS_UNSIGNED.value, unsigned_tx=unsigned_tx).save()

@@ -1,5 +1,8 @@
 import json
+from typing import Union
 
+from eth_typing import HexStr, Hash32
+from hexbytes import HexBytes
 from web3 import Web3
 
 
@@ -26,7 +29,32 @@ def last_confirmable_block(provider: Web3, threshold: int = 12):
 def extract_tx_by_address(address, block) -> list:
     res = []
     for tx in block.transactions:
-        if address == tx.to:
+        if tx.to and address.lower() == tx.to.lower():
             res.append(tx)
 
     return res
+
+
+def event_logs(tx_hash: Union[Hash32, HexBytes, HexStr], event: str, provider: Web3, contract):
+    """
+    Extracts logs of @event from tx_hash if present
+    :param tx_hash:
+    :param event: Case sensitive event name
+    :param provider:
+    :param contract: Web3 Contract
+    :return: logs represented in 'AttributeDict' or 'None' if not found
+    """
+    receipt = provider.eth.getTransactionReceipt(tx_hash)
+    logs = getattr(contract.events, event)().processReceipt(receipt)
+    if logs:
+        return logs
+
+    return None
+
+
+def normalize_address(address: str):
+    """Converts address to address acceptable by web3"""
+    try:
+        return Web3.toChecksumAddress(address.lower())
+    except:
+        return address
