@@ -84,9 +84,9 @@ class Moderator:
 if __name__ == "__main__":
     from db.setup import connect_default
     from util.web3 import web3_provider
+
     provider = web3_provider("wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74")
     contract = Contract(provider, "0xfc4589c481538f29ad738a13da49af79d93ecb21")
 
     connect_default()
     Moderator(contract, provider)
-

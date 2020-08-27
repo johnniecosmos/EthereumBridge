@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import List
 
 from mongoengine import Document, StringField, IntField
 
@@ -18,8 +17,7 @@ class ETHSwap(Document):
     unsigned_tx = StringField(required=True)
 
     @classmethod
-    def save_web3_tx(cls, transactions: List, unsigned_tx=str):
-        for tx in transactions:
-            tx_hash = tx.transactionHash.hex()
-            if ETHSwap.objects(tx_hash=tx_hash).count() == 0:
-                ETHSwap(tx_hash=tx_hash, status=Status.SWAP_STATUS_UNSIGNED.value, unsigned_tx=unsigned_tx).save()
+    def save_web3_tx(cls, tx, unsigned_tx=str):
+        tx_hash = tx.transactionHash.hex()
+        if ETHSwap.objects(tx_hash=tx_hash).count() == 0:
+            ETHSwap(tx_hash=tx_hash, status=Status.SWAP_STATUS_UNSIGNED.value, unsigned_tx=unsigned_tx).save()

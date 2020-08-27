@@ -10,13 +10,12 @@ from event_listener import EventListener
 from manager import Manager
 from moderator import Moderator
 from signer import Signer
-from tests.unit.config import db as test_db
+from tests.unit.config import db_name as test_db
 from util.web3 import web3_provider
 
-
 # (m of n)
-m = 2
-n = 3
+m = 6
+n = 10
 
 swap_log = AttributeDict({
     'args': AttributeDict({'from': '0x53c22DBaFAFCcA28F6E2644b82eca5F8D66be96E', 'to': b'\x00\xaa\xff', 'amount': 5}),
@@ -27,7 +26,6 @@ swap_log = AttributeDict({
     'address': '0xFc4589c481538F29aD738a13dA49Af79d93ECb21',
     'blockHash': HexBytes('0x5ebb84b4e2d4a58561d9694864af7b239fcf4fb9d1aac0c8bb0b9642f67ea85b'),
     'blockNumber': 8554408})
-
 
 contract_tx = AttributeDict({
     'blockHash': HexBytes('0x5ebb84b4e2d4a58561d9694864af7b239fcf4fb9d1aac0c8bb0b9642f67ea85b'),
@@ -73,16 +71,16 @@ def event_listener(contract, websocket_provider):
 @fixture(scope="module")
 def db():
     # init connection to db
-    connection = connect(db=test_db["name"])
+    connection = connect(db=test_db)
 
     # handle cleanup, fresh db
-    db = connection.get_database(test_db["name"])
+    db = connection.get_database(test_db)
     for collection in db.list_collection_names():
         db.drop_collection(collection)
 
 
 @fixture(scope="module")
-def manager(db):
+def manager(db, event_listener, contract, websocket_provider):
     global m
     manager = Manager(event_listener, contract, websocket_provider, m)
     yield manager
@@ -125,6 +123,7 @@ def block():
 @fixture(scope="module")
 def moderator(db):
     return Moderator(contract, websocket_provider)
+
 
 @fixture(scope="module")
 def http_provider():

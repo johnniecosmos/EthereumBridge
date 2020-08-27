@@ -46,8 +46,10 @@ def event_logs(tx_hash: Union[Hash32, HexBytes, HexStr], event: str, provider: W
     """
     receipt = provider.eth.getTransactionReceipt(tx_hash)
     logs = getattr(contract.events, event)().processReceipt(receipt)
+    data_index = 0
+
     if logs:
-        return logs
+        return logs[data_index]
 
     return None
 
