@@ -7,6 +7,7 @@ from web3 import Web3
 import config
 from contracts.contract import Contract
 from db.collections.eth_swap import ETHSwap
+from db.collections.log import Logs
 from db.collections.moderator import ModeratorData
 from util.exceptions import catch_and_log
 from util.web3 import last_confirmable_block, extract_tx_by_address, event_logs, normalize_address
@@ -55,7 +56,7 @@ class Moderator:
         except DoesNotExist:
             doc = ModeratorData(last_block=-1).save()
         except MultipleObjectsReturned as e:  # Corrupted DB
-            # TODO: log it
+            Logs(log=repr(e)).save()
             raise e
 
         return doc
