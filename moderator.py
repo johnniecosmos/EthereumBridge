@@ -25,7 +25,7 @@ class Moderator:
         self.run()
 
     # noinspection PyTypeChecker
-    def run(self):  # TODO: IN CR, talk about the speed (55,170 per h)
+    def run(self):
         while True:
             block_number = self.doc.last_block + 1
             if not self.confirm_threshold(block_number, self.blocks_threshold):

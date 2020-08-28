@@ -47,7 +47,7 @@ class Signer:
             return
 
         # noinspection PyBroadException
-        signed_tx_file, success = catch_and_log(self.sign_with_secret_cli, tx.unsigned_tx)
+        signed_tx_file, success = catch_and_log(self._sign_with_secret_cli, tx.unsigned_tx)
 
         with self.lock:  # used by both the "catchup()" and the notifications from DB
             if success:
@@ -73,7 +73,7 @@ class Signer:
 
         return True
 
-    def sign_with_secret_cli(self, unsigned_tx: str):
+    def _sign_with_secret_cli(self, unsigned_tx: str):
 
         with NamedTemporaryFile(mode="w+", delete=False) as f:
             unsigned_path = f.name
