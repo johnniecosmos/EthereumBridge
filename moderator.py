@@ -7,8 +7,8 @@ import config
 from contracts.contract import Contract
 from db.collections.eth_swap import ETHSwap
 from db.collections.moderator import ModeratorData
-from util.web3 import last_confirmable_block, extract_tx_by_address, event_logs, \
-    unsigned_tx
+from util.exceptions import catch_and_log
+from util.web3 import last_confirmable_block, extract_tx_by_address, event_logs
 
 
 class Moderator:
@@ -34,8 +34,11 @@ class Moderator:
             block = self.provider.eth.getBlock(block_number, full_transactions=True)
             transactions = self.extract_contract_tx(block)
             swap_transactions = self.extract_swap_tx(transactions)
-
-            ETHSwap.save_web3_tx(swap_transactions, unsigned_tx())
+            for tx in swap_transactions:
+                # noinspection PyBroadException
+                unsigned_tx, success = catch_and_log(self.contract.generate_unsigned_tx, tx.to, tx.value)
+                if success:  # Note: Any tx that is failed here will be be skipped for eternity
+                    ETHSwap.save_web3_tx(tx, unsigned_tx)
 
             self.doc.last_block += 1
             self.doc.save()

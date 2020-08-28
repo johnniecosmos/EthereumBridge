@@ -1,8 +1,8 @@
 from time import sleep
+from uuid import uuid4
 
 from db.collections.eth_swap import ETHSwap, Status
 from db.collections.signatures import Signatures
-from uuid import uuid4
 
 
 def test_catch_up(signer, offline_data):

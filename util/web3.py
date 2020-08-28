@@ -1,4 +1,3 @@
-import json
 from typing import Union
 
 from eth_typing import HexStr, Hash32
@@ -14,11 +13,6 @@ def web3_provider(address_: str) -> Web3:
         return Web3(Web3.WebsocketProvider(address_))
     else:  # IPC
         return Web3(Web3.IPCProvider(address_))
-
-
-# TODO: doesn't belong in this module + test
-def unsigned_tx(contract: str = "0xabcdefg...", recipient: str = "0xABCDEFG...", amount: int = 1):
-    return json.dumps({"contract": contract, "recipient": recipient, "amount": amount})
 
 
 def last_confirmable_block(provider: Web3, threshold: int = 12):

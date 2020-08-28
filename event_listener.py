@@ -27,7 +27,7 @@ class EventListener:
 
         while True:
             if current_block.number > last_confirmable_block(self.provider, config.blocks_confirmation_required):
-                sleep(5)  # TODO: Code Review: so, I used to have a push notification over here - however you can't
+                sleep(5)  # TODO: Code Review: I used to have a push notification over here - however you can't
                           #  filter with confirmation threshold, so i changed it to pooling. I can create my own
                           #  notification mechanisem, but it will add complexity to somethign that should be simple.
                           #  let me know what you thinking.

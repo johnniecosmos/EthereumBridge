@@ -8,14 +8,14 @@ from contracts.contract import Contract
 from db.collections.eth_swap import ETHSwap, Status
 from db.collections.signatures import Signatures
 from event_listener import EventListener
-from util.web3 import event_logs, unsigned_tx
+from util.web3 import event_logs
 
 
 class Manager:
     """Responsible of accepting to new events and generating corresponding records in DB """
 
     def __init__(self, event_listener: EventListener, contract: Contract, provider: Web3, multisig_threshold=2):
-        self.contract = contract.contract
+        self.contract = contract
         self.provider = provider
 
         self.multisig_threshold = multisig_threshold
@@ -42,5 +42,8 @@ class Manager:
     def _handle_swap_events(self, events: List[any]):
         """Extracts tx of event 'swap' and saves to db"""
         for event in events:
-            log = event_logs(tx_hash=event.hash, event='Swap', provider=self.provider, contract=self.contract)
-            ETHSwap.save_web3_tx(log, unsigned_tx())
+            log = event_logs(tx_hash=event.hash, event='Swap', provider=self.provider, contract=self.contract.contract)
+            unsigned_tx = self.contract. \
+                generate_unsigned_tx(self.contract.generate_unsigned_tx(log.to, log.recipient, log.value))
+
+            ETHSwap.save_web3_tx(log, unsigned_tx)

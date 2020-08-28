@@ -1,9 +1,9 @@
-pragma solidity >0.5.99 <0.8.0;  //this is random, check it.
+pragma solidity >0.5.99 <0.8.0;  // TODO: this is random, check it.
 
 // SPDX-License-Identifier: MIT  //TODO: Check why required
 contract EthSwap {
-    address public minter;  //TODO: Check if address coresponds to wallet or node.
-    mapping(uint256 => bool) public nounces; //TODO: Can be converted to last nounce received to save storage. 
+    address public minter;  //TODO: Check if address corresponds to wallet or node.
+    mapping(uint256 => bool) public nounces; //TODO: Can be converted to last nounce received to save storage?
 
     event Swap(address from, bytes to, uint256 amount);
     event Credit(address to, uint256 amount);
@@ -41,5 +41,6 @@ contract EthSwap {
 
         recipient.transfer(amount);
         emit Credit(recipient, amount);
+        // TODO: check if i need both
     }
 }
