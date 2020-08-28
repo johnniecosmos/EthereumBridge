@@ -1,6 +1,7 @@
 from threading import Thread, Event
 from typing import List
 
+from hexbytes import HexBytes
 from web3 import Web3
 
 from config import manager_sleep_time_seconds
@@ -8,7 +9,8 @@ from contracts.contract import Contract
 from db.collections.eth_swap import ETHSwap, Status
 from db.collections.signatures import Signatures
 from event_listener import EventListener
-from util.web3 import event_logs
+from util.exceptions import catch_and_log
+from util.web3 import event_logs, normalize_address
 
 
 class Manager:
@@ -43,7 +45,10 @@ class Manager:
         """Extracts tx of event 'swap' and saves to db"""
         for event in events:
             log = event_logs(tx_hash=event.hash, event='Swap', provider=self.provider, contract=self.contract.contract)
-            unsigned_tx = self.contract. \
-                generate_unsigned_tx(self.contract.generate_unsigned_tx(log.to, log.recipient, log.value))
-
-            ETHSwap.save_web3_tx(log, unsigned_tx)
+            recipient = HexBytes(log.args.to).hex()
+            unsigned_tx, success = catch_and_log(self.contract.generate_unsigned_tx,
+                                                 normalize_address(log.address),
+                                                 recipient,
+                                                 log.args.amount)
+            if success:
+                ETHSwap.save_web3_tx(log, unsigned_tx)

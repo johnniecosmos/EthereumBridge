@@ -4,22 +4,26 @@ from os import remove
 from tempfile import NamedTemporaryFile
 from threading import Lock
 
+from hexbytes import HexBytes
 from mongoengine import signals
 from web3 import Web3
 
+from contracts.contract import Contract
 from db.collections.eth_swap import ETHSwap, Status
 from db.collections.log import Logs
 from db.collections.signatures import Signatures
 from util.exceptions import catch_and_log
 from util.secretcli import sign_tx as secretcli_sign
+from util.web3 import event_logs
 
 multisig = namedtuple('Multisig', ['multisig_acc_addr', 'signer_acc_name'])
 
 
 class Signer:
-    def __init__(self, provider=Web3, multisig_=multisig):
+    def __init__(self, provider: Web3, multisig_: multisig, contract: Contract):
         self.provider = provider
         self.multisig = multisig_
+        self.contract = contract
         self.lock = Lock()
         signals.post_save.connect(self.new_tx_signal, sender=ETHSwap)
 
@@ -58,13 +62,12 @@ class Signer:
 
     def is_valid(self, tx: ETHSwap) -> bool:
         """Assert that the data in the unsigned_tx matches the tx on the chain"""
-        chain_tx = self.provider.eth.getTransaction(tx.tx_hash)
-        unsigned_tx = tx.unsigned_tx
-
+        log = event_logs(tx.tx_hash, 'Swap', self.provider, self.contract.contract)
+        unsigned_tx = json.loads(tx.unsigned_tx)
         try:
-            assert unsigned_tx.contract_addr == chain_tx.to
-            assert unsigned_tx.recipient == chain_tx.figure_it_out  # TODO
-            assert unsigned_tx.amount == chain_tx.value  # TODO
+            assert unsigned_tx['contract_addr'].lower() == log.address.lower()
+            assert unsigned_tx['recipient'] == HexBytes(log.args.to).hex()
+            assert unsigned_tx['amount'] == log.args.amount
         except AssertionError as e:
             Logs(log=repr(e)).save()
 

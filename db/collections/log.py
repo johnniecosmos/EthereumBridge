@@ -4,5 +4,5 @@ from mongoengine import Document, DateTimeField, StringField
 
 
 class Logs(Document):
-    creation = DateTimeField(required=True, default=datetime)
+    creation = DateTimeField(default=datetime.now, required=True)
     log = StringField(required=True)

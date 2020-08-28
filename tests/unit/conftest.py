@@ -3,13 +3,12 @@ from mongoengine import connect
 from pytest import fixture
 from web3.datastructures import AttributeDict
 
-import temp
 from contracts.contract import Contract
 from db.collections.eth_swap import ETHSwap, Status
 from event_listener import EventListener
 from manager import Manager
 from moderator import Moderator
-from signer import Signer
+from signer import Signer, multisig
 from tests.unit.config import db_name as test_db
 from util.web3 import web3_provider
 
@@ -18,7 +17,7 @@ m = 6
 n = 10
 
 swap_log = AttributeDict({
-    'args': AttributeDict({'from': '0x53c22DBaFAFCcA28F6E2644b82eca5F8D66be96E', 'to': b'\x00\xaa\xff', 'amount': 5}),
+    'args': AttributeDict({'from': '0x53c22DBaFAFCcA28F6E2644b82eca5F8D66be96E', 'to': '0xabc123', 'amount': 5}),
     'event': 'Swap',
     'logIndex': 7,
     'transactionIndex': 9,
@@ -51,8 +50,7 @@ def websocket_provider():
 @fixture(scope="module")
 def contract(websocket_provider):
     contract_address = "0xfc4589c481538f29ad738a13da49af79d93ecb21"
-    abi = temp.abi
-    return Contract(websocket_provider, contract_address, abi)
+    return Contract(websocket_provider, contract_address)
 
 
 class MockEventListener(EventListener):
@@ -89,18 +87,17 @@ def manager(db, event_listener, contract, websocket_provider):
 
 # Note: has to be above signer
 @fixture(scope="module")
-def offline_data(db):
-    res = []
-    for i in range(m):
-        d = ETHSwap(tx_hash=f"test hash {i}", status=Status.SWAP_STATUS_UNSIGNED.value,
-                    unsigned_tx=f"test_key_{i}: test_value_{i}").save()
-        res.append(d)
-    return res
+def offline_data(db, contract):
+    unsigned_tx = contract.generate_unsigned_tx(contract.address, "0x00aaff", 1)
+    return ETHSwap(tx_hash=f"0xfc2ee006541030836591b7ebfb7bc7d5b233959f9d8df5ffdade7014782baeea",
+                   status=Status.SWAP_STATUS_UNSIGNED.value,
+                   unsigned_tx=unsigned_tx).save()
 
 
 @fixture(scope="module")
-def signer(db, offline_data):
-    return Signer(enc_key="Signer test encryption key")
+def signer(db, offline_data, websocket_provider, contract):
+    multisig_account = multisig(multisig_acc_addr="0xabc1234", signer_acc_name="signer account name")
+    return Signer(websocket_provider, multisig_account, contract)
 
 
 class MyMock:

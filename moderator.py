@@ -1,5 +1,6 @@
 from time import sleep
 
+from hexbytes import HexBytes
 from mongoengine import DoesNotExist, MultipleObjectsReturned
 from web3 import Web3
 
@@ -8,7 +9,7 @@ from contracts.contract import Contract
 from db.collections.eth_swap import ETHSwap
 from db.collections.moderator import ModeratorData
 from util.exceptions import catch_and_log
-from util.web3 import last_confirmable_block, extract_tx_by_address, event_logs
+from util.web3 import last_confirmable_block, extract_tx_by_address, event_logs, normalize_address
 
 
 class Moderator:
@@ -36,7 +37,11 @@ class Moderator:
             swap_transactions = self.extract_swap_tx(transactions)
             for tx in swap_transactions:
                 # noinspection PyBroadException
-                unsigned_tx, success = catch_and_log(self.contract.generate_unsigned_tx, tx.to, tx.value)
+                recipient = HexBytes(tx.args.to).hex()
+                unsigned_tx, success = catch_and_log(self.contract.generate_unsigned_tx,
+                                                     normalize_address(tx.address),
+                                                     recipient,
+                                                     tx.args.amount)
                 if success:  # Note: Any tx that is failed here will be be skipped for eternity
                     ETHSwap.save_web3_tx(tx, unsigned_tx)
 

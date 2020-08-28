@@ -18,13 +18,13 @@ def test_run(manager):
     # Create signature in db
     doc = ETHSwap.objects(tx_hash=swap_log.transactionHash.hex()).get()
     for _ in range(m - 1):
-        Signatures(tx_id=doc.id, signed_tx="tx signature").save()
+        Signatures(tx_id=doc.id, signed_tx="tx signature", signer="test signer").save()
 
     # make sure manager doesn't sing with less than m signatures
     sleep(6)  # give manager time to process the signatures (wakeup from sleep loop)
     assert ETHSwap.objects(tx_hash=swap_log.transactionHash.hex()).get().status == Status.SWAP_STATUS_UNSIGNED.value
 
     # Add the final signature to allow confirmation
-    Signatures(tx_id=doc.id, signed_tx="tx signature").save()
+    Signatures(tx_id=doc.id, signed_tx="tx signature", signer="test signer").save()
     sleep(6)  # give manager time to process the signatures (wakeup from sleep loop)
     assert ETHSwap.objects(tx_hash=swap_log.transactionHash.hex()).get().status == Status.SWAP_STATUS_SIGNED.value
