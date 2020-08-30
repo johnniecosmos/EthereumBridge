@@ -8,7 +8,7 @@ from db.collections.eth_swap import ETHSwap, Status
 from event_listener import EventListener
 from manager import Manager
 from moderator import Moderator
-from signer import Signer, multisig
+from signer import Signer, MultiSig
 from tests.unit.config import db_name as test_db
 from util.web3 import web3_provider
 
@@ -99,7 +99,7 @@ def signer(db, offline_data, websocket_provider, contract):
     signer_acc_name = "test_account"
     memonic = "rural increase feed glimpse case lobster science crunch pitch advice nut caution stamp obvious coral " \
               "rescue clerk side ski equip metal brush risk mercy"
-    multisig_account = multisig(multisig_acc_addr="0xabc1234", signer_acc_name=signer_acc_name)
+    multisig_account = MultiSig(multisig_acc_addr="0xabc1234", signer_acc_name=signer_acc_name)
     return Signer(websocket_provider, multisig_account, contract)
 
 

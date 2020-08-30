@@ -10,7 +10,7 @@ from db.collections.eth_swap import ETHSwap
 from db.collections.log import Logs
 from db.collections.moderator import ModeratorData
 from util.exceptions import catch_and_log
-from util.web3 import last_confirmable_block, extract_tx_by_address, event_logs, normalize_address
+from util.web3 import last_confirmable_block, extract_tx_by_address, event_log, normalize_address
 
 
 class Moderator:
@@ -83,7 +83,7 @@ class Moderator:
         res = []
         data_index = 0
         for tx in transactions:
-            log = event_logs(tx.hash, 'Swap', self.provider, self.contract.contract)
+            log = event_log(tx.hash, 'Swap', self.provider, self.contract.contract)
             if log:
                 res.append(log[data_index])
 

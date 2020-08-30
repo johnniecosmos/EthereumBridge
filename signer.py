@@ -14,15 +14,15 @@ from db.collections.log import Logs
 from db.collections.signatures import Signatures
 from util.exceptions import catch_and_log
 from util.secretcli import sign_tx as secretcli_sign
-from util.web3 import event_logs
+from util.web3 import event_log
 
-multisig = namedtuple('Multisig', ['multisig_acc_addr', 'signer_acc_name'])
+MultiSig = namedtuple('MultiSig', ['multisig_acc_addr', 'signer_acc_name'])
 
 
 class Signer:
     """Verifies Ethereum tx in SWAP_STATUS_UNSIGNED and adds it's signature"""
 
-    def __init__(self, provider: Web3, multisig_: multisig, contract: Contract):
+    def __init__(self, provider: Web3, multisig_: MultiSig, contract: Contract):
         self.provider = provider
         self.multisig = multisig_
         self.contract = contract
@@ -42,29 +42,29 @@ class Signer:
         self._sign_tx(document)
 
     def _sign_tx(self, tx: ETHSwap):
-        if self._is_signed(tx):
+
+        if self.is_signed(tx):
+            Logs(log=f"Tried to sign an already signed tx. Signer:\n {self.multisig.signer_acc_name}.\ntx id:{tx.id}.")
             return
 
-        if not self._is_valid(tx):
+        if not self.is_valid(tx):
+            Logs(log=f"Validation failed. Signer:\n {self.multisig.signer_acc_name}.\ntx id:{tx.id}.")
             return
 
         # noinspection PyBroadException
         signed_tx_file, success = catch_and_log(self._sign_with_secret_cli, tx.unsigned_tx)
 
-        with self.lock:  # used by both the "catchup()" and the notifications from DB
-            if success:
-                with signed_tx_file as f:
-                    Signatures(tx_id=tx.id, signed_tx=json.load(f)).save()
+        if success:
+            with self.lock, signed_tx_file as f:  # used by both the "catch_up()" and the notifications from DB
+                Signatures(tx_id=tx.id, signed_tx=json.load(f)).save()
 
-    def _is_signed(self, tx: ETHSwap) -> bool:
+    def is_signed(self, tx: ETHSwap) -> bool:
         """ Returns True if tx was already signed, else False """
-        if Signatures.objects(tx_id=tx.id, signer=self.multisig.signer_acc_name).count() > 0:
-            return True
-        return False
+        return Signatures.objects(tx_id=tx.id, signer=self.multisig.signer_acc_name).count() > 0
 
-    def _is_valid(self, tx: ETHSwap) -> bool:
+    def is_valid(self, tx: ETHSwap) -> bool:
         """Assert that the data in the unsigned_tx matches the tx on the chain"""
-        log = event_logs(tx.tx_hash, 'Swap', self.provider, self.contract.contract)
+        log = event_log(tx.tx_hash, 'Swap', self.provider, self.contract.contract)
         unsigned_tx = json.loads(tx.unsigned_tx)
         try:
             assert unsigned_tx['contract_addr'].lower() == log.address.lower()
@@ -72,9 +72,11 @@ class Signer:
             assert unsigned_tx['amount'] == log.args.amount
         except AssertionError as e:
             Logs(log=repr(e)).save()
+            return False
 
         return True
 
+    # TODO: update to work with strings.
     def _sign_with_secret_cli(self, unsigned_tx: str):
         with NamedTemporaryFile(mode="w+", delete=False) as f:
             unsigned_path = f.name

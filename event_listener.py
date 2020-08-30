@@ -1,5 +1,6 @@
 from threading import Thread
 from time import sleep
+from typing import List, Callable
 
 from web3 import Web3
 
@@ -15,11 +16,11 @@ class EventListener:
         self.provider = provider
         self.contract = contract
 
-        self.callbacks = []
+        self.callbacks: List[Callable] = []
 
         Thread(target=self.run).start()
 
-    def register(self, callback: callable):
+    def register(self, callback: Callable):
         self.callbacks.append(callback)
 
     def run(self):
@@ -27,10 +28,7 @@ class EventListener:
 
         while True:
             if current_block.number > last_confirmable_block(self.provider, config.blocks_confirmation_required):
-                sleep(5)  # TODO: Code Review: I used to have a push notification over here - however you can't
-                          #  filter with confirmation threshold, so i changed it to pooling. I can create my own
-                          #  notification mechanisem, but it will add complexity to somethign that should be simple.
-                          #  let me know what you thinking.
+                sleep(5)
             else:
                 transactions = extract_tx_by_address(self.contract.address, current_block)
                 for tx in transactions:
