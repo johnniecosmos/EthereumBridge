@@ -27,7 +27,7 @@ class Signer:
         self.multisig = multisig_
         self.contract = contract
         self.lock = Lock()
-        signals.post_save.connect(self.new_tx_signal, sender=ETHSwap)
+        signals.post_save.connect(self._new_tx_signal, sender=ETHSwap)
 
         self.catch_up()
 
@@ -36,16 +36,16 @@ class Signer:
             self._sign_tx(tx)
 
     # noinspection PyUnusedLocal
-    def new_tx_signal(self, sender, document, **kwargs):
+    def _new_tx_signal(self, sender, document, **kwargs):
         if not document.status == Status.SWAP_STATUS_UNSIGNED.value:
             return  # TODO: might be able to improve notification filter
         self._sign_tx(document)
 
     def _sign_tx(self, tx: ETHSwap):
-        if self.is_signed(tx):
+        if self._is_signed(tx):
             return
 
-        if not self.is_valid(tx):
+        if not self._is_valid(tx):
             return
 
         # noinspection PyBroadException
@@ -56,13 +56,13 @@ class Signer:
                 with signed_tx_file as f:
                     Signatures(tx_id=tx.id, signed_tx=json.load(f)).save()
 
-    def is_signed(self, tx: ETHSwap) -> bool:
+    def _is_signed(self, tx: ETHSwap) -> bool:
         """ Returns True if tx was already signed, else False """
         if Signatures.objects(tx_id=tx.id, signer=self.multisig.signer_acc_name).count() > 0:
             return True
         return False
 
-    def is_valid(self, tx: ETHSwap) -> bool:
+    def _is_valid(self, tx: ETHSwap) -> bool:
         """Assert that the data in the unsigned_tx matches the tx on the chain"""
         log = event_logs(tx.tx_hash, 'Swap', self.provider, self.contract.contract)
         unsigned_tx = json.loads(tx.unsigned_tx)
@@ -76,7 +76,6 @@ class Signer:
         return True
 
     def _sign_with_secret_cli(self, unsigned_tx: str):
-
         with NamedTemporaryFile(mode="w+", delete=False) as f:
             unsigned_path = f.name
             f.write(unsigned_tx)

@@ -11,9 +11,9 @@ def sign_tx(unsigned_tx_path: str, multi_sig_account_addr: str, account_name: st
     return run_secret_cli(cmd)
 
 
-def multisin_tx(unsigned_tx_path: str, multi_sig_account_name: str, *args):
-    signed = " ".join(args)
-    cmd = f"{secret_cli} tx multisign {unsigned_tx_path} {multi_sig_account_name} {signed} > signed.json"
+def multisin_tx(multi_sig_account_name: str, unsiged_tx: str, *signed_tx) -> str:
+    signed = " ".join(signed_tx)
+    cmd = f"{secret_cli} tx multisign {unsiged_tx} {multi_sig_account_name} {signed}"
     return run_secret_cli(cmd)
 
 
@@ -23,3 +23,7 @@ def run_secret_cli(cmd) -> str:
         raise RuntimeError(f"Error while using secretcli: {res.stderr.decode()}")
 
     return res.stdout.decode()
+
+
+def broadcast(signed_tx: str):
+    return run_secret_cli(f"secretcli tx broadcast {signed_tx}")

@@ -11,7 +11,7 @@ from util.web3 import normalize_address
 class Contract:
     abi = temp_abi
 
-    def __init__(self, provider: Web3, contract_address):
+    def __init__(self, provider: Web3, contract_address: str):
         self.address = contract_address
         self.contract = provider.eth.contract(address=self.normalized_address(), abi=self.abi)
 
