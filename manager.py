@@ -14,7 +14,7 @@ from util.web3 import event_logs, normalize_address
 
 
 class Manager:
-    """Responsible of accepting to new events and generating corresponding records in DB """
+    """Accepts new swap events and manages the tx status in db"""
 
     def __init__(self, event_listener: EventListener, contract: Contract, provider: Web3, multisig_threshold=2):
         self.contract = contract

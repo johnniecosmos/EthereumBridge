@@ -14,7 +14,7 @@ from util.web3 import last_confirmable_block, extract_tx_by_address, event_logs,
 
 
 class Moderator:
-    """Iterates the block-chain and inserts contract tx to DB"""
+    """Iterates the block-chain and inserts 'missed' swap tx to DB"""
 
     def __init__(self, contract_: Contract, provider_: Web3):
         self.provider = provider_

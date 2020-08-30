@@ -20,6 +20,8 @@ multisig = namedtuple('Multisig', ['multisig_acc_addr', 'signer_acc_name'])
 
 
 class Signer:
+    """Verifies Ethereum tx in SWAP_STATUS_UNSIGNED and adds it's signature"""
+
     def __init__(self, provider: Web3, multisig_: multisig, contract: Contract):
         self.provider = provider
         self.multisig = multisig_
