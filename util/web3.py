@@ -21,15 +21,10 @@ def last_confirmable_block(provider: Web3, threshold: int = 12):
 
 
 def extract_tx_by_address(address, block) -> list:
-    res = []
-    for tx in block.transactions:
-        if tx.to and address.lower() == tx.to.lower():
-            res.append(tx)
-
-    return res
+    return [tx for tx in block.transactions if tx.to and address.lower() == tx.to.lower()]
 
 
-def event_logs(tx_hash: Union[Hash32, HexBytes, HexStr], event: str, provider: Web3, contract):
+def event_log(tx_hash: Union[Hash32, HexBytes, HexStr], event: str, provider: Web3, contract):
     """
     Extracts logs of @event from tx_hash if present
     :param tx_hash:
@@ -41,14 +36,11 @@ def event_logs(tx_hash: Union[Hash32, HexBytes, HexStr], event: str, provider: W
     receipt = provider.eth.getTransactionReceipt(tx_hash)
     logs = getattr(contract.events, event)().processReceipt(receipt)
     data_index = 0
-
-    if logs:
-        return logs[data_index]
-
-    return None
+    return logs[data_index] if logs else None
 
 
 def normalize_address(address: str):
+    # TODO: remove and check if all address is normalized in the api calls
     """Converts address to address acceptable by web3"""
     try:
         return Web3.toChecksumAddress(address.lower())

@@ -18,6 +18,7 @@ def multisin_tx(unsigned_tx_path: str, multi_sig_account_name: str, *args):
 
 
 def run_secret_cli(cmd) -> str:
+    # TODO: test it with subprocess.check_call
     res = subprocess.run(cmd, shell=True, capture_output=True)
     if len(res.stderr) > 0:
         raise RuntimeError(f"Error while using secretcli: {res.stderr.decode()}")

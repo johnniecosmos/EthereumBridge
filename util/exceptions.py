@@ -1,9 +1,9 @@
-from typing import Tuple
+from typing import Tuple, Callable
 
 from db.collections.log import Logs
 
 
-def catch_and_log(callable, *args, **kwargs) -> Tuple[any, bool]:
+def catch_and_log(callable: Callable, *args, **kwargs) -> Tuple[any, bool]:
     try:
         return callable(*args, **kwargs), True
     except Exception as e:

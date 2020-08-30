@@ -10,12 +10,12 @@ from db.collections.eth_swap import ETHSwap, Status
 from db.collections.signatures import Signatures
 from event_listener import EventListener
 from util.exceptions import catch_and_log
-from util.web3 import event_logs, normalize_address
+from util.web3 import event_log, normalize_address
 
 
 class Manager:
     """Accepts new swap events and manages the tx status in db"""
-
+    # TODO: Add a configuration module, to replace all specific config imports.
     def __init__(self, event_listener: EventListener, contract: Contract, provider: Web3, multisig_threshold=2):
         self.contract = contract
         self.provider = provider
@@ -44,7 +44,7 @@ class Manager:
     def _handle_swap_events(self, events: List[any]):
         """Extracts tx of event 'swap' and saves to db"""
         for event in events:
-            log = event_logs(tx_hash=event.hash, event='Swap', provider=self.provider, contract=self.contract.contract)
+            log = event_log(tx_hash=event.hash, event='Swap', provider=self.provider, contract=self.contract.contract)
             recipient = HexBytes(log.args.to).hex()
             unsigned_tx, success = catch_and_log(self.contract.generate_unsigned_tx,
                                                  normalize_address(log.address),
