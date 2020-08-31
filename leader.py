@@ -1,37 +1,38 @@
-from time import sleep
+from threading import Event
 from typing import List, Tuple
 
 import config
 from db.collections.eth_swap import ETHSwap, Status
 from db.collections.log import Logs
 from db.collections.signatures import Signatures
-from signer import multisig
+from signer import MultiSig
 from util.exceptions import catch_and_log
 from util.secretcli import broadcast, multisin_tx
 
 
 class Leader:
-    """Tracks the DB for signed tx and send a broadcast msg to the secret network"""
-    def __init__(self, multisig_: multisig):
+    """Tracks the DB for signed tx and send a broadcast tx to the secret network"""
+    def __init__(self, multisig_: MultiSig):
         self.multisig = multisig_
-        self.required_signatures = config.signatures_threshold
+        self.config = config
         self.run()
+        self.stop_event = Event()
 
     def run(self):
-        while True:
+        while not self.stop_event:
             for tx in ETHSwap.objects(status=Status.SWAP_STATUS_SIGNED.value):
                 signatures = [signature.signed_tx for signature in Signatures(tx_id=tx.id)]
 
-                if len(signatures) < self.required_signatures:
+                if len(signatures) < self.config.signatures_threshold:
                     Logs(log=f"Tried to sign tx {tx.id}, without enough signatures"
-                             f" (required: {self.required_signatures}, have: {len(signatures)}")
+                             f" (required: {self.config.signatures_threshold}, have: {len(signatures)})")
 
                 signed_tx, success = self.create_multisig(signatures, tx.unsigned_tx)
                 if success and self.broadcast(signed_tx):
                     tx.status = Status.SWAP_STATUS_SUBMITTED
                     tx.save()
 
-            sleep(5.0)
+            self.stop_event.wait(self.config.default_sleep_time_interval)
 
     def create_multisig(self, signatures: List[str], unsigned_tx: str) -> Tuple[str, bool]:
         return catch_and_log(multisin_tx, self.multisig.signer_acc_name, unsigned_tx, tuple(signatures))
