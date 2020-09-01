@@ -4,8 +4,11 @@ from eth_typing import HexStr, Hash32
 from hexbytes import HexBytes
 from web3 import Web3
 
-
 # TODO: Use the auto detection of web3, will be good for docker setup
+from contracts.secret_contract import tx_args
+from util.secretcli import create_unsigined_tx
+
+
 def web3_provider(address_: str) -> Web3:
     if address_.startswith('http'):  # HTTP
         return Web3(Web3.HTTPProvider(address_))
@@ -46,3 +49,9 @@ def normalize_address(address: str):
         return Web3.toChecksumAddress(address.lower())
     except:
         return address
+
+
+def generate_unsigned_tx(log, secret_contract_address: str, multisig_acc_addr: str):
+    return create_unsigined_tx(secret_contract_address,
+                               tx_args(log.args.amount, log.transactionHash.hex()),
+                               multisig_acc_addr)

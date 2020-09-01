@@ -1,6 +1,5 @@
 from time import sleep
 
-from hexbytes import HexBytes
 from mongoengine import DoesNotExist, MultipleObjectsReturned
 from web3 import Web3
 
@@ -10,7 +9,7 @@ from db.collections.eth_swap import ETHSwap
 from db.collections.log import Logs
 from db.collections.moderator import ModeratorData
 from util.exceptions import catch_and_log
-from util.web3 import last_confirmable_block, extract_tx_by_address, event_log, normalize_address
+from util.web3 import last_confirmable_block, extract_tx_by_address, event_log, generate_unsigned_tx
 
 
 class Moderator:
@@ -20,7 +19,7 @@ class Moderator:
         self.provider = provider_
         self.contract = contract_
 
-        self.blocks_threshold = config.blocks_confirmation_required
+        self.config = config
 
         self.doc = self._resolve_last_block_scanned()
         self.run()
@@ -29,7 +28,7 @@ class Moderator:
     def run(self):
         while True:
             block_number = self.doc.last_block + 1
-            if not self.confirm_threshold(block_number, self.blocks_threshold):
+            if not self.confirm_threshold(block_number, self.config.blocks_confirmation_required):
                 sleep(60)
                 continue
 
@@ -38,11 +37,7 @@ class Moderator:
             swap_transactions = self.extract_swap_tx(transactions)
             for tx in swap_transactions:
                 # noinspection PyBroadException
-                recipient = HexBytes(tx.args.to).hex()
-                unsigned_tx, success = catch_and_log(self.contract.generate_unsigned_tx,
-                                                     normalize_address(tx.address),
-                                                     recipient,
-                                                     tx.args.amount)
+                unsigned_tx, success = catch_and_log(generate_unsigned_tx, tx, self.config.secret_contract_address)
                 if success:  # Note: Any tx that is failed here will be be skipped for eternity
                     ETHSwap.save_web3_tx(tx, unsigned_tx)
 

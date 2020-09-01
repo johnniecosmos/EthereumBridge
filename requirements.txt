@@ -1,3 +1,5 @@
 web3
 mongoengine
 blinker
+hexbytes
+pytest
