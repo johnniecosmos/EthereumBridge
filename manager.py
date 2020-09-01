@@ -32,7 +32,7 @@ class Manager:
         """Scans for signed transactions and updates status if multisig threshold achieved"""
         while not self.stop_signal.is_set():
             for transaction in ETHSwap.objects(status=Status.SWAP_STATUS_UNSIGNED.value):
-                if Signatures.objects(tx_id=transaction.id).count() >= self.config.threshold:
+                if Signatures.objects(tx_id=transaction.id).count() >= self.config.signatures_threshold:
                     transaction.status = Status.SWAP_STATUS_SIGNED.value
                     transaction.save()
             self.stop_signal.wait(self.config.manager_sleep_time_seconds)

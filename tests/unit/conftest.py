@@ -107,10 +107,6 @@ def offline_data(db, secret_contract_address):
 
 @fixture(scope="module")
 def signer(db, offline_data, websocket_provider, contract):
-<<<<<<< HEAD
-    signer_acc_name = "test_account"
-=======
->>>>>>> dev
     memonic = "rural increase feed glimpse case lobster science crunch pitch advice nut caution stamp obvious coral " \
               "rescue clerk side ski equip metal brush risk mercy"
     multisig_account = MultiSig(multisig_acc_addr="secret1g94nl28ddv27xdg8ss028qwc357m6d0ceg9nav",

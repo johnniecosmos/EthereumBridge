@@ -26,9 +26,7 @@ def test_db_notifications(signer, offline_data: ETHSwap):
 
     # Check notification processed
     sleep(0.5)  # give signer time to process notification from DB
-    fd = signer._sign_with_secret_cli(d.unsigned_tx)
-    signed_tx = json.loads(fd)
-    fd.close()
+    signed_tx = signer._sign_with_secret_cli(d.unsigned_tx)
 
     assert Signatures.objects(tx_id=d.id, signer=signer.multisig.signer_acc_name).get().signed_tx == signed_tx
 

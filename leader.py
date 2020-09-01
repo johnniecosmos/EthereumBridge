@@ -7,7 +7,7 @@ from db.collections.log import Logs
 from db.collections.signatures import Signatures
 from signer import MultiSig
 from util.exceptions import catch_and_log
-from util.secretcli import broadcast, multisin_tx
+from util.secretcli import broadcast, multisign_tx
 
 
 class Leader:
@@ -35,7 +35,7 @@ class Leader:
             self.stop_event.wait(self.config.default_sleep_time_interval)
 
     def create_multisig(self, signatures: List[str], unsigned_tx: str) -> Tuple[str, bool]:
-        return catch_and_log(multisin_tx, self.multisig.signer_acc_name, unsigned_tx, tuple(signatures))
+        return catch_and_log(multisign_tx, self.multisig.signer_acc_name, unsigned_tx, tuple(signatures))
 
     @staticmethod
     def broadcast(signed_tx) -> bool:

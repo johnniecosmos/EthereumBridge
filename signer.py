@@ -52,11 +52,11 @@ class Signer:
             return
 
         # noinspection PyBroadException
-        signed_tx_file, success = catch_and_log(self._sign_with_secret_cli, tx.unsigned_tx)
+        signed_tx, success = catch_and_log(self._sign_with_secret_cli, tx.unsigned_tx)
 
         if success:
-            with self.lock, signed_tx_file as f:  # used by both the "catch_up()" and the notifications from DB
-                Signatures(tx_id=tx.id, signed_tx=json.load(f)).save()
+            with self.lock:  # used by both the "catch_up()" and the notifications from DB
+                Signatures(tx_id=tx.id, signer= self.multisig.signer_acc_name, signed_tx=signed_tx).save()
 
     def is_signed(self, tx: ETHSwap) -> bool:
         """ Returns True if tx was already signed, else False """
@@ -67,11 +67,14 @@ class Signer:
         log = event_log(tx.tx_hash, 'Swap', self.provider, self.contract.contract)
         unsigned_tx = json.loads(tx.unsigned_tx)
         try:
-            decrypted_data = self.decrypt(unsigned_tx)
-            # assert unsigned_tx['contract_addr'].lower() == log.address.lower()
-            # assert unsigned_tx['recipient'] == log.args.to.hex()
-            # assert unsigned_tx['amount'] == log.args.amount
-            pass
+            res, success = catch_and_log(self.decrypt, unsigned_tx)
+            if not success:
+                return False
+
+            # decrypted_data = json.loads(res[80:])['mint']
+            # assert decrypted_data['eth_tx_hash'] == log.transactionHash.hex()
+            # assert decrypted_data['amount_seth'] == log.args.amount
+            # assert decrypted_data['to'] == log.args.to  # TODO: fix bytes\string
         except AssertionError as e:
             Logs(log=repr(e)).save()
             return False
@@ -84,7 +87,7 @@ class Signer:
         f.close()
 
         res = secretcli_sign(f.name, self.multisig.multisig_acc_addr, self.multisig.signer_acc_name)
-        remove(f)
+        remove(f.name)
         return res
 
     @staticmethod

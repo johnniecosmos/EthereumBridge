@@ -53,5 +53,5 @@ def normalize_address(address: str):
 
 def generate_unsigned_tx(log, secret_contract_address: str, multisig_acc_addr: str):
     return create_unsigined_tx(secret_contract_address,
-                               tx_args(log.args.amount, log.transactionHash.hex()),
+                               tx_args(log.args.amount, log.transactionHash.hex()),  # TODO:  log.args.to
                                multisig_acc_addr)
