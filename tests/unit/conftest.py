@@ -80,7 +80,7 @@ def db():
 
 @fixture(scope="module")
 def multisig_account():
-    return MultiSig(multisig_acc_addr="secret1g94nl28ddv27xdg8ss028qwc357m6d0ceg9nav", signer_acc_name="ms1")
+    return MultiSig(multisig_acc_addr="secret1smq22ek4lfldy57scu55svcruvpjd8g5080lyv", signer_acc_name="ms1")
 
 
 @fixture(scope="module")
@@ -99,7 +99,7 @@ def secret_contract_address():
 @fixture(scope="module")
 def offline_data(db, secret_contract_address):
     unsigned_tx = generate_unsigned_tx(swap_log, secret_contract_address,
-                                       "secret1g94nl28ddv27xdg8ss028qwc357m6d0ceg9nav")
+                                       "secret1smq22ek4lfldy57scu55svcruvpjd8g5080lyv")
     return ETHSwap(tx_hash=f"0xfc2ee006541030836591b7ebfb7bc7d5b233959f9d8df5ffdade7014782baeea",
                    status=Status.SWAP_STATUS_UNSIGNED.value,
                    unsigned_tx=unsigned_tx).save()
@@ -109,7 +109,7 @@ def offline_data(db, secret_contract_address):
 def signer(db, offline_data, websocket_provider, contract):
     memonic = "rural increase feed glimpse case lobster science crunch pitch advice nut caution stamp obvious coral " \
               "rescue clerk side ski equip metal brush risk mercy"
-    multisig_account = MultiSig(multisig_acc_addr="secret1g94nl28ddv27xdg8ss028qwc357m6d0ceg9nav",
+    multisig_account = MultiSig(multisig_acc_addr="secret1smq22ek4lfldy57scu55svcruvpjd8g5080lyv",
                                 signer_acc_name="t1")
     return Signer(websocket_provider, multisig_account, contract)
 
