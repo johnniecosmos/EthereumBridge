@@ -12,4 +12,9 @@ blocks_confirmation_required = 12
 default_sleep_time_interval = 5.0
 
 project_base_path, _ = path.split(main.__file__)
+enclave_key = path.join(project_base_path, "temp", "io-master-cert.der")
+enclave_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+chain_id = 2
 secret_cli = path.join(project_base_path, "temp", "secretcli.exe")
+
+secret_contract_address = "secret1h492k6dvfqcuraa935p7laaz203rz5546s0n8k"

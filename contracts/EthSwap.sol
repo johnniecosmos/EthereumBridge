@@ -18,7 +18,7 @@ contract EthSwap {
             address(msg.sender).balance >= amount,
             "Not enough funds available."
         );
-
+        // TODO: Make sure it burns the ethereum
         emit Swap(msg.sender, recipient, amount);
     }
 

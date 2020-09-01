@@ -1,10 +1,10 @@
 import json
-from collections import namedtuple
 from os import remove
+from collections import namedtuple
 from tempfile import NamedTemporaryFile
 from threading import Lock
+from typing import Dict
 
-from hexbytes import HexBytes
 from mongoengine import signals
 from web3 import Web3
 
@@ -13,7 +13,7 @@ from db.collections.eth_swap import ETHSwap, Status
 from db.collections.log import Logs
 from db.collections.signatures import Signatures
 from util.exceptions import catch_and_log
-from util.secretcli import sign_tx as secretcli_sign
+from util.secretcli import sign_tx as secretcli_sign, decrypt
 from util.web3 import event_log
 
 MultiSig = namedtuple('MultiSig', ['multisig_acc_addr', 'signer_acc_name'])
@@ -67,24 +67,27 @@ class Signer:
         log = event_log(tx.tx_hash, 'Swap', self.provider, self.contract.contract)
         unsigned_tx = json.loads(tx.unsigned_tx)
         try:
-            assert unsigned_tx['contract_addr'].lower() == log.address.lower()
-            assert unsigned_tx['recipient'] == HexBytes(log.args.to).hex()
-            assert unsigned_tx['amount'] == log.args.amount
+            decrypted_data = self.decrypt(unsigned_tx)
+            # assert unsigned_tx['contract_addr'].lower() == log.address.lower()
+            # assert unsigned_tx['recipient'] == log.args.to.hex()
+            # assert unsigned_tx['amount'] == log.args.amount
+            pass
         except AssertionError as e:
             Logs(log=repr(e)).save()
             return False
 
         return True
 
-    # TODO: update to work with strings.
-    def _sign_with_secret_cli(self, unsigned_tx: str):
-        with NamedTemporaryFile(mode="w+", delete=False) as f:
-            unsigned_path = f.name
-            f.write(unsigned_tx)
+    def _sign_with_secret_cli(self, unsigned_tx: str) -> str:
+        f = NamedTemporaryFile(mode="w+", delete=False)
+        f.write(unsigned_tx)
+        f.close()
 
-        fd = NamedTemporaryFile(mode="w+")
+        res = secretcli_sign(f.name, self.multisig.multisig_acc_addr, self.multisig.signer_acc_name)
+        remove(f)
+        return res
 
-        secretcli_sign(unsigned_path, self.multisig.multisig_acc_addr, self.multisig.signer_acc_name, fd.name)
-        remove(unsigned_path)
-
-        return fd
+    @staticmethod
+    def decrypt(unsigned_tx: Dict):
+        msg = unsigned_tx['value']['msg'][0]['value']['msg']
+        return decrypt(msg)

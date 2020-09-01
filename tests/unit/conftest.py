@@ -3,6 +3,7 @@ from mongoengine import connect
 from pytest import fixture
 from web3.datastructures import AttributeDict
 
+import config
 from contracts.contract import Contract
 from db.collections.eth_swap import ETHSwap, Status
 from event_listener import EventListener
@@ -10,11 +11,11 @@ from manager import Manager
 from moderator import Moderator
 from signer import Signer, MultiSig
 from tests.unit.config import db_name as test_db
-from util.web3 import web3_provider
+from util.web3 import web3_provider, generate_unsigned_tx
 
 # (m of n)
-m = 6
-n = 10
+m = 2
+n = 3
 
 swap_log = AttributeDict({
     'args': AttributeDict({'from': '0x53c22DBaFAFCcA28F6E2644b82eca5F8D66be96E', 'to': '0xabc123', 'amount': 5}),
@@ -78,17 +79,27 @@ def db():
 
 
 @fixture(scope="module")
-def manager(db, event_listener, contract, websocket_provider):
-    global m
-    manager = Manager(event_listener, contract, websocket_provider, m)
+def multisig_account():
+    return MultiSig(multisig_acc_addr="secret1g94nl28ddv27xdg8ss028qwc357m6d0ceg9nav", signer_acc_name="ms1")
+
+
+@fixture(scope="module")
+def manager(db, event_listener, contract, websocket_provider, multisig_account):
+    manager = Manager(event_listener, contract, websocket_provider, multisig_account)
     yield manager
     manager.stop_signal.set()
 
 
+@fixture(scope="module")
+def secret_contract_address():
+    return config.secret_contract_address
+
+
 # Note: has to be above signer
 @fixture(scope="module")
-def offline_data(db, contract):
-    unsigned_tx = contract.generate_unsigned_tx(contract.address, "0x00aaff", 1)
+def offline_data(db, secret_contract_address):
+    unsigned_tx = generate_unsigned_tx(swap_log, secret_contract_address,
+                                       "secret1g94nl28ddv27xdg8ss028qwc357m6d0ceg9nav")
     return ETHSwap(tx_hash=f"0xfc2ee006541030836591b7ebfb7bc7d5b233959f9d8df5ffdade7014782baeea",
                    status=Status.SWAP_STATUS_UNSIGNED.value,
                    unsigned_tx=unsigned_tx).save()
@@ -96,10 +107,14 @@ def offline_data(db, contract):
 
 @fixture(scope="module")
 def signer(db, offline_data, websocket_provider, contract):
+<<<<<<< HEAD
     signer_acc_name = "test_account"
+=======
+>>>>>>> dev
     memonic = "rural increase feed glimpse case lobster science crunch pitch advice nut caution stamp obvious coral " \
               "rescue clerk side ski equip metal brush risk mercy"
-    multisig_account = MultiSig(multisig_acc_addr="0xabc1234", signer_acc_name=signer_acc_name)
+    multisig_account = MultiSig(multisig_acc_addr="secret1g94nl28ddv27xdg8ss028qwc357m6d0ceg9nav",
+                                signer_acc_name="t1")
     return Signer(websocket_provider, multisig_account, contract)
 
 

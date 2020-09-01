@@ -1,30 +1,49 @@
-import subprocess
+from subprocess import run, PIPE
+from pathlib import Path
 
-from config import secret_cli
+from config import secret_cli, enclave_hash, enclave_key, chain_id
 
-
-def sign_tx(unsigned_tx_path: str, multi_sig_account_addr: str, account_name: str, output_file: str):
-    cmd = f"{secret_cli} tx sign {unsigned_tx_path}" \
-          f" --multisig {multi_sig_account_addr}" \
-          f" --from={account_name}" \
-          f" --output-document={output_file}"
-    return run_secret_cli(cmd)
+bash = [r"C:\Program Files\Git\bin\bash.exe", "-c"]
 
 
-def multisin_tx(multi_sig_account_name: str, unsiged_tx: str, *signed_tx) -> str:
-    signed = " ".join(signed_tx)
-    cmd = f"{secret_cli} tx multisign {unsiged_tx} {multi_sig_account_name} {signed}"
-    return run_secret_cli(cmd)
+def sign_tx(unsigned_tx: str, multi_sig_account_addr: str, account_name: str):
+    secret_cli_posix = Path(secret_cli).as_posix()
+    unsigned_tx_posix = Path(unsigned_tx).as_posix()
+    return run_secret_cli(" ".join([secret_cli_posix, 'tx', 'sign', unsigned_tx_posix, '--signature-only', '--multisig',
+                                    multi_sig_account_addr, '--from', account_name]))
 
 
-def run_secret_cli(cmd) -> str:
-    # TODO: test it with subprocess.check_call
-    res = subprocess.run(cmd, shell=True, capture_output=True)
-    if len(res.stderr) > 0:
-        raise RuntimeError(f"Error while using secretcli: {res.stderr.decode()}")
+def multisin_tx(unsigned_tx_path: str, multi_sig_account_name: str, *signed_tx):
+    secret_cli_posix = Path(secret_cli).as_posix()
+    return run_secret_cli(" ".join([secret_cli, 'tx', 'multisign', unsigned_tx_path, multi_sig_account_name]
+                                   + list(secret_cli_posix)))
 
-    return res.stdout.decode()
+
+def create_unsigined_tx(secret_contract_addr: str, encoded_args: str, multisig_acc_addr: str) -> str:
+    secret_cli_posix = Path(secret_cli).as_posix()
+    enclave_key_posix = Path(enclave_key).as_posix()
+
+    cmd = [secret_cli_posix, 'tx', 'compute', 'execute', secret_contract_addr, encoded_args,
+           '--generate-only', '--chain-id', f"{chain_id}", '--enclave-key', enclave_key_posix, '--code-hash',
+           enclave_hash, '--from', multisig_acc_addr]
+    return run_secret_cli(" ".join(cmd))
 
 
 def broadcast(signed_tx: str):
     return run_secret_cli(f"secretcli tx broadcast {signed_tx}")
+
+
+def decrypt(data):
+    secret_cli_posix = Path(secret_cli).as_posix()
+    cmd = [secret_cli_posix, 'query', 'compute', 'decrypt', data]
+    return run_secret_cli(" ".join(cmd))
+
+
+def run_secret_cli(cmd: str) -> str:
+    # TODO: test it with subprocess.check_call
+    cmd = bash + [cmd]
+    p = run(cmd, stdout=PIPE, stderr=PIPE)
+    res, err = p.stdout, p.stderr
+    if err:
+        raise RuntimeError(err.decode())
+    return res.decode()

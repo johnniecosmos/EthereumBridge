@@ -1,5 +1,3 @@
-import json
-
 from web3 import Web3
 
 from temp.temp import abi as temp_abi
@@ -17,8 +15,3 @@ class Contract:
 
     def normalized_address(self):
         return normalize_address(self.address)
-
-    @classmethod
-    def generate_unsigned_tx(cls, contract_addr: str = "0xabcdefg...", recipient: str = "0xABCDEFG...",
-                             amount: int = 1):
-        return json.dumps({"contract_addr": contract_addr, "recipient": recipient, "amount": amount})
