@@ -3,12 +3,12 @@ from mongoengine import connect
 from pytest import fixture
 from web3.datastructures import AttributeDict
 
-from tests.unit import config
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.moderator import Moderator
 from src.signer import MultiSig
 from src.util.web3 import web3_provider, generate_unsigned_tx
+from tests.unit import config
 
 # (m of n)
 m = 2

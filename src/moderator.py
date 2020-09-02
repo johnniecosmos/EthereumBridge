@@ -40,7 +40,7 @@ class Moderator:
                 unsigned_tx, success = catch_and_log(generate_unsigned_tx, self.config.secret_contract_address,
                                                      log, self.config.chain_id, self.config.enclave_key,
                                                      self.config.enclave_hash, self.multisig.multisig_acc_addre,
-                                                     "secret17fm5fn2ezhe8367ejge2wqvcg4lcawarpe2mzj")  #TODO: replace const
+                                                     "secret17fm5fn2ezhe8367ejge2wqvcg4lcawarpe2mzj")  # TODO: replace const
                 if success:  # Note: Any tx that is failed here will be be skipped for eternity
                     ETHSwap.save_web3_tx(log, unsigned_tx)
 

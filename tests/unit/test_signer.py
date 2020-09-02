@@ -3,10 +3,10 @@ from uuid import uuid4
 
 from pytest import fixture
 
-from src.signer import Signer
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 from src.signer import MultiSig
+from src.signer import Signer
 
 
 @fixture(scope="module")

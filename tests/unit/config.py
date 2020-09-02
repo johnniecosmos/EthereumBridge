@@ -1,4 +1,5 @@
 from os import path
+
 from tests.unit import deployment
 
 db_name = "test_db"

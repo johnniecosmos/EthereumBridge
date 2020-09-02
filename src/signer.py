@@ -1,6 +1,6 @@
 import json
-from os import remove
 from collections import namedtuple
+from os import remove
 from tempfile import NamedTemporaryFile
 from threading import Lock
 from typing import Dict
