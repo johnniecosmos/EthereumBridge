@@ -1,9 +1,8 @@
-import json
 from time import sleep
 from uuid import uuid4
 
-from db.collections.eth_swap import ETHSwap, Status
-from db.collections.signatures import Signatures
+from src.db.collections.eth_swap import ETHSwap, Status
+from src.db.collections.signatures import Signatures
 
 
 def test_catch_up(signer, offline_data):

@@ -1,6 +1,6 @@
 from mongoengine import Document, StringField, ReferenceField
 
-from db.collections.eth_swap import ETHSwap
+from src.db.collections.eth_swap import ETHSwap
 
 
 class Signatures(Document):

@@ -3,14 +3,14 @@ from typing import List
 
 from web3 import Web3
 
-import config
-from contracts.contract import Contract
-from db.collections.eth_swap import ETHSwap, Status
-from db.collections.signatures import Signatures
-from event_listener import EventListener
-from signer import MultiSig
-from util.exceptions import catch_and_log
-from util.web3 import event_log, generate_unsigned_tx
+from src import config
+from src.contracts.contract import Contract
+from src.db.collections.eth_swap import ETHSwap, Status
+from src.db.collections.signatures import Signatures
+from src.event_listener import EventListener
+from src.signer import MultiSig
+from src.util.exceptions import catch_and_log
+from src.util.web3 import event_log, generate_unsigned_tx
 
 
 class Manager:

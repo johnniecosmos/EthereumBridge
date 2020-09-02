@@ -1,6 +1,6 @@
 from os import path, name
 
-import main
+from src import main
 
 signing_accounts = ["account1", "account2"]
 multisig_account = "name"

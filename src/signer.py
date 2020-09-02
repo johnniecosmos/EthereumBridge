@@ -8,13 +8,13 @@ from typing import Dict
 from mongoengine import signals
 from web3 import Web3
 
-from contracts.contract import Contract
-from db.collections.eth_swap import ETHSwap, Status
-from db.collections.log import Logs
-from db.collections.signatures import Signatures
-from util.exceptions import catch_and_log
-from util.secretcli import sign_tx as secretcli_sign, decrypt
-from util.web3 import event_log
+from src.contracts.contract import Contract
+from src.db.collections.eth_swap import ETHSwap, Status
+from src.db.collections.log import Logs
+from src.db.collections.signatures import Signatures
+from src.util.exceptions import catch_and_log
+from src.util.secretcli import sign_tx as secretcli_sign, decrypt
+from src.util.web3 import event_log
 
 MultiSig = namedtuple('MultiSig', ['multisig_acc_addr', 'signer_acc_name'])
 

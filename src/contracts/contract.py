@@ -1,7 +1,7 @@
 from web3 import Web3
 
-from temp.temp import abi as temp_abi
-from util.web3 import normalize_address
+from src.temp.temp import abi as temp_abi
+from src.util.web3 import normalize_address
 
 
 # TODO: generate abi from solidity file

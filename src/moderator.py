@@ -3,13 +3,13 @@ from time import sleep
 from mongoengine import DoesNotExist, MultipleObjectsReturned
 from web3 import Web3
 
-import config
-from contracts.contract import Contract
-from db.collections.eth_swap import ETHSwap
-from db.collections.log import Logs
-from db.collections.moderator import ModeratorData
-from util.exceptions import catch_and_log
-from util.web3 import last_confirmable_block, extract_tx_by_address, event_log, generate_unsigned_tx
+from src import config
+from src.contracts.contract import Contract
+from src.db.collections.eth_swap import ETHSwap
+from src.db.collections.log import Logs
+from src.db.collections.moderator import ModeratorData
+from src.util.exceptions import catch_and_log
+from src.util.web3 import last_confirmable_block, extract_tx_by_address, event_log, generate_unsigned_tx
 
 
 class Moderator:
@@ -86,8 +86,8 @@ class Moderator:
 
 
 if __name__ == "__main__":
-    from db.setup import connect_default
-    from util.web3 import web3_provider
+    from src.db.setup import connect_default
+    from src.util import web3_provider
 
     provider = web3_provider("wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74")
     contract = Contract(provider, "0xfc4589c481538f29ad738a13da49af79d93ecb21")

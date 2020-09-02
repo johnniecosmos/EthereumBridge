@@ -1,13 +1,13 @@
 from threading import Event
 from typing import List, Tuple
 
-import config
-from db.collections.eth_swap import ETHSwap, Status
-from db.collections.log import Logs
-from db.collections.signatures import Signatures
-from signer import MultiSig
-from util.exceptions import catch_and_log
-from util.secretcli import broadcast, multisign_tx
+from src import config
+from src.db.collections.eth_swap import ETHSwap, Status
+from src.db.collections.log import Logs
+from src.db.collections.signatures import Signatures
+from src.signer import MultiSig
+from src.util.exceptions import catch_and_log
+from src.util.secretcli import broadcast, multisign_tx
 
 
 class Leader:

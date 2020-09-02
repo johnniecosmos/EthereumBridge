@@ -5,8 +5,8 @@ from hexbytes import HexBytes
 from web3 import Web3
 
 # TODO: Use the auto detection of web3, will be good for docker setup
-from contracts.secret_contract import tx_args
-from util.secretcli import create_unsigined_tx
+from src.contracts.secret_contract import tx_args
+from src.util.secretcli import create_unsigined_tx
 
 
 def web3_provider(address_: str) -> Web3:

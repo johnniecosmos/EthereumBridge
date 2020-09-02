@@ -3,7 +3,7 @@ from pathlib import Path
 from os import name
 from typing import List
 
-from config import secret_cli, enclave_hash, enclave_key, chain_id
+from src.config import secret_cli, enclave_hash, enclave_key, chain_id
 
 if name == 'nt':
     bash = [r"C:\Program Files\Git\bin\bash.exe", "-c"]

@@ -1,6 +1,6 @@
 from typing import Tuple, Callable
 
-from db.collections.log import Logs
+from src.db.collections.log import Logs
 
 
 def catch_and_log(callable: Callable, *args, **kwargs) -> Tuple[any, bool]:

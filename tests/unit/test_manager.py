@@ -1,7 +1,7 @@
 from time import sleep
 
-from db.collections.eth_swap import ETHSwap, Status
-from db.collections.signatures import Signatures
+from src.db.collections.eth_swap import ETHSwap, Status
+from src.db.collections.signatures import Signatures
 from tests.unit.conftest import swap_log, m
 
 

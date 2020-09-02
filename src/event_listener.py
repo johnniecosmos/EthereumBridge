@@ -4,9 +4,9 @@ from typing import List, Callable
 
 from web3 import Web3
 
-import config
-from contracts.contract import Contract
-from util.web3 import last_confirmable_block, extract_tx_by_address
+from src import config
+from src.contracts.contract import Contract
+from src.util.web3 import last_confirmable_block, extract_tx_by_address
 
 
 class EventListener:

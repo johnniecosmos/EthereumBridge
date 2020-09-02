@@ -3,15 +3,15 @@ from mongoengine import connect
 from pytest import fixture
 from web3.datastructures import AttributeDict
 
-import config
-from contracts.contract import Contract
-from db.collections.eth_swap import ETHSwap, Status
-from event_listener import EventListener
-from manager import Manager
-from moderator import Moderator
-from signer import Signer, MultiSig
+from src import config
+from src.contracts.contract import Contract
+from src.db.collections.eth_swap import ETHSwap, Status
+from src.event_listener import EventListener
+from src.manager import Manager
+from src.moderator import Moderator
+from src.signer import Signer, MultiSig
 from tests.unit.config import db_name as test_db
-from util.web3 import web3_provider, generate_unsigned_tx
+from src.util.web3 import web3_provider, generate_unsigned_tx
 
 # (m of n)
 m = 2

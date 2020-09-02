@@ -1,6 +1,6 @@
 import json
 
-from config import secret_contract_address
+from src.config import secret_contract_address
 
 
 def tx_args(amount, eth_tx_hash):
