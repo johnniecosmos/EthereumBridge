@@ -3,14 +3,11 @@ from mongoengine import connect
 from pytest import fixture
 from web3.datastructures import AttributeDict
 
-from src import config
+from tests.unit import config
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
-from src.event_listener import EventListener
-from src.manager import Manager
 from src.moderator import Moderator
-from src.signer import Signer, MultiSig
-from tests.unit.config import db_name as test_db
+from src.signer import MultiSig
 from src.util.web3 import web3_provider, generate_unsigned_tx
 
 # (m of n)
@@ -44,6 +41,11 @@ contract_tx = AttributeDict({
 
 
 @fixture(scope="module")
+def test_configuration():
+    return config
+
+
+@fixture(scope="module")
 def websocket_provider():
     return web3_provider("wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74")
 
@@ -54,26 +56,13 @@ def contract(websocket_provider):
     return Contract(websocket_provider, contract_address)
 
 
-class MockEventListener(EventListener):
-    def register(self, callback):
-        callback([contract_tx])
-
-    def run(self):
-        return
-
-
 @fixture(scope="module")
-def event_listener(contract, websocket_provider):
-    return MockEventListener(contract, websocket_provider)
-
-
-@fixture(scope="module")
-def db():
+def db(test_configuration):
     # init connection to db
-    connection = connect(db=test_db)
+    connection = connect(db=test_configuration.db_name)
 
     # handle cleanup, fresh db
-    db = connection.get_database(test_db)
+    db = connection.get_database(test_configuration.db_name)
     for collection in db.list_collection_names():
         db.drop_collection(collection)
 
@@ -83,35 +72,16 @@ def multisig_account():
     return MultiSig(multisig_acc_addr="secret1smq22ek4lfldy57scu55svcruvpjd8g5080lyv", signer_acc_name="ms1")
 
 
-@fixture(scope="module")
-def manager(db, event_listener, contract, websocket_provider, multisig_account):
-    manager = Manager(event_listener, contract, websocket_provider, multisig_account)
-    yield manager
-    manager.stop_signal.set()
-
-
-@fixture(scope="module")
-def secret_contract_address():
-    return config.secret_contract_address
-
-
 # Note: has to be above signer
 @fixture(scope="module")
-def offline_data(db, secret_contract_address):
-    unsigned_tx = generate_unsigned_tx(swap_log, secret_contract_address,
+def offline_data(db, test_configuration):
+    unsigned_tx = generate_unsigned_tx(test_configuration.secret_contract_address, swap_log,
+                                       test_configuration.chain_id, test_configuration.enclave_key,
+                                       test_configuration.enclave_hash, test_configuration.multisig_acc_addr,
                                        "secret1smq22ek4lfldy57scu55svcruvpjd8g5080lyv")
     return ETHSwap(tx_hash=f"0xfc2ee006541030836591b7ebfb7bc7d5b233959f9d8df5ffdade7014782baeea",
                    status=Status.SWAP_STATUS_UNSIGNED.value,
                    unsigned_tx=unsigned_tx).save()
-
-
-@fixture(scope="module")
-def signer(db, offline_data, websocket_provider, contract):
-    memonic = "rural increase feed glimpse case lobster science crunch pitch advice nut caution stamp obvious coral " \
-              "rescue clerk side ski equip metal brush risk mercy"
-    multisig_account = MultiSig(multisig_acc_addr="secret1smq22ek4lfldy57scu55svcruvpjd8g5080lyv",
-                                signer_acc_name="t1")
-    return Signer(websocket_provider, multisig_account, contract)
 
 
 class MyMock:

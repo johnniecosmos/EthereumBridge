@@ -3,7 +3,7 @@ from typing import List
 
 from web3 import Web3
 
-from src import config
+from src import config as temp_config
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
@@ -16,8 +16,8 @@ from src.util.web3 import event_log, generate_unsigned_tx
 class Manager:
     """Accepts new swap events and manages the tx status in db"""
 
-    # TODO: Add a configuration module, to replace all specific config imports.
-    def __init__(self, event_listener: EventListener, contract: Contract, provider: Web3, multisig: MultiSig):
+    def __init__(self, event_listener: EventListener, contract: Contract, provider: Web3, multisig: MultiSig,
+                 config=temp_config):
         self.contract = contract
         self.provider = provider
         self.config = config
@@ -46,7 +46,9 @@ class Manager:
         """Extracts tx of event 'swap' and saves to db"""
         for event in events:
             log = event_log(tx_hash=event.hash, event='Swap', provider=self.provider, contract=self.contract.contract)
-            unsigned_tx, success = catch_and_log(generate_unsigned_tx, log, self.config.secret_contract_address,
-                                                 self.multisig.multisig_acc_addr)
+            unsigned_tx, success = catch_and_log(generate_unsigned_tx, self.config.secret_contract_address,  log,
+                                                 self.config.chain_id, self.config.enclave_key,
+                                                 self.config.enclave_hash, self.multisig.multisig_acc_addr,
+                                                 "secret17fm5fn2ezhe8367ejge2wqvcg4lcawarpe2mzj")  #TODO: replace const
             if success:
                 ETHSwap.save_web3_tx(log, unsigned_tx)

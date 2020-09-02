@@ -12,6 +12,7 @@ from src.util.secretcli import broadcast, multisign_tx
 
 class Leader:
     """Tracks the DB for signed tx and send a broadcast tx to the secret network"""
+
     def __init__(self, multisig_: MultiSig):
         self.multisig = multisig_
         self.config = config

@@ -3,7 +3,7 @@ from time import sleep
 from mongoengine import DoesNotExist, MultipleObjectsReturned
 from web3 import Web3
 
-from src import config
+from src import config as temp_config
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap
 from src.db.collections.log import Logs
@@ -15,7 +15,7 @@ from src.util.web3 import last_confirmable_block, extract_tx_by_address, event_l
 class Moderator:
     """Iterates the block-chain and inserts 'missed' swap tx to DB"""
 
-    def __init__(self, contract_: Contract, provider_: Web3):
+    def __init__(self, contract_: Contract, provider_: Web3, config=temp_config):
         self.provider = provider_
         self.contract = contract_
 
@@ -35,11 +35,14 @@ class Moderator:
             block = self.provider.eth.getBlock(block_number, full_transactions=True)
             transactions = self.extract_contract_tx(block)
             swap_transactions = self.extract_swap_tx(transactions)
-            for tx in swap_transactions:
+            for log in swap_transactions:
                 # noinspection PyBroadException
-                unsigned_tx, success = catch_and_log(generate_unsigned_tx, tx, self.config.secret_contract_address)
+                unsigned_tx, success = catch_and_log(generate_unsigned_tx, self.config.secret_contract_address,
+                                                     log, self.config.chain_id, self.config.enclave_key,
+                                                     self.config.enclave_hash, self.multisig.multisig_acc_addre,
+                                                     "secret17fm5fn2ezhe8367ejge2wqvcg4lcawarpe2mzj")  #TODO: replace const
                 if success:  # Note: Any tx that is failed here will be be skipped for eternity
-                    ETHSwap.save_web3_tx(tx, unsigned_tx)
+                    ETHSwap.save_web3_tx(log, unsigned_tx)
 
             self.doc.last_block += 1
             self.doc.save()
@@ -83,14 +86,3 @@ class Moderator:
                 res.append(log[data_index])
 
         return res
-
-
-if __name__ == "__main__":
-    from src.db.setup import connect_default
-    from src.util import web3_provider
-
-    provider = web3_provider("wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74")
-    contract = Contract(provider, "0xfc4589c481538f29ad738a13da49af79d93ecb21")
-
-    connect_default()
-    Moderator(contract, provider)

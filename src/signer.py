@@ -56,7 +56,7 @@ class Signer:
 
         if success:
             with self.lock:  # used by both the "catch_up()" and the notifications from DB
-                Signatures(tx_id=tx.id, signer= self.multisig.signer_acc_name, signed_tx=signed_tx).save()
+                Signatures(tx_id=tx.id, signer=self.multisig.signer_acc_name, signed_tx=signed_tx).save()
 
     def is_signed(self, tx: ETHSwap) -> bool:
         """ Returns True if tx was already signed, else False """
