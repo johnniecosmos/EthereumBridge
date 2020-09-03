@@ -40,7 +40,7 @@ def test_db_notifications(signer, offline_data: ETHSwap):
     assert Signatures.objects(tx_id=d.id, signer=signer.multisig.signer_acc_name).get().signed_tx == signed_tx
 
     # Check notification process only Status.SWAP_STATUS_UNSIGNED
-    d = ETHSwap(tx_hash=f"test hash {uuid4()}", status=Status.SWAP_STATUS_SIGNED.value,
+    d = ETHSwap(tx_hash=f"test hash {uuid4()}", status=Status.SWAP_STATUS_FAILED.value,
                 unsigned_tx=d.unsigned_tx).save()
 
     sleep(0.5)
