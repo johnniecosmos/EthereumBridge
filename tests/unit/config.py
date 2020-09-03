@@ -4,7 +4,7 @@ from tests.unit import deployment
 
 db_name = "test_db"
 secret_contract_address = "secret1h492k6dvfqcuraa935p7laaz203rz5546s0n8k"
-signatures_threshold = 2
+signatures_threshold = 3  # TODO: take it from the "m" dynamicly
 manager_sleep_time_seconds = 5.0
 provider_address = "wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74"
 # contract_address = "0xfc4589c481538f29ad738a13da49af79d93ecb21"
