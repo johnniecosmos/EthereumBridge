@@ -1,7 +1,5 @@
 import json
 from collections import namedtuple
-from os import remove
-from tempfile import NamedTemporaryFile
 from threading import Lock
 from typing import Dict
 
@@ -12,6 +10,7 @@ from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.log import Logs
 from src.db.collections.signatures import Signatures
+from src.util.common import temp_file
 from src.util.exceptions import catch_and_log
 from src.util.secretcli import sign_tx as secretcli_sign, decrypt
 from src.util.web3 import event_log
@@ -82,12 +81,9 @@ class Signer:
         return True
 
     def _sign_with_secret_cli(self, unsigned_tx: str) -> str:
-        f = NamedTemporaryFile(mode="w+", delete=False)
-        f.write(unsigned_tx)
-        f.close()
+        with temp_file(unsigned_tx) as unsigned_tx_path:
+            res = secretcli_sign(unsigned_tx_path, self.multisig.multisig_acc_addr, self.multisig.signer_acc_name)
 
-        res = secretcli_sign(f.name, self.multisig.multisig_acc_addr, self.multisig.signer_acc_name)
-        remove(f.name)
         return res
 
     @staticmethod
