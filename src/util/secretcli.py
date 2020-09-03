@@ -37,7 +37,7 @@ def decrypt(data: str) -> str:
 
 
 def run_secret_cli(cmd: List[str]) -> str:
-    p = run(tuple(cmd), stdout=PIPE, stderr=PIPE)
+    p = run(cmd, stdout=PIPE, stderr=PIPE)
 
     err = p.stderr
     if err:

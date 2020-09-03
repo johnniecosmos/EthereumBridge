@@ -14,4 +14,4 @@ deployment_dir, _ = path.split(deployment.__file__)
 enclave_key = path.join(deployment_dir, "io-master-cert.der")
 enclave_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 chain_id = 2
-multisig_acc_addr = "secret1gze003z96mmrctjtdpesww3z7sg4u6dmxpue0m"
+multisig_acc_addr = "dynamic update"

@@ -3,6 +3,7 @@ from mongoengine import connect
 from pytest import fixture
 from web3.datastructures import AttributeDict
 
+from tests.utils.keys import get_key_multisig_addr
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.moderator import Moderator
@@ -11,8 +12,8 @@ from src.util.web3 import web3_provider, generate_unsigned_tx
 from tests.unit import config
 
 # (m of n)
-m = 2
-n = 3
+m = 3
+n = 5
 
 swap_log = AttributeDict({
     'args': AttributeDict({'from': '0x53c22DBaFAFCcA28F6E2644b82eca5F8D66be96E', 'to': '0xabc123', 'amount': 5}),
@@ -42,6 +43,7 @@ contract_tx = AttributeDict({
 
 @fixture(scope="module")
 def test_configuration():
+    config.multisig_acc_addr = get_key_multisig_addr(f"ms{m}")
     return config
 
 
@@ -68,8 +70,8 @@ def db(test_configuration):
 
 
 @fixture(scope="module")
-def multisig_account():
-    return MultiSig(multisig_acc_addr="secret1smq22ek4lfldy57scu55svcruvpjd8g5080lyv", signer_acc_name="ms1")
+def multisig_account(test_configuration):
+    return MultiSig(multisig_acc_addr=test_configuration.multisig_acc_addr, signer_acc_name=f"ms{m}")
 
 
 # Note: has to be above signer

@@ -2,7 +2,6 @@ from time import sleep
 from uuid import uuid4
 
 from pytest import fixture
-
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 from src.signer import MultiSig
@@ -10,8 +9,8 @@ from src.signer import Signer
 
 
 @fixture(scope="module")
-def signer(db, offline_data, websocket_provider, contract):
-    multisig_account = MultiSig(multisig_acc_addr="secret1smq22ek4lfldy57scu55svcruvpjd8g5080lyv",
+def signer(db, offline_data, websocket_provider, contract, test_configuration):
+    multisig_account = MultiSig(multisig_acc_addr=test_configuration.multisig_acc_addr,
                                 signer_acc_name="t1")
     return Signer(websocket_provider, multisig_account, contract)
 
