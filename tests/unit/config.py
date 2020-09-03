@@ -13,5 +13,5 @@ default_sleep_time_interval = 5.0
 deployment_dir, _ = path.split(deployment.__file__)
 enclave_key = path.join(deployment_dir, "io-master-cert.der")
 enclave_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-chain_id = 2
+chain_id = "enigma-testnet"
 multisig_acc_addr = "dynamic update"

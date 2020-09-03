@@ -2,6 +2,7 @@ from time import sleep
 from uuid import uuid4
 
 from pytest import fixture
+
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 from src.signer import MultiSig

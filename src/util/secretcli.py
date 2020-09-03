@@ -4,16 +4,15 @@ from typing import List
 
 # Note: tx accepted in this module are valid file path or valid json string
 
-def sign_tx(unsigned_tx: str, multi_sig_account_addr: str, account_name: str):
-    cmd = ['secretcli', 'tx', 'sign', unsigned_tx, '--signature-only', '--multisig',
+def sign_tx(unsigned_tx_path: str, multi_sig_account_addr: str, account_name: str):
+    cmd = ['secretcli', 'tx', 'sign', unsigned_tx_path, '--signature-only', '--multisig',
            multi_sig_account_addr, '--from', account_name]
 
     return run_secret_cli(cmd)
 
 
-def multisign_tx(unsigned_tx: str, multi_sig_account_name: str, *signed_tx):
-    cmd = ['secretcli', 'tx', 'multisign', f"'{unsigned_tx}'", multi_sig_account_name] + \
-          list(map(lambda tx: f"'tx'", signed_tx))
+def multisign_tx(unsigned_tx_path: str, multi_sig_account_name: str, *signed_tx):
+    cmd = ['secretcli', 'tx', 'multisign', unsigned_tx_path, multi_sig_account_name] + list(signed_tx)
 
     return run_secret_cli(cmd)
 
@@ -26,8 +25,8 @@ def create_unsigined_tx(secret_contract_addr: str, encoded_args: str, chain_id: 
     return run_secret_cli(cmd)
 
 
-def broadcast(signed_tx: str) -> str:
-    cmd = ['secretcli', 'tx', 'broadcast', f"'{signed_tx}'"]
+def broadcast(signed_tx_path: str) -> str:
+    cmd = ['secretcli', 'tx', 'broadcast', signed_tx_path]
     return run_secret_cli(cmd)
 
 

@@ -1,6 +1,6 @@
-from subprocess import run, PIPE
-from os import path
 import json
+from os import path
+from subprocess import run, PIPE
 from typing import Dict
 
 

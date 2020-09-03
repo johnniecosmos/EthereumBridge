@@ -1,6 +1,6 @@
 # args:
 # $1 = number of signing accounts
-
+export SGX_MODE=SW
 
 # Setup secretcli with configuration for unit-testing
 secretcli config chain-id enigma-testnet
