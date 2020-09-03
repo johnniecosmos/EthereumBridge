@@ -25,7 +25,8 @@ def mock_tx():
 @fixture(scope="module")
 def leader(test_configuration, multisig_account, db):
     leader = Leader(multisig_account, test_configuration)
-    return leader
+    yield leader
+    leader.stop_event.set()
 
 
 @fixture(scope="module")
