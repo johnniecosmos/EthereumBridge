@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 from typing import List
 
+import src
 from src.db.collections.log import Logs
 
 
@@ -28,3 +29,7 @@ def temp_files(data: List[str]) -> List[str]:
             manager.__exit__(*sys.exc_info())
         except OSError as e:
             Logs(log=f"Couldn't remove file: {e}")
+
+
+def project_base_path():
+    return os.sep.join(os.path.split(src.__file__[:-1]))
