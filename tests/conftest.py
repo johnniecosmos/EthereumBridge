@@ -1,17 +1,16 @@
+from os import path
 from subprocess import run
 from typing import List
 
 from mongoengine import connect
 from pytest import fixture
 
+import tests as tests_package
+import tests.utils as utils_package
 from src.signer import MultiSig
 from src.util.common import module_dir
 from tests import config
 from tests.utils.keys import get_key_multisig_addr
-import tests.utils as utils_package
-import tests as tests_package
-from os import path
-
 
 utils_folder = module_dir(utils_package)
 tests_folder = module_dir(tests_package)

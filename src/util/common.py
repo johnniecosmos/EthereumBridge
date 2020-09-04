@@ -1,7 +1,7 @@
-from os import remove
-from pathlib import Path
 import sys
 from contextlib import contextmanager
+from os import remove
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import List
 
@@ -29,9 +29,10 @@ def temp_files(data: List[str]) -> List[str]:
         try:
             manager.__exit__(*sys.exc_info())
         except OSError as e:
-            Logs(log=f"Couldn't remove file: {e}")
+            Logs(log=f"{e}")
 
 
+# noinspection PyTypeChecker
 def project_base_path():
     res = module_dir(src)
     return Path(res).parent

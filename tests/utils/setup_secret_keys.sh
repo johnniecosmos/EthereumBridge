@@ -2,8 +2,7 @@
 # Overrides ANY account t1...t{$threshold}
 # Overrides multisig account ms{$threshold}
 
-if (("$#" != 2))
-then
+if (("$#" != 2)); then
   echo "Usage: <threshold> <base_dir>"
   exit 1
 fi
@@ -26,20 +25,18 @@ secretcli config trust-node true
 (cd "$deployment_directory" && secretcli query register secret-network-params)
 
 # Create accounts and save output to $keys_directory
-for (( i=1; i <= $1; i++ ))
-do
+for ((i = 1; i <= $1; i++)); do
   accounts="t$i,$accounts"
-  echo y | secretcli keys add "t$i" &> "$keys_directory/t$i.json"
+  echo y | secretcli keys add "t$i" &>"$keys_directory/t$i.json"
 done
 accounts=${accounts::-1}
 
 # Create multisig account if it doesn't exist
-echo y | secretcli keys add "--multisig=$accounts" "--multisig-threshold=$threshold" "ms$threshold" &> "$keys_directory/ms$threshold.json"
+echo y | secretcli keys add "--multisig=$accounts" "--multisig-threshold=$threshold" "ms$threshold" &>"$keys_directory/ms$threshold.json"
 
 # Send money to signing accounts
 moneyAddr=$(docker exec secretdev secretcli keys show a -a)
-for (( i=1; i <= threshold; i++ ))
-do
+for ((i = 1; i <= threshold; i++)); do
   signerAddr=$(secretcli keys show "t$i" -a)
   docker exec -it secretdev secretcli tx send -y "$moneyAddr" "$signerAddr" 10000000uscrt -b block
 done

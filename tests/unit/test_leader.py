@@ -1,7 +1,6 @@
 from os import remove
 from tempfile import NamedTemporaryFile
 from time import sleep
-from typing import List
 
 from pytest import fixture
 
@@ -9,9 +8,7 @@ from src.contracts.secret_contract import tx_args
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 from src.leader import Leader
-from src.signer import MultiSig
 from src.util.secretcli import create_unsigined_tx, sign_tx
-from tests.utils.keys import get_key_multisig_addr
 
 
 @fixture(scope="module")

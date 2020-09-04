@@ -7,7 +7,6 @@ from src.db.collections.eth_swap import ETHSwap, Status
 from src.moderator import Moderator
 from src.util.web3 import web3_provider, generate_unsigned_tx
 
-
 swap_log = AttributeDict({
     'args': AttributeDict({'from': '0x53c22DBaFAFCcA28F6E2644b82eca5F8D66be96E', 'to': '0xabc123', 'amount': 5}),
     'event': 'Swap',

@@ -1,17 +1,17 @@
 import os
+from shutil import copy, rmtree
 from time import sleep
 
+from brownie import project, network, accounts
 from pytest import fixture
-from shutil import copy, rmtree
 
+import src.contracts as contracts_package
+import tests.integration as integration_package
 from src.contracts.contract import Contract
 from src.event_listener import EventListener
 from src.leader import Leader
 from src.manager import Manager
 from src.util.common import module_dir
-import src.contracts as contracts_package
-import tests.integration as integration_package
-from brownie import project, network, accounts
 
 contracts_folder = module_dir(contracts_package)
 brownie_project_folder = os.path.join(module_dir(integration_package), 'brownie_project')
