@@ -12,17 +12,9 @@ from src.util.common import module_dir
 import src.contracts as contracts_package
 import tests.integration as integration_package
 from brownie import project, network, accounts
-import tests.utils as utils_package
-from os import path
 
 contracts_folder = module_dir(contracts_package)
-integration_folder = module_dir(integration_package)
 brownie_project_folder = os.path.join(module_dir(integration_package), 'brownie_project')
-utils_folder = module_dir(utils_package)
-
-
-# Create secretcli signer and multisign accounts
-# run(path.join(utils_folder, 'setup_secret_keys.sh'), 3, utils_folder)
 
 
 @fixture(scope="module")
@@ -50,8 +42,6 @@ def make_project():
     del brownie_project
     sleep(1)
     rmtree(brownie_project_folder, ignore_errors=True)
-    rmtree(path.join(integration_folder, "deployment"), ignore_errors=True)
-    rmtree(path.join(integration_folder, "keys"), ignore_errors=True)
 
 
 @fixture(scope="module")
@@ -67,7 +57,7 @@ def swap_contract(make_project):
 
 
 @fixture(scope="module")
-def brownie_network(swap_contract):
+def brownie_network(make_project):
     _, _, net, _ = make_project
     return net
 
@@ -108,7 +98,7 @@ def event_listener(contract, web3_provider):
     yield EventListener(contract, web3_provider)
 
 
-def test(make_project):
+def test(manager, leader, signer_accounts):
     brownie_project, swap_contract, network, accounts = make_project
 
     pass

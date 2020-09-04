@@ -1,3 +1,7 @@
+#!/bin/bash
+# Overrides ANY account t1...t{$threshold}
+# Overrides multisig account ms{$threshold}
+
 if (("$#" != 2))
 then
   echo "Usage: <threshold> <base_dir>"
@@ -6,7 +10,8 @@ fi
 
 threshold=$1
 keys_directory="$2/keys"
-deployment_directory="$2/deployment"
+base_dir=$2
+deployment_directory="$base_dir/deployment"
 
 mkdir -p "$keys_directory"
 mkdir -p "$deployment_directory"
@@ -20,20 +25,16 @@ secretcli config trust-node true
 # query register creates cert files in the path of execution
 (cd "$deployment_directory" && secretcli query register secret-network-params)
 
-# Create accounts if they do not exist and save output to $keys_directory
+# Create accounts and save output to $keys_directory
 for (( i=1; i <= $1; i++ ))
 do
   accounts="t$i,$accounts"
-  if [ ! -e  "$keys_directory/t$i.json" ]; then
-  secretcli keys add t$i &> "$keys_directory/t$i.json"
-  fi
+  echo y | secretcli keys add "t$i" &> "$keys_directory/t$i.json"
 done
 accounts=${accounts::-1}
 
 # Create multisig account if it doesn't exist
-if [ ! -e  "$keys_directory/ms$threshold.json" ]; then
-    secretcli keys add "--multisig=$accounts" "--multisig-threshold=$threshold" "ms$threshold" &> "$keys_directory/ms$threshold.json"
-fi
+echo y | secretcli keys add "--multisig=$accounts" "--multisig-threshold=$threshold" "ms$threshold" &> "$keys_directory/ms$threshold.json"
 
 # Send money to signing accounts
 moneyAddr=$(docker exec secretdev secretcli keys show a -a)

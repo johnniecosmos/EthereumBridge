@@ -3,3 +3,5 @@
 /.vscode/
 /tests/unit/keys/
 /tests/integration/brownie_project/
+/tests/deployment/
+/tests/keys/

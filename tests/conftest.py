@@ -1,11 +1,23 @@
+from subprocess import run
 from typing import List
 
 from mongoengine import connect
 from pytest import fixture
 
 from src.signer import MultiSig
-from tests.unit import config
+from src.util.common import module_dir
+from tests import config
 from tests.utils.keys import get_key_multisig_addr
+import tests.utils as utils_package
+import tests as tests_package
+from os import path
+
+
+utils_folder = module_dir(utils_package)
+tests_folder = module_dir(tests_package)
+
+# Create secretcli signer accounts and multisign account
+run([path.join(utils_folder, 'setup_secret_keys.sh'), '3', tests_folder])
 
 
 @fixture(scope="module")
