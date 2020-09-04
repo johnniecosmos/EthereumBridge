@@ -1,19 +1,12 @@
 from hexbytes import HexBytes
-from mongoengine import connect
 from pytest import fixture
 from web3.datastructures import AttributeDict
 
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.moderator import Moderator
-from src.signer import MultiSig
 from src.util.web3 import web3_provider, generate_unsigned_tx
-from tests.unit import config
-from tests.utils.keys import get_key_multisig_addr
 
-# (m of n)
-m = 3
-n = 5
 
 swap_log = AttributeDict({
     'args': AttributeDict({'from': '0x53c22DBaFAFCcA28F6E2644b82eca5F8D66be96E', 'to': '0xabc123', 'amount': 5}),
@@ -42,36 +35,14 @@ contract_tx = AttributeDict({
 
 
 @fixture(scope="module")
-def test_configuration():
-    config.multisig_acc_addr = get_key_multisig_addr(f"ms{m}")
-    return config
-
-
-@fixture(scope="module")
-def websocket_provider():
+def web3_provider():
     return web3_provider("wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74")
 
 
 @fixture(scope="module")
-def contract(websocket_provider):
+def contract(web3_provider):
     contract_address = "0xfc4589c481538f29ad738a13da49af79d93ecb21"
-    return Contract(websocket_provider, contract_address)
-
-
-@fixture(scope="module")
-def db(test_configuration):
-    # init connection to db
-    connection = connect(db=test_configuration.db_name)
-
-    # handle cleanup, fresh db
-    db = connection.get_database(test_configuration.db_name)
-    for collection in db.list_collection_names():
-        db.drop_collection(collection)
-
-
-@fixture(scope="module")
-def multisig_account(test_configuration):
-    return MultiSig(multisig_acc_addr=test_configuration.multisig_acc_addr, signer_acc_name=f"ms{m}")
+    return Contract(web3_provider, contract_address)
 
 
 # Note: has to be above signer
@@ -86,15 +57,7 @@ def offline_data(db, test_configuration):
                    unsigned_tx=unsigned_tx).save()
 
 
-class MyMock:
-    def __getattr__(self, item):
-        return self
-
-    def __call__(self, *args, **kwargs):
-        return self
-
-
-class BlockMock(MyMock):
+class BlockMock:
     transactions = [contract_tx]
 
 
@@ -105,16 +68,4 @@ def block():
 
 @fixture(scope="module")
 def moderator(db):
-    return Moderator(contract, websocket_provider)
-
-
-@fixture(scope="module")
-def http_provider():
-    raise NotImplementedError
-    # return web3_provider("")
-
-
-@fixture(scope="module")
-def ipc_provider():
-    raise NotImplementedError
-    # return web3_provider("")
+    return Moderator(contract, web3_provider)

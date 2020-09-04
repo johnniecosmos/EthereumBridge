@@ -6,7 +6,7 @@ from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 from src.event_listener import EventListener
 from src.manager import Manager
-from tests.unit.conftest import swap_log, m, contract_tx
+from tests.unit.conftest import swap_log, contract_tx
 
 
 class MockEventListener(EventListener):
@@ -18,13 +18,13 @@ class MockEventListener(EventListener):
 
 
 @fixture(scope="module")
-def event_listener(contract, websocket_provider):
-    return MockEventListener(contract, websocket_provider)
+def event_listener(contract, web3_provider):
+    return MockEventListener(contract, web3_provider)
 
 
 @fixture(scope="module")
-def manager(db, event_listener, contract, websocket_provider, multisig_account, test_configuration):
-    manager = Manager(event_listener, contract, websocket_provider, multisig_account, test_configuration)
+def manager(db, event_listener, contract, web3_provider, multisig_account, test_configuration):
+    manager = Manager(event_listener, contract, web3_provider, multisig_account, test_configuration)
     yield manager
     manager.stop_signal.set()
 
@@ -41,7 +41,7 @@ def test_run(manager):
 
     # Create signature in db
     doc = ETHSwap.objects(tx_hash=swap_log.transactionHash.hex()).get()
-    for i in range(m - 1):
+    for i in range(manager.config.signatures_threshold - 1):
         Signatures(tx_id=doc.id, signed_tx="tx signature", signer=f"test signer {i}").save()
 
     # make sure manager doesn't sing with less than m signatures

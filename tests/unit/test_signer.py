@@ -10,10 +10,10 @@ from src.signer import Signer
 
 
 @fixture(scope="module")
-def signer(db, offline_data, websocket_provider, contract, test_configuration):
+def signer(db, offline_data, web3_provider, contract, test_configuration):
     multisig_account = MultiSig(multisig_acc_addr=test_configuration.multisig_acc_addr,
                                 signer_acc_name="t1")
-    return Signer(websocket_provider, multisig_account, contract)
+    return Signer(web3_provider, multisig_account, contract)
 
 
 def test_catch_up(signer, offline_data):

@@ -4,13 +4,25 @@ from time import sleep
 from pytest import fixture
 from shutil import copy, rmtree
 
+from src.contracts.contract import Contract
+from src.event_listener import EventListener
+from src.leader import Leader
+from src.manager import Manager
 from src.util.common import module_dir
 import src.contracts as contracts_package
 import tests.integration as integration_package
 from brownie import project, network, accounts
+import tests.utils as utils_package
+from os import path
 
 contracts_folder = module_dir(contracts_package)
+integration_folder = module_dir(integration_package)
 brownie_project_folder = os.path.join(module_dir(integration_package), 'brownie_project')
+utils_folder = module_dir(utils_package)
+
+
+# Create secretcli signer and multisign accounts
+# run(path.join(utils_folder, 'setup_secret_keys.sh'), 3, utils_folder)
 
 
 @fixture(scope="module")
@@ -38,11 +50,65 @@ def make_project():
     del brownie_project
     sleep(1)
     rmtree(brownie_project_folder, ignore_errors=True)
+    rmtree(path.join(integration_folder, "deployment"), ignore_errors=True)
+    rmtree(path.join(integration_folder, "keys"), ignore_errors=True)
+
+
+@fixture(scope="module")
+def brownie_project(make_project):
+    p, _, _, _ = make_project
+    return p
+
+
+@fixture(scope="module")
+def swap_contract(make_project):
+    _, contract, _, _ = make_project
+    return contract
+
+
+@fixture(scope="module")
+def brownie_network(swap_contract):
+    _, _, net, _ = make_project
+    return net
+
+
+@fixture(scope="module")
+def ganache_accounts(make_project):
+    _, _, _, acc = make_project
+    return acc
+
+
+@fixture(scope="module")
+def web3_provider(brownie_network):
+    return brownie_network.web3
+
+
+@fixture(scope="module")
+def contract(web3_provider, swap_contract):
+    contract_address = swap_contract.address  # TODO: validate
+    return Contract(web3_provider, contract_address)
+
+
+@fixture(scope="module")
+def manager(event_listener, contract, web3_provider, multisig_account, test_configuration):
+    manager = Manager(event_listener, contract, web3_provider, multisig_account, test_configuration)
+    yield manager
+    manager.stop_signal.set()
+
+
+@fixture(scope="module")
+def leader(multisig_account, test_configuration):
+    leader = Leader(multisig_account, multisig_account)
+    yield leader
+    leader.stop_event.set()
+
+
+@fixture(scope="module")
+def event_listener(contract, web3_provider):
+    yield EventListener(contract, web3_provider)
 
 
 def test(make_project):
-    brownie_project, swap_contract, netowrk, accounts = make_project
+    brownie_project, swap_contract, network, accounts = make_project
 
     pass
-
-

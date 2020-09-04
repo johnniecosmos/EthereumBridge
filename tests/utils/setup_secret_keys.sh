@@ -20,8 +20,6 @@ secretcli config trust-node true
 # query register creates cert files in the path of execution
 (cd "$deployment_directory" && secretcli query register secret-network-params)
 
-
-
 # Create accounts if they do not exist and save output to $keys_directory
 for (( i=1; i <= $1; i++ ))
 do

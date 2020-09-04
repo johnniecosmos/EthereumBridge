@@ -11,7 +11,6 @@ from src.db.collections.signatures import Signatures
 from src.leader import Leader
 from src.signer import MultiSig
 from src.util.secretcli import create_unsigined_tx, sign_tx
-from tests.unit.conftest import m as threshold
 from tests.utils.keys import get_key_multisig_addr
 
 
@@ -27,14 +26,6 @@ def leader(test_configuration, multisig_account, db):
     leader = Leader(multisig_account, test_configuration)
     yield leader
     leader.stop_event.set()
-
-
-@fixture(scope="module")
-def signer_accounts() -> List[MultiSig]:
-    res = []
-    for i in range(1, threshold + 1):
-        res.append(MultiSig(get_key_multisig_addr(f"ms{threshold}"), f"t{i}"))
-    return res
 
 
 def test_run(leader, signer_accounts, multisig_account, mock_tx, test_configuration):
