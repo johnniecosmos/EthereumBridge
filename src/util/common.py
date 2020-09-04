@@ -1,4 +1,5 @@
-import os
+from os import remove
+from pathlib import Path
 import sys
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
@@ -14,7 +15,7 @@ def temp_file(data: str):
     f.write(data)
     f.close()
     yield f.name
-    os.remove(f.name)
+    remove(f.name)
 
 
 @contextmanager
@@ -32,4 +33,9 @@ def temp_files(data: List[str]) -> List[str]:
 
 
 def project_base_path():
-    return os.sep.join(os.path.split(src.__file__[:-1]))
+    res = module_dir(src)
+    return Path(res).parent
+
+
+def module_dir(module) -> str:
+    return Path(module.__file__).parent
