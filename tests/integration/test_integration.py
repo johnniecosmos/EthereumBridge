@@ -1,18 +1,34 @@
+from time import sleep
+
 from web3 import Web3
 
+from src.db.collections.eth_swap import ETHSwap, Status
+from src.db.collections.signatures import Signatures
 
-def test_1(manager, leader, signer_accounts, web3_provider, test_configuration):
-    # send contract tx
-    # somehow send enough tx to create blocks (# of confirmation required)
-    # verify recorded by manager
-    # verify signed
-    # verify multisig
-    # verify money SCRT
-    # verify status submitted updated
 
-    # Send contract tx
+def test_1(manager, signer_accounts, web3_provider, test_configuration):
+    # TODO: send contract tx!
+    assert increase_block_number(web3_provider, test_configuration.blocks_confirmation_required - 1)
 
-    assert increase_block_number(web3_provider, test_configuration.blocks_confirmation_required)
+    sleep(test_configuration.default_sleep_time_interval)
+    assert ETHSwap.objects().count() == 0  # verify blocks confirmation threshold wasn't meet
+    assert increase_block_number(web3_provider, 1)  # add the 'missing' confirmation block
+
+    # give event listener and manager time to process tx
+    sleep(test_configuration.default_sleep_time_interval)
+    assert ETHSwap.objects().count() == 1  # verify swap event recorded
+
+    # check signers were notified of the tx and signed it
+    assert Signatures.objects().count() == len(signer_accounts)
+
+    # give time for manager to process the signatures
+    assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SIGNED
+
+
+def test_2(leader, test_configuration):
+    # give leader time to multisign already existing signatures
+    sleep(1)
+    assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED
 
 
 def increase_block_number(web3_provider: Web3, increment: int) -> True:

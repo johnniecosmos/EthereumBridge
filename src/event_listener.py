@@ -1,5 +1,4 @@
 from threading import Thread, Event
-from time import sleep
 from typing import List, Callable
 
 from web3 import Web3
@@ -24,13 +23,13 @@ class EventListener:
     def register(self, callback: Callable):
         self.callbacks.append(callback)
 
+    # noinspection PyUnresolvedReferences
     def run(self):
         current_block = self.provider.eth.getBlock('latest')
 
         while not self.stop_event.is_set():
-            # noinspection PyUnresolvedReferences
             if current_block.number > last_confirmable_block(self.provider, self.config.blocks_confirmation_required):
-                self.stop_event.wait(5)
+                self.stop_event.wait(self.config.default_sleep_time_interval)
             else:
                 transactions = extract_tx_by_address(self.contract.address, current_block)
                 for tx in transactions:
