@@ -32,7 +32,7 @@ def test_1(manager, signers, web3_provider, test_configuration, contract):
 def test_2(leader, test_configuration):
     # give leader time to multisign already existing signatures
     sleep(1)
-    assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED
+    assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED.value
 
 
 def increase_block_number(web3_provider: Web3, increment: int) -> True:
