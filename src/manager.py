@@ -28,6 +28,7 @@ class Manager:
         event_listener.register(self._handle)
         Thread(target=self.run).start()
 
+    # noinspection PyUnresolvedReferences
     def run(self):
         """Scans for signed transactions and updates status if multisig threshold achieved"""
         while not self.stop_signal.is_set():
@@ -46,6 +47,7 @@ class Manager:
         """Extracts tx of event 'swap' and saves to db"""
         for event in events:
             log = event_log(tx_hash=event.hash, event='Swap', provider=self.provider, contract=self.contract.contract)
+            # noinspection PyUnresolvedReferences
             unsigned_tx, success = catch_and_log(generate_unsigned_tx, self.config.secret_contract_address, log,
                                                  self.config.chain_id, self.config.enclave_key,
                                                  self.config.enclave_hash, self.multisig.multisig_acc_addr,

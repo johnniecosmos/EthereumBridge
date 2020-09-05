@@ -18,7 +18,7 @@ brownie_project_folder = os.path.join(module_dir(integration_package), 'brownie_
 
 
 @fixture(scope="module")
-def make_project():
+def make_project(db):
     # init brownie project structure
     project.new(brownie_project_folder)
 
@@ -88,17 +88,13 @@ def manager(event_listener, contract, web3_provider, multisig_account, test_conf
 
 @fixture(scope="module")
 def leader(multisig_account, test_configuration):
-    leader = Leader(multisig_account, multisig_account)
+    leader = Leader(multisig_account, test_configuration)
     yield leader
     leader.stop_event.set()
 
 
 @fixture(scope="module")
-def event_listener(contract, web3_provider):
-    yield EventListener(contract, web3_provider)
-
-
-def test(manager, leader, signer_accounts):
-    brownie_project, swap_contract, network, accounts = make_project
-
-    pass
+def event_listener(contract, web3_provider, test_configuration):
+    listener = EventListener(contract, web3_provider, test_configuration)
+    yield listener
+    listener.stop_event.set()

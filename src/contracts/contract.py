@@ -5,7 +5,6 @@ from src.util.web3 import normalize_address
 
 
 # TODO: generate abi from solidity file
-# TODO: deploy with script?
 class Contract:
     abi = temp_abi
 
