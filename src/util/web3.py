@@ -24,6 +24,7 @@ def last_confirmable_block(provider: Web3, threshold: int = 12):
 
 
 def extract_tx_by_address(address, block) -> list:
+    # Note: block attribute dict has to be generated with full_transactions=True flag
     return [tx for tx in block.transactions if tx.to and address.lower() == tx.to.lower()]
 
 

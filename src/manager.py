@@ -2,6 +2,7 @@ from threading import Thread, Event
 from typing import List
 
 from web3 import Web3
+from web3.datastructures import AttributeDict
 
 from src import config as temp_config
 from src.contracts.contract import Contract
@@ -38,19 +39,18 @@ class Manager:
                     transaction.save()
             self.stop_signal.wait(self.config.manager_sleep_time_seconds)
 
-    def _handle(self, transactions: List[any]):
+    def _handle(self, transaction: AttributeDict):
         """Registers transaction to the db"""
 
-        self._handle_swap_events(transactions)
+        self._handle_swap_events(transaction)
 
-    def _handle_swap_events(self, events: List[any]):
+    def _handle_swap_events(self, event: AttributeDict):
         """Extracts tx of event 'swap' and saves to db"""
-        for event in events:
-            log = event_log(tx_hash=event.hash, event='Swap', provider=self.provider, contract=self.contract.contract)
-            # noinspection PyUnresolvedReferences
-            unsigned_tx, success = catch_and_log(generate_unsigned_tx, self.config.secret_contract_address, log,
-                                                 self.config.chain_id, self.config.enclave_key,
-                                                 self.config.enclave_hash, self.multisig.multisig_acc_addr,
-                                                 "secret17fm5fn2ezhe8367ejge2wqvcg4lcawarpe2mzj")  # TODO: replace const
-            if success:
-                ETHSwap.save_web3_tx(log, unsigned_tx)
+        log = event_log(tx_hash=event.hash, event='Swap', provider=self.provider, contract=self.contract.contract)
+        # noinspection PyUnresolvedReferences
+        unsigned_tx, success = catch_and_log(generate_unsigned_tx, self.config.secret_contract_address, log,
+                                             self.config.chain_id, self.config.enclave_key,
+                                             self.config.enclave_hash, self.multisig.multisig_acc_addr,
+                                             "secret17fm5fn2ezhe8367ejge2wqvcg4lcawarpe2mzj")  # TODO: replace const
+        if success:
+            ETHSwap.save_web3_tx(log, unsigned_tx)

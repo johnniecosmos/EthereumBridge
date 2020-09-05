@@ -25,15 +25,16 @@ class EventListener:
 
     # noinspection PyUnresolvedReferences
     def run(self):
-        current_block = self.provider.eth.getBlock('latest')
+        current_block_num = self.provider.eth.getBlock('latest').number
 
         while not self.stop_event.is_set():
-            if current_block.number > last_confirmable_block(self.provider, self.config.blocks_confirmation_required):
+            if current_block_num > last_confirmable_block(self.provider, self.config.blocks_confirmation_required):
                 self.stop_event.wait(self.config.default_sleep_time_interval)
             else:
-                transactions = extract_tx_by_address(self.contract.address, current_block)
+                block = self.provider.eth.getBlock(current_block_num, full_transactions=True)
+                transactions = extract_tx_by_address(self.contract.address, block)
                 for tx in transactions:
                     for callback in self.callbacks:
                         callback(tx)
 
-                current_block += 1
+                current_block_num += 1

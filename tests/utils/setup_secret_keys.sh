@@ -2,6 +2,8 @@
 # Overrides ANY account t1...t{$threshold}
 # Overrides multisig account ms{$threshold}
 
+export SGW_MODE=sw
+
 if (("$#" != 2)); then
   echo "Usage: <threshold> <base_dir>"
   exit 1
