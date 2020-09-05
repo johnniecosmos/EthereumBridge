@@ -15,14 +15,16 @@ from tests.utils.keys import get_key_multisig_addr
 utils_folder = module_dir(utils_package)
 tests_folder = module_dir(tests_package)
 
+
 # Create secretcli signer accounts and multisign account
-run([path.join(utils_folder, 'setup_secret_keys.sh'), '3', tests_folder])
-
-
 @fixture(scope="module")
 def test_configuration():
     config.multisig_acc_addr = get_key_multisig_addr(f"ms{config.signatures_threshold}")
+    config.enclave_key = path.join(tests_folder, 'deployment', 'io-master-cert.der')
     return config
+
+
+run([path.join(utils_folder, 'setup_secret_keys.sh'), '3', tests_folder])
 
 
 @fixture(scope="module")
@@ -45,6 +47,7 @@ def multisig_account(test_configuration):
 
 @fixture(scope="module")
 def signer_accounts(test_configuration) -> List[MultiSig]:
+    """multisig accounts for signers"""
     threshold = test_configuration.signatures_threshold
     res = []
     multig_acc_addr = get_key_multisig_addr(f"ms{threshold}")

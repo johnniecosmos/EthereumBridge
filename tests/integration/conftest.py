@@ -1,6 +1,7 @@
 import os
 from shutil import copy, rmtree
 from time import sleep
+from typing import List
 
 from brownie import project, network, accounts
 from pytest import fixture
@@ -11,6 +12,7 @@ from src.contracts.contract import Contract
 from src.event_listener import EventListener
 from src.leader import Leader
 from src.manager import Manager
+from src.signer import Signer
 from src.util.common import module_dir
 
 contracts_folder = module_dir(contracts_package)
@@ -98,3 +100,11 @@ def event_listener(contract, web3_provider, test_configuration):
     listener = EventListener(contract, web3_provider, test_configuration)
     yield listener
     listener.stop_event.set()
+
+
+@fixture(scope="module")
+def signers(signer_accounts, web3_provider, contract) -> List[Signer]:
+    signers_: List[Signer] = []
+    for i in signer_accounts:
+        signers_.append(Signer(web3_provider, i, contract))
+    return signers_

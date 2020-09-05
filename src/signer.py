@@ -41,7 +41,6 @@ class Signer:
         self._sign_tx(document)
 
     def _sign_tx(self, tx: ETHSwap):
-
         if self.is_signed(tx):
             Logs(log=f"Tried to sign an already signed tx. Signer:\n {self.multisig.signer_acc_name}.\ntx id:{tx.id}.")
             return

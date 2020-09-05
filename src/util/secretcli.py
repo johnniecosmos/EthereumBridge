@@ -17,9 +17,9 @@ def multisign_tx(unsigned_tx_path: str, multi_sig_account_name: str, *signed_tx)
     return run_secret_cli(cmd)
 
 
-def create_unsigined_tx(secret_contract_addr: str, encoded_args: str, chain_id: int, enclave_key: str,
+def create_unsigined_tx(SOME_SECRET_ADDR: bytes, encoded_args: str, chain_id: int, enclave_key: str,
                         enclave_hash: str, multisig_acc_addr: str) -> str:
-    cmd = ['secretcli', 'tx', 'compute', 'execute', secret_contract_addr, f"'{encoded_args}'",
+    cmd = ['secretcli', 'tx', 'compute', 'execute', SOME_SECRET_ADDR.decode(), f"'{encoded_args}'",
            '--generate-only', '--chain-id', f"{chain_id}", '--enclave-key', enclave_key, '--code-hash',
            enclave_hash, '--from', multisig_acc_addr]
     return run_secret_cli(cmd)
@@ -40,6 +40,6 @@ def run_secret_cli(cmd: List[str]) -> str:
 
     err = p.stderr
     if err:
-        raise RuntimeError(err.decode())
+        raise RuntimeError(err)
 
     return p.stdout.decode()
