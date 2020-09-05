@@ -53,11 +53,11 @@ def normalize_address(address: str):
 
 
 # TODO:  log.args.to - change it when i have real tests and not fake address 0x1234avc
-def generate_unsigned_tx(log, chain_id, enclave_key, enclave_hash,
+def generate_unsigned_tx(secret_contract_address, log, chain_id, enclave_key, enclave_hash,
                          multisig_acc_addr: str, recipient_address: str):
     """Extracts the data from the web3 log objects and creates unsigned_tx acceptable by SCRT network"""
     return create_unsigined_tx(
-        log.args.to,
+        secret_contract_address,
         tx_args(
             log.args.amount,
             log.transactionHash.hex(),

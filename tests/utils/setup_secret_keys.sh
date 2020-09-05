@@ -2,7 +2,7 @@
 # Overrides ANY account t1...t{$threshold}
 # Overrides multisig account ms{$threshold}
 
-export SGW_MODE=sw
+export SGX_MODE=SW
 
 if (("$#" != 2)); then
   echo "Usage: <threshold> <base_dir>"

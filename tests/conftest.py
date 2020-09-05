@@ -1,5 +1,4 @@
 from os import path
-from subprocess import run
 from typing import List
 
 from mongoengine import connect
@@ -16,15 +15,12 @@ utils_folder = module_dir(utils_package)
 tests_folder = module_dir(tests_package)
 
 
-# Create secretcli signer accounts and multisign account
 @fixture(scope="module")
 def test_configuration():
     config.multisig_acc_addr = get_key_multisig_addr(f"ms{config.signatures_threshold}")
     config.enclave_key = path.join(tests_folder, 'deployment', 'io-master-cert.der')
+    config.secret_contract_address = config.multisig_acc_addr  # TODO: change once secret contract is deployed
     return config
-
-
-run([path.join(utils_folder, 'setup_secret_keys.sh'), '3', tests_folder])
 
 
 @fixture(scope="module")

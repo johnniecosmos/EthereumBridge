@@ -34,8 +34,7 @@ def make_project(db):
 
     # noinspection PyUnresolvedReferences
     from brownie.project.Swap import EthSwap
-    network.connect('development')  # connect to ganache cli  # TODO: Consider if network reset required
-    # EthSwap.deploy("EthSwap Token", "EST", 18, 1e20, {'from': accounts[0]})
+    network.connect('development')  # connect to ganache cli
     swap_contract = EthSwap.deploy({'from': accounts[0]})
 
     yield brownie_project, swap_contract, network, accounts
@@ -77,7 +76,7 @@ def web3_provider(brownie_network):
 
 @fixture(scope="module")
 def contract(web3_provider, swap_contract):
-    contract_address = swap_contract.address  # TODO: validate
+    contract_address = swap_contract.address
     return Contract(web3_provider, contract_address)
 
 
