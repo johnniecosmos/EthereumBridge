@@ -50,7 +50,7 @@ def offline_data(db, test_configuration):
     unsigned_tx = generate_unsigned_tx(test_configuration.secret_contract_address, swap_log,
                                        test_configuration.chain_id, test_configuration.enclave_key,
                                        test_configuration.enclave_hash, test_configuration.multisig_acc_addr,
-                                       "secret1smq22ek4lfldy57scu55svcruvpjd8g5080lyv")
+                                       )
     return ETHSwap(tx_hash=f"0xfc2ee006541030836591b7ebfb7bc7d5b233959f9d8df5ffdade7014782baeea",
                    status=Status.SWAP_STATUS_UNSIGNED.value,
                    unsigned_tx=unsigned_tx).save()

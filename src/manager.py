@@ -51,7 +51,6 @@ class Manager:
                                              self.config.secret_contract_address,
                                              log,
                                              self.config.chain_id, self.config.enclave_key,
-                                             self.config.enclave_hash, self.multisig.multisig_acc_addr,
-                                             "secret17fm5fn2ezhe8367ejge2wqvcg4lcawarpe2mzj")  # TODO: replace const
+                                             self.config.enclave_hash, self.multisig.multisig_acc_addr)
         if success:
             ETHSwap.save_web3_tx(log, unsigned_tx)

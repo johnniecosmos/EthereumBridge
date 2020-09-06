@@ -68,11 +68,12 @@ class Signer:
             res, success = catch_and_log(self.decrypt, unsigned_tx)
             if not success:
                 return False
-
-            # decrypted_data = json.loads(res[80:])['mint']
-            # assert decrypted_data['eth_tx_hash'] == log.transactionHash.hex()
-            # assert decrypted_data['amount_seth'] == log.args.amount
-            # assert decrypted_data['to'] == log.args.to  # TODO: fix bytes\string
+            json_start_index = res.find('{')
+            json_end_index = res.rfind('}') + 1
+            decrypted_data = json.loads(res[json_start_index:json_end_index])
+            assert decrypted_data['mint']['eth_tx_hash'] == log.transactionHash.hex()
+            assert decrypted_data['mint']['amount_seth'] == log.args.amount
+            assert decrypted_data['mint']['to'] == log.args.to.decode()
         except AssertionError as e:
             Logs(log=repr(e)).save()
             return False
