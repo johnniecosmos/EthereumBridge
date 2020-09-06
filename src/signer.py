@@ -12,6 +12,7 @@ from src.db.collections.log import Logs
 from src.db.collections.signatures import Signatures
 from src.util.common import temp_file
 from src.util.exceptions import catch_and_log
+from src.util.logger import get_logger
 from src.util.secretcli import sign_tx as secretcli_sign, decrypt
 from src.util.web3 import event_log
 
@@ -21,13 +22,13 @@ MultiSig = namedtuple('MultiSig', ['multisig_acc_addr', 'signer_acc_name'])
 class Signer:
     """Verifies Ethereum tx in SWAP_STATUS_UNSIGNED and adds it's signature"""
 
-    def __init__(self, provider: Web3, multisig_: MultiSig, contract: Contract):
+    def __init__(self, provider: Web3, multisig_: MultiSig, contract: Contract, config):
         self.provider = provider
         self.multisig = multisig_
         self.contract = contract
         self.lock = Lock()
         signals.post_save.connect(self._new_tx_signal, sender=ETHSwap)
-
+        self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
         self.catch_up()
 
     def catch_up(self):
@@ -50,7 +51,7 @@ class Signer:
             return
 
         # noinspection PyBroadException
-        signed_tx, success = catch_and_log(self._sign_with_secret_cli, tx.unsigned_tx)
+        signed_tx, success = catch_and_log(self.logger, self._sign_with_secret_cli, tx.unsigned_tx)
 
         if success:
             with self.lock:  # used by both the "catch_up()" and the notifications from DB
@@ -65,7 +66,7 @@ class Signer:
         log = event_log(tx.tx_hash, 'Swap', self.provider, self.contract.contract)
         unsigned_tx = json.loads(tx.unsigned_tx)
         try:
-            res, success = catch_and_log(self.decrypt, unsigned_tx)
+            res, success = catch_and_log(self.logger, self.decrypt, unsigned_tx)
             if not success:
                 return False
             json_start_index = res.find('{')

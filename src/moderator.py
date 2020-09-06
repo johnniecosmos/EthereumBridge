@@ -9,6 +9,7 @@ from src.db.collections.eth_swap import ETHSwap
 from src.db.collections.log import Logs
 from src.db.collections.moderator import ModeratorData
 from src.util.exceptions import catch_and_log
+from src.util.logger import get_logger
 from src.util.web3 import last_confirmable_block, extract_tx_by_address, event_log, generate_unsigned_tx
 
 
@@ -18,8 +19,9 @@ class Moderator:
     def __init__(self, contract_: Contract, provider_: Web3, config=temp_config):
         self.provider = provider_
         self.contract = contract_
-
         self.config = config
+
+        self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
 
         self.doc = self._resolve_last_block_scanned()
         self.run()
@@ -37,7 +39,9 @@ class Moderator:
             swap_transactions = self.extract_swap_tx(transactions)
             for log in swap_transactions:
                 # noinspection PyBroadException
-                unsigned_tx, success = catch_and_log(generate_unsigned_tx, self.config.secret_contract_address,
+                unsigned_tx, success = catch_and_log(self.logger,
+                                                     generate_unsigned_tx,
+                                                     self.config.secret_contract_address,
                                                      log, self.config.chain_id, self.config.enclave_key,
                                                      self.config.enclave_hash, self.multisig.multisig_acc_addre,
                                                      "secret17fm5fn2ezhe8367ejge2wqvcg4lcawarpe2mzj")  # TODO: replace const

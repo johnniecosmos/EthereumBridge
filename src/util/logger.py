@@ -1,6 +1,9 @@
 import os
-import sys
 import logging
+
+from mongoengine import connect
+
+from src.db.collections.log import Logs
 
 
 class CustomFormatter(logging.Formatter):
@@ -46,17 +49,22 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def get_logger(logger_name: str = 'enigma') -> logging.Logger:
+def get_logger(db_name: str, logger_name: str = 'enigma') -> logging.Logger:
     logger = logging.getLogger(logger_name)
-    loglevel = getattr(logging, os.getenv('LOG_LEVEL', '').upper(), logging.INFO)
-    if not isinstance(loglevel, int):
-        raise ValueError('Invalid log level: %s' % loglevel)
+    logger.addHandler(DBLoggerHandler(db_name))
 
-    logger.setLevel(level=loglevel)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
-    formatter = CustomFormatter()
-    handler.setFormatter(formatter)
-
-    logger.addHandler(handler)
     return logger
+
+
+class DBLoggerHandler(logging.Handler):
+    def __init__(self, db_name, level: int = logging.DEBUG):
+        super().__init__(level)
+        self.connection = connect(db_name)
+        self.formatter = CustomFormatter()
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            msg = self.format(record)
+            Logs(log=msg).save()
+        except Exception:
+            self.handleError(record)

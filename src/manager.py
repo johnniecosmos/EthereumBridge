@@ -10,6 +10,7 @@ from src.db.collections.signatures import Signatures
 from src.event_listener import EventListener
 from src.signer import MultiSig
 from src.util.exceptions import catch_and_log
+from src.util.logger import get_logger
 from src.util.web3 import event_log, generate_unsigned_tx
 
 
@@ -23,6 +24,7 @@ class Manager:
         self.config = config
         self.multisig = multisig
 
+        self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
         self.stop_signal = Event()
 
         event_listener.register(self._handle)
@@ -47,7 +49,8 @@ class Manager:
         """Extracts tx of event 'swap' and saves to db"""
         log = event_log(tx_hash=event.hash, event='Swap', provider=self.provider, contract=self.contract.contract)
 
-        unsigned_tx, success = catch_and_log(generate_unsigned_tx,
+        unsigned_tx, success = catch_and_log(self.logger,
+                                             generate_unsigned_tx,
                                              self.config.secret_contract_address,
                                              log,
                                              self.config.chain_id, self.config.enclave_key,

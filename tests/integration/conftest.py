@@ -102,8 +102,8 @@ def event_listener(contract, web3_provider, test_configuration):
 
 
 @fixture(scope="module")
-def signers(signer_accounts, web3_provider, contract) -> List[Signer]:
+def signers(signer_accounts, web3_provider, contract, test_configuration) -> List[Signer]:
     signers_: List[Signer] = []
     for i in signer_accounts:
-        signers_.append(Signer(web3_provider, i, contract))
+        signers_.append(Signer(web3_provider, i, contract, test_configuration))
     return signers_
