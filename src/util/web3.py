@@ -5,6 +5,8 @@ from hexbytes import HexBytes
 from web3 import Web3
 
 # TODO: Use the auto detection of web3, will be good for docker setup
+from web3.datastructures import AttributeDict
+
 from src.contracts.secret_contract import tx_args
 from src.util.secretcli import create_unsigined_tx
 
@@ -28,7 +30,8 @@ def extract_tx_by_address(address, block) -> list:
     return [tx for tx in block.transactions if tx.to and address.lower() == tx.to.lower()]
 
 
-def event_log(tx_hash: Union[Hash32, HexBytes, HexStr], event: str, provider: Web3, contract):
+def event_log(tx_hash: Union[Hash32, HexBytes, HexStr], event: str, provider: Web3, contract) -> \
+        Union[AttributeDict, None]:
     """
     Extracts logs of @event from tx_hash if present
     :param tx_hash:
@@ -58,9 +61,9 @@ def generate_unsigned_tx(secret_contract_address, log, chain_id, enclave_key, en
     return create_unsigined_tx(
         secret_contract_address,
         tx_args(
-            log.args.amount,
+            log.args.value,
             log.transactionHash.hex(),
-            log.args.to.decode()),
+            log.args.recipient.decode()),
         chain_id,
         enclave_key,
         enclave_hash,
