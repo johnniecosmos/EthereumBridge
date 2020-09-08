@@ -7,5 +7,5 @@ def catch_and_log(logger: Logger, callable: Callable, *args, **kwargs) -> Tuple[
     try:
         return callable(*args, **kwargs), True
     except Exception as e:
-        logger.log(level= ERROR, msg=e)
+        logger.log(level=ERROR, msg=e)
         return None, False

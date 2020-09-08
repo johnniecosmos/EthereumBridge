@@ -8,6 +8,7 @@ from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap
 from src.db.collections.log import Logs
 from src.db.collections.moderator import ModeratorData
+from src.signer import MultiSig
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
 from src.util.web3 import last_confirmable_block, extract_tx_by_address, event_log, generate_unsigned_tx
@@ -16,9 +17,10 @@ from src.util.web3 import last_confirmable_block, extract_tx_by_address, event_l
 class Moderator:
     """Iterates the block-chain and inserts 'missed' swap tx to DB"""
 
-    def __init__(self, contract_: Contract, provider_: Web3, config=temp_config):
+    def __init__(self, contract_: Contract, provider_: Web3, multisig: MultiSig, config=temp_config):
         self.provider = provider_
         self.contract = contract_
+        self.multisig = multisig
         self.config = config
 
         self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
