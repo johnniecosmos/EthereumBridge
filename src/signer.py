@@ -1,6 +1,5 @@
 import json
 from collections import namedtuple
-from threading import Lock
 from typing import Dict
 
 from mongoengine import signals
@@ -26,20 +25,26 @@ class Signer:
         self.provider = provider
         self.multisig = multisig_
         self.contract = contract
-        self.lock = Lock()
+
         signals.post_save.connect(self._new_tx_signal, sender=ETHSwap)
         self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
         self.catch_up()
 
     def catch_up(self):
         for tx in ETHSwap.objects(status=Status.SWAP_STATUS_UNSIGNED.value):
-            self._sign_tx(tx)
+            try:
+                self._sign_tx(tx)
+            except Exception as e:
+                self.logger.error(msg=e)
 
     # noinspection PyUnusedLocal
     def _new_tx_signal(self, sender, document, **kwargs):
         if not document.status == Status.SWAP_STATUS_UNSIGNED.value:
-            return  # TODO: might be able to improve notification filter
-        self._sign_tx(document)
+            return
+        try:
+            self._sign_tx(document)
+        except Exception as e:
+            self.logger.error(msg=e)
 
     def _sign_tx(self, tx: ETHSwap):
         if self.is_signed(tx):
@@ -54,8 +59,7 @@ class Signer:
         signed_tx, success = catch_and_log(self.logger, self._sign_with_secret_cli, tx.unsigned_tx)
 
         if success:
-            with self.lock:  # used by both the "catch_up()" and the notifications from DB
-                Signatures(tx_id=tx.id, signer=self.multisig.signer_acc_name, signed_tx=signed_tx).save()
+            Signatures(tx_id=tx.id, signer=self.multisig.signer_acc_name, signed_tx=signed_tx).save()
 
     def is_signed(self, tx: ETHSwap) -> bool:
         """ Returns True if tx was already signed, else False """

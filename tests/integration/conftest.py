@@ -84,8 +84,8 @@ def contract(web3_provider, swap_contract):
 
 
 @fixture(scope="module")
-def manager(event_listener, contract, web3_provider, multisig_account, test_configuration):
-    manager = Manager(event_listener, contract, web3_provider, multisig_account, test_configuration)
+def manager(event_listener, contract, multisig_account, test_configuration):
+    manager = Manager(event_listener, contract, multisig_account, test_configuration)
     yield manager
     manager.stop_signal.set()
 

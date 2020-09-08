@@ -17,10 +17,9 @@ from src.util.web3 import generate_unsigned_tx
 class Manager:
     """Accepts new swap events and manages the tx status in db"""
 
-    def __init__(self, event_listener: EventListener, contract: Contract, provider: Web3, multisig: MultiSig,
+    def __init__(self, event_listener: EventListener, contract: Contract, multisig: MultiSig,
                  config=temp_config):
         self.contract = contract
-        self.provider = provider
         self.config = config
         self.multisig = multisig
 
