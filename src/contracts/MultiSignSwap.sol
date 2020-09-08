@@ -13,7 +13,7 @@ contract MultiSigSwapWallet {
     event Submission(uint indexed transactionId);
     event Withdraw(uint indexed transactionId);
     event WithdrawFailure(uint indexed transactionId);
-    event Swap(address indexed sender, uint value);
+    event Swap(uint value, bytes recipient);
     event OwnerAddition(address indexed owner);
     event OwnerRemoval(address indexed owner);
     event RequirementChange(uint required);
@@ -96,8 +96,15 @@ contract MultiSigSwapWallet {
     public
     payable
     {
+        throw;
+    }
+
+    // TODO: check memory  - why required
+    function swap(bytes memory recipient)
+    public
+    payable {
         if (msg.value > 0)
-            emit Swap(msg.sender, msg.value);
+            emit Swap(msg.value, recipient);
     }
 
     /*

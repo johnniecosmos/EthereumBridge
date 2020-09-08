@@ -6,9 +6,17 @@ from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 
 
+def test_0(swap_contract, owners):
+    # validate owners of contract - sanity check
+    contract_owners = swap_contract.getOwners()
+    assert len(contract_owners) == len(owners)
+    for owner in owners:
+        assert owner in contract_owners
+
+
 def test_1(manager, signers, web3_provider, test_configuration, contract):
-    tx_hash = contract.contract.functions.swap(signers[0].multisig.multisig_acc_addr.encode(), 7). \
-        transact({'from': web3_provider.eth.coinbase}).hex().lower()
+    tx_hash = contract.contract.functions.swap(signers[0].multisig.multisig_acc_addr.encode()). \
+        transact({'from': web3_provider.eth.coinbase, 'value': 7}).hex().lower()
     # chain is initiated with block number one, and the contract tx will be block # 2
     assert increase_block_number(web3_provider, test_configuration.blocks_confirmation_required - 1)
 

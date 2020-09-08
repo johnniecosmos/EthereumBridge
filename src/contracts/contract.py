@@ -1,15 +1,19 @@
 from web3 import Web3
 
-from src.temp.temp import abi as temp_abi
 from src.util.web3 import normalize_address
+import json
+abi_path = r"/home/guy/Workspace/dev/EthereumBridge/src/temp/MultiSigSwapWallet.json"
+
+with open(abi_path, "r") as f:
+    abi = json.load(f)['abi']
 
 
-# TODO: generate abi from solidity file
 class Contract:
-    abi = temp_abi
+    abi = abi
 
     def __init__(self, provider: Web3, contract_address: str):
         self.address = contract_address
+
         self.contract = provider.eth.contract(address=self.normalized_address(), abi=self.abi)
 
     def normalized_address(self):

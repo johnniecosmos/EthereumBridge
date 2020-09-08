@@ -20,7 +20,7 @@ brownie_project_folder = os.path.join(module_dir(integration_package), 'brownie_
 
 
 @fixture(scope="module")
-def make_project(db):
+def make_project(db, test_configuration):
     # init brownie project structure
     project.new(brownie_project_folder)
 
@@ -29,13 +29,16 @@ def make_project(db):
         copy(os.path.join(contracts_folder, contract), os.path.join(brownie_project_folder, 'contracts', contract))
 
     # load and compile contracts to project
-    brownie_project = project.load(brownie_project_folder, name="Swap")
+    brownie_project = project.load(brownie_project_folder, name="IntegrationTests")
     brownie_project.load_config()
 
     # noinspection PyUnresolvedReferences
-    from brownie.project.Swap import EthSwap
+    from brownie.project.IntegrationTests import MultiSigSwapWallet
     network.connect('development')  # connect to ganache cli
-    swap_contract = EthSwap.deploy({'from': accounts[0]})
+    owners = [acc.address for acc in accounts[:test_configuration.signatures_threshold]]
+    # account[0] is network.eth.coinbase
+    swap_contract = MultiSigSwapWallet.deploy(owners, test_configuration.signatures_threshold,
+                                              {'from': accounts[0]})
 
     yield brownie_project, swap_contract, network, accounts
 
@@ -107,3 +110,8 @@ def signers(signer_accounts, web3_provider, contract, test_configuration) -> Lis
     for i in signer_accounts:
         signers_.append(Signer(web3_provider, i, contract, test_configuration))
     return signers_
+
+
+@fixture(scope="module")
+def owners(test_configuration, make_project):
+    return [acc.address for acc in accounts[:test_configuration.signatures_threshold]]
