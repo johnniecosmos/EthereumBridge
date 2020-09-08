@@ -11,7 +11,7 @@ from src.event_listener import EventListener
 from src.signer import MultiSig
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
-from src.util.web3 import event_log, generate_unsigned_tx
+from src.util.web3 import generate_unsigned_tx
 
 
 class Manager:
@@ -27,7 +27,7 @@ class Manager:
         self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
         self.stop_signal = Event()
 
-        event_listener.register(self._handle)
+        event_listener.register(self._handle, ['Swap'])
         Thread(target=self.run).start()
 
     # noinspection PyUnresolvedReferences
@@ -47,13 +47,12 @@ class Manager:
 
     def _handle_swap_events(self, event: AttributeDict):
         """Extracts tx of event 'swap' and saves to db"""
-        log = event_log(tx_hash=event.hash, event='Swap', provider=self.provider, contract=self.contract.contract)
 
         unsigned_tx, success = catch_and_log(self.logger,
                                              generate_unsigned_tx,
                                              self.config.secret_contract_address,
-                                             log,
+                                             event,
                                              self.config.chain_id, self.config.enclave_key,
                                              self.config.enclave_hash, self.multisig.multisig_acc_addr)
         if success:
-            ETHSwap.save_web3_tx(log, unsigned_tx)
+            ETHSwap.save_web3_tx(event, unsigned_tx)

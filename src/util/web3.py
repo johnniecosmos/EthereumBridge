@@ -3,7 +3,6 @@ from typing import Union
 from eth_typing import HexStr, Hash32
 from hexbytes import HexBytes
 from web3 import Web3
-
 # TODO: Use the auto detection of web3, will be good for docker setup
 from web3.datastructures import AttributeDict
 

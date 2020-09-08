@@ -1,7 +1,9 @@
+import json
+
 from web3 import Web3
 
 from src.util.web3 import normalize_address
-import json
+
 abi_path = r"/home/guy/Workspace/dev/EthereumBridge/src/temp/MultiSigSwapWallet.json"
 
 with open(abi_path, "r") as f:

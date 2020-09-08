@@ -1,6 +1,5 @@
-from typing import Tuple, Callable
-
 from logging import Logger, ERROR
+from typing import Tuple, Callable
 
 
 def catch_and_log(logger: Logger, callable: Callable, *args, **kwargs) -> Tuple[any, bool]:
