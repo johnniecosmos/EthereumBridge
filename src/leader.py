@@ -13,7 +13,7 @@ from src.util.secretcli import broadcast, multisign_tx
 
 
 class Leader:
-    """Tracks the DB for signed tx and send a broadcast tx to the secret network"""
+    """Broadcasts signed transactions Ethr <-> Scrt"""
 
     def __init__(self, multisig_: MultiSig, config=temp_config):
         self.multisig = multisig_
@@ -21,9 +21,12 @@ class Leader:
 
         self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
         self.stop_event = Event()
-        Thread(target=self.run).start()
+        Thread(target=self.scan_swap).start()
+        Thread(target=self.scan_burn).start()
 
-    def run(self):
+    # TODO: Improve logic by separating 'catch_up' and 'signal' operations
+    def scan_swap(self):
+        """Looking """
         while not self.stop_event.is_set():
             for tx in ETHSwap.objects(status=Status.SWAP_STATUS_SIGNED.value):
                 signatures = [signature.signed_tx for signature in Signatures.objects(tx_id=tx.id)]
@@ -38,6 +41,9 @@ class Leader:
                     tx.save()
 
             self.stop_event.wait(self.config.default_sleep_time_interval)
+
+    def scan_burn(self):
+        pass
 
     def _create_multisig(self, unsigned_tx: str, signatures: List[str]) -> str:
         with temp_file(unsigned_tx) as unsigned_tx_path:

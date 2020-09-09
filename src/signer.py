@@ -8,7 +8,6 @@ from web3 import Web3
 
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
-from src.db.collections.log import Logs
 from src.db.collections.signatures import Signatures
 from src.event_listener import EventListener
 from src.util.common import temp_file
@@ -35,7 +34,7 @@ class Signer:
         signals.post_save.connect(self._new_tx_signal, sender=ETHSwap)
         event_listener.register(self.handle_submission, ['Submission'])
         Thread(target=self._swap_catch_up).start()
-        Thread(target=self._submission_catch_up).start()
+        # Thread(target=self._submission_catch_up).start()
 
     def _swap_catch_up(self):
         """Scans the db for unsigned swap tx and signs them"""
@@ -58,11 +57,12 @@ class Signer:
     def _sign_tx(self, tx: ETHSwap):
         """Makes sure that the tx is valid and signs it"""
         if self._is_swap_signed(tx):
-            Logs(log=f"Tried to sign an already signed tx. Signer:\n {self.multisig.signer_acc_name}.\ntx id:{tx.id}.")
+            self.logger.error(f"Tried to sign an already signed tx. Signer:\n"
+                              f" {self.multisig.signer_acc_name}.\ntx id:{tx.id}.")
             return
 
         if not self._is_swap_valid(tx):
-            Logs(log=f"Validation failed. Signer:\n {self.multisig.signer_acc_name}.\ntx id:{tx.id}.")
+            self.logger.error(f"Validation failed. Signer:\n {self.multisig.signer_acc_name}.\ntx id:{tx.id}.")
             return
 
         # noinspection PyBroadException
@@ -90,7 +90,7 @@ class Signer:
             assert decrypted_data['mint']['amount_seth'] == log.args.value
             assert decrypted_data['mint']['to'] == log.args.recipient.decode()
         except AssertionError as e:
-            Logs(log=repr(e)).save()
+            self.logger.error(e)
             return False
 
         return True
@@ -110,29 +110,35 @@ class Signer:
         """Validates submission event with scrt network and sends confirmation if valid"""
         self._validated_and_confirm(submission_id)
 
+    # TODO: add starting point of the catch_up
     def _submission_catch_up(self):
         """Iterates over the 'transactions map' of the smart contract, add validates tx if required"""
         # iterate the map
         # for each one, call _approve_and_submit
 
     def _validated_and_confirm(self, submission_id: int):
-        """Given """
+        """Tries to validate the transaction corresponding to submission id on the smart contract,
+        and confirms if valid"""
+
         data = self._submission_data(submission_id)
         with self.submissions_lock:
-            if self._is_submission_transactions_approved(data) and self._is_confirmed(submission_id):
+            if not self._is_confirmed(submission_id) and self._is_submission_valid(data):
                 self._confirm_transaction(data)
 
             self.processed_submission_tx.add(submission_id)
 
     def _submission_data(self, transaction_id) -> Dict[str, any]:
+        temp = self.contract
         pass
 
-    def _is_submission_transactions_approved(self, submission_data: Dict[str, any]) -> bool:
-        pass
+    def _is_submission_valid(self, submission_data: Dict[str, any]) -> bool:
+        # lookup the tx hash in scrt, and validate it.
+        return True
 
     def _is_confirmed(self, submission_id: int) -> bool:
-        """Checks with the data on the contract if signer already added confirmation"""
-        pass
+        """Checks with the data on the contract if signer already added confirmation or if threshold already reached"""
+        temp = self.contract
+        return False
 
     def _confirm_transaction(self, submission_data: Dict[str, any]) -> None:
         """

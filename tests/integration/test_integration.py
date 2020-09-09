@@ -5,6 +5,8 @@ from web3 import Web3
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 
+""" Note, the tests are ordered and named test_0...N and should be executed in that order as they demonstrate the flow 
+Ethr -> Scrt and then Scrt -> Ethr """
 
 def test_0(swap_contract, owners):
     # validate owners of contract - sanity check
@@ -16,7 +18,7 @@ def test_0(swap_contract, owners):
 
 def test_1(manager, signers, web3_provider, test_configuration, contract):
     tx_hash = contract.contract.functions.swap(signers[0].multisig.multisig_acc_addr.encode()). \
-        transact({'from': web3_provider.eth.coinbase, 'value': 7}).hex().lower()
+        transact({'from': web3_provider.eth.coinbase, 'value': 100}).hex().lower()
     # chain is initiated with block number one, and the contract tx will be block # 2
     assert increase_block_number(web3_provider, test_configuration.blocks_confirmation_required - 1)
 
@@ -37,10 +39,28 @@ def test_1(manager, signers, web3_provider, test_configuration, contract):
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SIGNED.value
 
 
-def test_2(leader, test_configuration):
+def test_2(leader, test_configuration, contract, web3_provider, signers):
     # give leader time to multisign already existing signatures
     sleep(1)
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED.value
+
+
+    # send money to the smart contract
+
+
+    # Create a "burn" tx on SCRT
+    pass # TODO
+
+    # Verify that leader recognized the burn tx (might not be possible)
+
+    # TODO: This will be delete with the complete flow.
+    withdraw_dest = web3_provider.eth.accounts[-1]
+    withdraw_value = 20
+    tx_hash = contract.contract.functions.submitTransaction(withdraw_dest, withdraw_value, bytes("scrt tx hash")).\
+        transact({'from': web3_provider.eth.coinbase}).hex().lower()
+
+    # Verify that the signers have signed the tx.
+    pass  # TODO: Could either track 'Withdraw' events OR query the contract itself.
 
 
 def increase_block_number(web3_provider: Web3, increment: int) -> True:
