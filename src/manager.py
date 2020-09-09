@@ -26,7 +26,7 @@ class Manager:
         self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
         self.stop_signal = Event()
 
-        event_listener.register(self._handle, ['Swap'])
+        event_listener.register(self._handle, ['Swap'], self.config.blocks_confirmation_required)
         Thread(target=self.run).start()
 
     # noinspection PyUnresolvedReferences
@@ -41,12 +41,10 @@ class Manager:
 
     def _handle(self, transaction: AttributeDict):
         """Registers transaction to the db"""
-
         self._handle_swap_events(transaction)
 
     def _handle_swap_events(self, event: AttributeDict):
         """Extracts tx of event 'swap' and saves to db"""
-
         unsigned_tx, success = catch_and_log(self.logger,
                                              generate_unsigned_tx,
                                              self.config.secret_contract_address,

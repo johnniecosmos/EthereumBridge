@@ -1,12 +1,13 @@
-from collections import defaultdict
 from threading import Thread, Event, Lock
+from time import sleep
 from typing import List, Callable, Dict
 
 from web3 import Web3
+from web3.exceptions import BlockNotFound
 
 from src import config as temp_config
 from src.contracts.contract import Contract
-from src.util.web3 import last_confirmable_block, extract_tx_by_address, event_log
+from src.util.web3 import extract_tx_by_address, event_log
 
 
 class EventListener:
@@ -16,45 +17,70 @@ class EventListener:
         self.provider = provider
         self.contract = contract
         self.config = config
-        self.callbacks: Dict[str, List[Callable]] = defaultdict(list)
+        self.callbacks = Callbacks()
 
-        self.lock = Lock()
         self.stop_event = Event()
         Thread(target=self.run).start()
 
-    def register(self, callback: Callable, events: List[str]):
+    def register(self, callback: Callable, events: List[str], confirmations_required: int = 0):
         """
-        Allows registration to certain event of contract
+        Allows registration to certain event of contract.
         Note: events are case-sensitive
 
         :param callback: callback function that will be invoked upon event
         :param events: list of events the caller wants to register to
+        :param confirmations_required: after how many confirmations to notify of the event
         """
-        with self.lock:
-            for event in events:
-                self.callbacks[event].append(callback)
+        for event in events:
+            self.callbacks.add(event, callback, confirmations_required)
 
     def run(self):
         """Notify registered callbacks upon event occurrence"""
         current_block_num = self.provider.eth.getBlock('latest').number
 
         while not self.stop_event.is_set():
-            if current_block_num > last_confirmable_block(self.provider, self.config.blocks_confirmation_required):
-                self.stop_event.wait(self.config.default_sleep_time_interval)
+            try:
+                block = self.provider.eth.getBlock(current_block_num, full_transactions=True)
+            except BlockNotFound:
+                sleep(self.config.default_sleep_time_interval)
                 continue
 
-            block = self.provider.eth.getBlock(current_block_num, full_transactions=True)
-            transactions = extract_tx_by_address(self.contract.address, block)
-
-            for tx in transactions:
-                with self.lock:
-                    for event in self.callbacks.keys():
-                        log = event_log(tx_hash=tx.hash, event=event, provider=self.provider,
-                                        contract=self.contract.contract)
-                        if not log:
-                            continue
-
-                        for callback in self.callbacks[event]:
-                            callback(log)
+            self.callbacks.call(self.provider, self.contract, block.number)
 
             current_block_num += 1
+
+
+class Callbacks:
+    def __init__(self):
+        self.callbacks_by_confirmations: Dict[int, Dict[str, List[Callable]]] = dict()
+        self.lock = Lock()
+
+    def add(self, event_name: str, callback: Callable, confirmations_required: int):
+        with self.lock:
+            callbacks = self.callbacks_by_confirmations.setdefault(confirmations_required, dict())
+            callbacks = callbacks.setdefault(event_name, list())
+            callbacks.append(callback)
+
+    def call(self, provider: Web3, contract: Contract, block_number: int):
+        """ call all the callbacks whose confirmation threshold reached """
+
+        for threshold, val in self.callbacks_by_confirmations.items():
+            if not block_number - threshold <= 0:
+                continue
+
+            block = provider.eth.getBlock(block_number - threshold, full_transactions=True)
+            contract_transactions = extract_tx_by_address(contract.address, block)
+
+            if not contract_transactions:
+                continue
+
+            # TODO: improve to o(n) run time by providing event_log list of events (will save calls to the ethr node)
+            for event, callbacks in val.items():
+                for tx in contract_transactions:
+                    log = event_log(tx_hash=tx.hash, event=event, provider=provider, contract=contract.contract)
+
+                    if not log:
+                        continue
+
+                    for callback in callbacks:
+                        callback(log)

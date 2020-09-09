@@ -5,6 +5,9 @@ from web3 import Web3
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 
+# Note:
+# 1. Tests should be executed in order. test_0, test_1, ...
+
 """ Note, the tests are ordered and named test_0...N and should be executed in that order as they demonstrate the flow 
 Ethr -> Scrt and then Scrt -> Ethr """
 
@@ -56,7 +59,7 @@ def test_2(leader, test_configuration, contract, web3_provider, signers):
     # TODO: This will be delete with the complete flow.
     withdraw_dest = web3_provider.eth.accounts[-1]
     withdraw_value = 20
-    tx_hash = contract.contract.functions.submitTransaction(withdraw_dest, withdraw_value, bytes("scrt tx hash")).\
+    tx_hash = contract.contract.functions.submitTransaction(withdraw_dest, withdraw_value, "scrt tx hash".encode()).\
         transact({'from': web3_provider.eth.coinbase}).hex().lower()
 
     # Verify that the signers have signed the tx.
