@@ -13,7 +13,6 @@ from src.util.common import temp_file, temp_files
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
 from src.util.secretcli import broadcast, multisign_tx
-from src.util.web3 import choose_default_account
 
 
 class Leader:
@@ -27,8 +26,7 @@ class Leader:
         self.contract = contract
         self.private_key = private_key
 
-        self.default_account = choose_default_account(self.provider, acc_addr)
-        self.provider.eth.defaultAccount = self.default_account
+        self.default_account = acc_addr
 
         self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
         self.stop_event = Event()

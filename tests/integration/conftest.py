@@ -14,6 +14,7 @@ from src.leader import Leader
 from src.manager import Manager
 from src.signers import EthrSigner, SecretSigner
 from src.util.common import module_dir
+from src.util.web3 import normalize_address
 
 contracts_folder = module_dir(contracts_package)
 brownie_project_folder = os.path.join(module_dir(integration_package), 'brownie_project')
@@ -33,7 +34,7 @@ def make_project(db, test_configuration):
     brownie_project.load_config()
 
     # noinspection PyUnresolvedReferences
-    from brownie.project.IntegrationTests import MultiSigSwapWallet
+    # from brownie.project.IntegrationTests import MultiSigSwapWallet
     network.connect('development')  # connect to ganache cli
 
     yield network
@@ -45,24 +46,13 @@ def make_project(db, test_configuration):
 
 
 @fixture(scope="module")
-def swap_contract(ethr_signers, test_configuration):
-    # noinspection PyUnresolvedReferences
-    from brownie.project.IntegrationTests import MultiSigSwapWallet
-    swap_contract = MultiSigSwapWallet.deploy(ethr_signers, test_configuration.signatures_threshold,
-                                              {'from': accounts[0]})
-    return swap_contract
-
-
-@fixture(scope="module")
-def ethr_signers(event_listener, web3_provider, contract, test_configuration):
+def ethr_signers(event_listener, web3_provider, contract, test_configuration, ether_accounts):
     res = []
 
-    for _ in test_configuration.signatures_threshold:
-        account = web3_provider.eth.accounts.create()
-        private_key = account["privateKey"]
-        address = account["address"]
-        # account[0] is network.eth.coinbase
-        web3_provider.eth.sendTransaction({'from': web3_provider.eth.accounts[0], 'to': account, 'value': 1000000})
+    for acc in ether_accounts:
+        private_key = str(acc.privateKey)
+        address = str(acc.address)
+
         res.append(EthrSigner(event_listener, web3_provider, contract,  private_key, address, test_configuration))
 
     return res
@@ -81,14 +71,37 @@ def scrt_signers(event_listener, scrt_signer_keys, web3_provider, contract, test
 
 
 @fixture(scope="module")
-def web3_provider(make_project):
-    return make_project.web3
+def contract(web3_provider, swap_contract):
+    contract_address = str(swap_contract.address)
+    return Contract(web3_provider, contract_address)
 
 
 @fixture(scope="module")
-def contract(web3_provider, swap_contract):
-    contract_address = swap_contract.address
-    return Contract(web3_provider, contract_address)
+def swap_contract(make_project, test_configuration, ether_accounts):
+    from brownie.project.IntegrationTests import MultiSigSwapWallet
+    normalize_accounts = [normalize_address(acc.address) for acc in ether_accounts]
+    swap_contract = MultiSigSwapWallet.deploy(normalize_accounts, test_configuration.signatures_threshold,
+                                              {'from': normalize_address(accounts[0])})
+    return swap_contract
+
+
+@fixture(scope="module")
+def ether_accounts(web3_provider, test_configuration):
+    res = []
+    for _ in range(test_configuration.signatures_threshold):
+        acc = web3_provider.eth.account.create()
+        # account[0] is network.eth.coinbase
+        web3_provider.eth.sendTransaction({'from': normalize_address(web3_provider.eth.accounts[0]),
+                                           'to': normalize_address(acc.address),
+                                           'value': 1000000})
+        res.append(acc)
+
+    return res
+
+
+@fixture(scope="module")
+def web3_provider(make_project):
+    return make_project.web3
 
 
 @fixture(scope="module")
@@ -99,9 +112,9 @@ def manager(event_listener, contract, multisig_account, test_configuration):
 
 
 @fixture(scope="module")
-def leader(multisig_account, test_configuration, web3_provider, contract, ethr_signers):
-    private_key = ethr_signers[0]["privateKey"]
-    address = ethr_signers[0]["address"]
+def leader(multisig_account, test_configuration, web3_provider, contract, ether_accounts):
+    private_key = ethr_signers[0].privateKey
+    address = ethr_signers[0].address
     leader = Leader(web3_provider, multisig_account, contract, private_key, address, test_configuration)
     yield leader
     leader.stop_event.set()

@@ -67,7 +67,3 @@ def generate_unsigned_tx(secret_contract_address, log, chain_id, enclave_key, en
         enclave_key,
         enclave_hash,
         multisig_acc_addr)
-
-
-def choose_default_account(provider: Web3, addr: str):
-    return next(filter(lambda x: x == addr, provider.eth.accounts))

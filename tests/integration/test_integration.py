@@ -17,7 +17,7 @@ def test_0(swap_contract, ethr_signers):
     contract_owners = swap_contract.getOwners()
     assert len(contract_owners) == len(ethr_signers)
     for owner in ethr_signers:
-        assert owner in contract_owners
+        assert owner.default_account in contract_owners
 
 
 def test_1(manager, scrt_signers, web3_provider, test_configuration, contract):

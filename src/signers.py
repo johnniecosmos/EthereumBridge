@@ -15,7 +15,7 @@ from src.util.common import temp_file
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
 from src.util.secretcli import sign_tx as secretcli_sign, decrypt
-from src.util.web3 import event_log, choose_default_account
+from src.util.web3 import event_log
 
 MultiSig = namedtuple('MultiSig', ['multisig_acc_addr', 'signer_acc_name'])
 
@@ -110,12 +110,13 @@ class EthrSigner:
 
     def __init__(self, event_listener: EventListener, provider: Web3, contract: Contract, private_key, acc_addr,
                  config):
+        # TODO: acc_addr probably not required
         self.provider = provider
         self.contract = contract
         self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
         self.private_key = private_key
 
-        self.default_account = choose_default_account(self.provider, acc_addr)
+        self.default_account = acc_addr
         # self.provider.eth.defaultAccount = self.default_account
 
         self.processed_submission_tx = set()
@@ -183,4 +184,3 @@ class EthrSigner:
              })
         signed_txn = self.provider.eth.account.sign_transaction(submission_tx, private_key=self.private_key)
         self.provider.eth.sendRawTransaction(signed_txn.rawTransaction)
-
