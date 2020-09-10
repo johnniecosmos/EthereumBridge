@@ -8,7 +8,7 @@ from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap
 from src.db.collections.log import Logs
 from src.db.collections.moderator import ModeratorData
-from src.signer import MultiSig
+from src.signers import MultiSig
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
 from src.util.web3 import last_confirmable_block, extract_tx_by_address, event_log, generate_unsigned_tx

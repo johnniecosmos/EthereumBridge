@@ -20,30 +20,21 @@ from src.util.web3 import event_log, choose_default_account
 MultiSig = namedtuple('MultiSig', ['multisig_acc_addr', 'signer_acc_name'])
 
 
-class Signer:
+class SecretSigner:
     """Verifies Ethereum tx in SWAP_STATUS_UNSIGNED and adds it's signature"""
 
-    def __init__(self, event_listener: EventListener, provider: Web3, multisig_: MultiSig, contract: Contract, config,
-                 private_key, acc_addr):
+    def __init__(self, provider: Web3, multisig_: MultiSig, contract: Contract, config):
         self.provider = provider
         self.multisig = multisig_
         self.contract = contract
         self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
-        self.private_key = private_key
 
-        self.default_account = choose_default_account(self.provider, acc_addr)
-        self.provider.eth.defaultAccount = self.default_account
+        signals.post_save.connect(self._tx_signal, sender=ETHSwap)
 
-        self.processed_submission_tx = set()
-        self.submissions_lock = Lock()
-
-        signals.post_save.connect(self._new_tx_signal, sender=ETHSwap)
-        event_listener.register(self.handle_submission, ['Submission'])
-        Thread(target=self._swap_catch_up).start()
+        Thread(target=self._catch_up).start()
         # Thread(target=self._submission_catch_up).start()
 
-
-    def _swap_catch_up(self):
+    def _catch_up(self):
         """Scans the db for unsigned swap tx and signs them"""
         for tx in ETHSwap.objects(status=Status.SWAP_STATUS_UNSIGNED.value):
             try:
@@ -52,7 +43,7 @@ class Signer:
                 self.logger.error(msg=e)
 
     # noinspection PyUnusedLocal
-    def _new_tx_signal(self, sender, document, **kwargs):
+    def _tx_signal(self, sender, document, **kwargs):
         """Callback function to handle db signals"""
         if not document.status == Status.SWAP_STATUS_UNSIGNED.value:
             return
@@ -63,12 +54,12 @@ class Signer:
 
     def _sign_tx(self, tx: ETHSwap):
         """Makes sure that the tx is valid and signs it"""
-        if self._is_swap_signed(tx):
+        if self._is_signed(tx):
             self.logger.error(f"Tried to sign an already signed tx. Signer:\n"
                               f" {self.multisig.signer_acc_name}.\ntx id:{tx.id}.")
             return
 
-        if not self._is_swap_valid(tx):
+        if not self._is_valid(tx):
             self.logger.error(f"Validation failed. Signer:\n {self.multisig.signer_acc_name}.\ntx id:{tx.id}.")
             return
 
@@ -78,11 +69,11 @@ class Signer:
         if success:
             Signatures(tx_id=tx.id, signer=self.multisig.signer_acc_name, signed_tx=signed_tx).save()
 
-    def _is_swap_signed(self, tx: ETHSwap) -> bool:
+    def _is_signed(self, tx: ETHSwap) -> bool:
         """ Returns True if tx was already signed, else False """
         return Signatures.objects(tx_id=tx.id, signer=self.multisig.signer_acc_name).count() > 0
 
-    def _is_swap_valid(self, tx: ETHSwap) -> bool:
+    def _is_valid(self, tx: ETHSwap) -> bool:
         """Assert that the data in the unsigned_tx matches the tx on the chain"""
         log = event_log(tx.tx_hash, 'Swap', self.provider, self.contract.contract)
         unsigned_tx = json.loads(tx.unsigned_tx)
@@ -113,6 +104,26 @@ class Signer:
         msg = unsigned_tx['value']['msg'][0]['value']['msg']
         return decrypt(msg)
 
+
+class EthrSigner:
+    """Verifies Secret burn tx and adds it's confirmation to the smart contract"""
+
+    def __init__(self, event_listener: EventListener, provider: Web3, contract: Contract, config,
+                 private_key, acc_addr):
+        self.provider = provider
+        self.contract = contract
+        self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
+        self.private_key = private_key
+
+        self.default_account = choose_default_account(self.provider, acc_addr)
+        # self.provider.eth.defaultAccount = self.default_account
+
+        self.processed_submission_tx = set()
+        self.submissions_lock = Lock()
+
+        event_listener.register(self.handle_submission, ['Submission'])
+        # Thread(target=self._submission_catch_up).start()
+
     def handle_submission(self,  submission_event: AttributeDict):
         """Validates submission event with scrt network and sends confirmation if valid"""
         self._validated_and_confirm(submission_event)
@@ -134,7 +145,7 @@ class Signer:
             if transaction_id in self.processed_submission_tx:
                 return
 
-            if not self._is_confirmed(transaction_id, data) and self._is_submission_valid(data):
+            if not self._is_confirmed(transaction_id, data) and self._is_valid(data):
                 self._confirm_transaction(transaction_id)
 
             self.processed_submission_tx.add(transaction_id)
@@ -143,7 +154,7 @@ class Signer:
         data = self.contract.contract.functions.transactions(transaction_id).call()
         return {'dest': data[0], 'value': data[1], 'data': data[2], 'executed': data[3]}
 
-    def _is_submission_valid(self, submission_data: Dict[str, any]) -> bool:
+    def _is_valid(self, submission_data: Dict[str, any]) -> bool:
         # lookup the tx hash in scrt, and validate it.
         return True
 
@@ -160,7 +171,6 @@ class Signer:
 
         return False
 
-    # TODO: TEST
     def _confirm_transaction(self, submission_id: int) -> None:
         """
         Sign the transaction with the signer's private key and then broadcast
@@ -173,3 +183,4 @@ class Signer:
              })
         signed_txn = self.provider.eth.account.sign_transaction(submission_tx, private_key=self.private_key)
         self.provider.eth.sendRawTransaction(signed_txn.rawTransaction)
+

@@ -11,6 +11,7 @@ from src.db.collections.signatures import Signatures
 """ Note, the tests are ordered and named test_0...N and should be executed in that order as they demonstrate the flow 
 Ethr -> Scrt and then Scrt -> Ethr """
 
+
 def test_0(swap_contract, owners):
     # validate owners of contract - sanity check
     contract_owners = swap_contract.getOwners()

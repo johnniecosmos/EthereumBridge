@@ -6,7 +6,7 @@ from pytest import fixture
 
 import tests as tests_package
 import tests.utils as utils_package
-from src.signer import MultiSig
+from src.signers import MultiSig
 from src.util.common import module_dir
 from tests import config
 from tests.utils.keys import get_key_multisig_addr
@@ -42,7 +42,7 @@ def multisig_account(test_configuration):
 
 
 @fixture(scope="module")
-def signer_accounts(test_configuration) -> List[MultiSig]:
+def scrt_signer_accounts(test_configuration) -> List[MultiSig]:
     """multisig accounts for signers"""
     threshold = test_configuration.signatures_threshold
     multig_acc_addr = get_key_multisig_addr(f"ms{threshold}")

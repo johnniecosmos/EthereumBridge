@@ -8,7 +8,7 @@ from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 from src.event_listener import EventListener
-from src.signer import MultiSig
+from src.signers import MultiSig
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
 from src.util.web3 import generate_unsigned_tx

@@ -12,7 +12,7 @@ from src.contracts.contract import Contract
 from src.event_listener import EventListener
 from src.leader import Leader
 from src.manager import Manager
-from src.signer import Signer
+from src.signers import Signer
 from src.util.common import module_dir
 
 contracts_folder = module_dir(contracts_package)
@@ -35,41 +35,57 @@ def make_project(db, test_configuration):
     # noinspection PyUnresolvedReferences
     from brownie.project.IntegrationTests import MultiSigSwapWallet
     network.connect('development')  # connect to ganache cli
-    owners = [acc.address for acc in accounts[:test_configuration.signatures_threshold]]
+
+    # create signing ethr accounts
+    web3_ = network.web3
+    eth_signers = [web3_.eth.accounts.create() for _ in range(test_configuration.signatures_threshold)]
+    owners = get_eth_signers_accounts(eth_signers, accounts)
+
     # account[0] is network.eth.coinbase
     swap_contract = MultiSigSwapWallet.deploy(owners, test_configuration.signatures_threshold,
                                               {'from': accounts[0]})
 
-    yield brownie_project, swap_contract, network, accounts
+    yield brownie_project, swap_contract, network, accounts, eth_signers
 
     # cleanup
     del brownie_project
     sleep(1)
     rmtree(brownie_project_folder, ignore_errors=True)
 
+def get_eth_signers_accounts(eth_signers : AttributeDict, accounts):
+    res = []
+    for signer in eth_signers:
+
+
 
 @fixture(scope="module")
 def brownie_project(make_project):
-    p, _, _, _ = make_project
+    p, _, _, _, _ = make_project
     return p
 
 
 @fixture(scope="module")
 def swap_contract(make_project):
-    _, contract, _, _ = make_project
+    _, contract, _, _, _ = make_project
     return contract
 
 
 @fixture(scope="module")
 def brownie_network(make_project):
-    _, _, net, _ = make_project
+    _, _, net, _, _ = make_project
     return net
 
 
 @fixture(scope="module")
 def ganache_accounts(make_project):
-    _, _, _, acc = make_project
+    _, _, _, acc, _ = make_project
     return acc
+
+
+@fixture(scope="module")
+def ethr_signers(make_project):
+    _, _, _, _, signers = make_project
+    yield signers
 
 
 @fixture(scope="module")
@@ -105,10 +121,15 @@ def event_listener(contract, web3_provider, test_configuration):
 
 
 @fixture(scope="module")
-def signers(event_listener, signer_accounts, web3_provider, contract, test_configuration) -> List[Signer]:
+def signers(event_listener, scrt_signer_accounts, web3_provider, contract, test_configuration, ethr_signers) -> List[Signer]:
+
     signers_: List[Signer] = []
-    for i in signer_accounts:
-        signers_.append(Signer(event_listener, web3_provider, i, contract, test_configuration))
+    for index, signer_ in enumerate(scrt_signer_accounts):
+        private_key = ethr_signers[index]['privateKey']
+        acc_addr = ethr_signers[index]['address']
+        s = Signer(event_listener, web3_provider, signer_, contract, test_configuration, private_key, acc_addr)
+        signers_.append(s)
+
     return signers_
 
 

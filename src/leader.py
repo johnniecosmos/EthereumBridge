@@ -8,7 +8,7 @@ from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.log import Logs
 from src.db.collections.signatures import Signatures
-from src.signer import MultiSig
+from src.signers import MultiSig
 from src.util.common import temp_file, temp_files
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger

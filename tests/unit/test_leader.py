@@ -25,9 +25,9 @@ def leader(test_configuration, multisig_account, db):
     leader.stop_event.set()
 
 
-def test_run(leader, signer_accounts, multisig_account, mock_tx, test_configuration):
+def test_run(leader, scrt_signer_accounts, multisig_account, mock_tx, test_configuration):
     # Create mock tx and save it to DB
-    unsigned_tx_args = tx_args(1, mock_tx['transactionHash'], signer_accounts[0].multisig_acc_addr)
+    unsigned_tx_args = tx_args(1, mock_tx['transactionHash'], scrt_signer_accounts[0].multisig_acc_addr)
     unsigned_tx = create_unsigined_tx(test_configuration.secret_contract_address, unsigned_tx_args,
                                       test_configuration.chain_id, test_configuration.enclave_key,
                                       test_configuration.enclave_hash, multisig_account.multisig_acc_addr)
@@ -39,7 +39,7 @@ def test_run(leader, signer_accounts, multisig_account, mock_tx, test_configurat
     f.write(unsigned_tx)
     f.close()
 
-    for signer in signer_accounts:
+    for signer in scrt_signer_accounts:
         signed_tx = sign_tx(f.name, multisig_account.multisig_acc_addr, signer.signer_acc_name)
         Signatures(tx_id=eth_swap.id, signed_tx=signed_tx, signer=signer.signer_acc_name).save()
 
