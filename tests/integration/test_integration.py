@@ -20,8 +20,8 @@ def test_0(swap_contract, owners):
         assert owner in contract_owners
 
 
-def test_1(manager, signers, web3_provider, test_configuration, contract):
-    tx_hash = contract.contract.functions.swap(signers[0].multisig.multisig_acc_addr.encode()). \
+def test_1(manager, scrt_signers, web3_provider, test_configuration, contract):
+    tx_hash = contract.contract.functions.swap(scrt_signers[0].multisig.multisig_acc_addr.encode()). \
         transact({'from': web3_provider.eth.coinbase, 'value': 100}).hex().lower()
     # chain is initiated with block number one, and the contract tx will be block # 2
     assert increase_block_number(web3_provider, test_configuration.blocks_confirmation_required - 1)
@@ -36,14 +36,14 @@ def test_1(manager, signers, web3_provider, test_configuration, contract):
     assert ETHSwap.objects(tx_hash=tx_hash).count() == 1  # verify swap event recorded
 
     # check signers were notified of the tx and signed it
-    assert Signatures.objects().count() == len(signers)
+    assert Signatures.objects().count() == len(scrt_signers)
 
     # give time for manager to process the signatures
     sleep(test_configuration.manager_sleep_time_seconds)
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SIGNED.value
 
 
-def test_2(leader, test_configuration, contract, web3_provider, signers):
+def test_2(leader, test_configuration, contract, web3_provider, scrt_signers):
     # give leader time to multisign already existing signatures
     sleep(1)
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED.value
