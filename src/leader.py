@@ -66,7 +66,7 @@ class Leader:
             return catch_and_log(self.logger, broadcast, signed_tx_path)[success_index]
 
     def _submit_tx(self, tx_data: Dict[str, any]):
-        # TODO: add private key signing here
+        # Note: This operation costs Ethr
         submission_tx = self.contract.contract.functions.submitTransaction(
             tx_data['dest'],
             tx_data['value'],
@@ -75,6 +75,7 @@ class Leader:
                             {'chainId': self.provider.eth.chainId,
                              'gasPrice': self.provider.eth.gasPrice,
                              'nonce': self.provider.eth.getTransactionCount(self.default_account),
+                             'from': self.default_account
                              })
         signed_txn = self.provider.eth.account.sign_transaction(submission_tx, private_key=self.private_key)
         self.provider.eth.sendRawTransaction(signed_txn.rawTransaction)
