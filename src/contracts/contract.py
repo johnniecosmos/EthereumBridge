@@ -10,6 +10,7 @@ abi_path = r"/home/guy/Workspace/dev/EthereumBridge/src/contracts/MultiSigSwapWa
 
 class Contract:
     """Container for contract relevant data"""
+
     def __init__(self, provider: Web3, contract_address: str):
         self.address = contract_address
         self.abi = self.load_abi(abi_path)

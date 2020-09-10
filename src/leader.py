@@ -51,7 +51,7 @@ class Leader:
 
             self.stop_event.wait(self.config.default_sleep_time_interval)
 
-    #TODO: DO
+    # TODO: DO
     def scan_burn(self):
         pass
 
@@ -70,12 +70,12 @@ class Leader:
         submission_tx = self.contract.contract.functions.submitTransaction(
             tx_data['dest'],
             tx_data['value'],
-            tx_data['data']).\
+            tx_data['data']). \
             buildTransaction(
-                            {'chainId': self.provider.eth.chainId,
-                             'gasPrice': self.provider.eth.gasPrice,
-                             'nonce': self.provider.eth.getTransactionCount(self.default_account),
-                             'from': self.default_account
-                             })
+            {'chainId': self.provider.eth.chainId,
+             'gasPrice': self.provider.eth.gasPrice,
+             'nonce': self.provider.eth.getTransactionCount(self.default_account),
+             'from': self.default_account
+             })
         signed_txn = self.provider.eth.account.sign_transaction(submission_tx, private_key=self.private_key)
         self.provider.eth.sendRawTransaction(signed_txn.rawTransaction)

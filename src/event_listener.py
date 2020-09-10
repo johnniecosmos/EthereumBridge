@@ -52,6 +52,7 @@ class EventListener:
 
 class Callbacks:
     """Utility class that manages events registration by confirmation threshold"""
+
     def __init__(self):
         self.callbacks_by_confirmations: Dict[int, Dict[str, List[Callable]]] = dict()
         self.lock = Lock()

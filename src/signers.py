@@ -125,7 +125,7 @@ class EthrSigner:
         event_listener.register(self.handle_submission, ['Submission'])
         # Thread(target=self._submission_catch_up).start()
 
-    def handle_submission(self,  submission_event: AttributeDict):
+    def handle_submission(self, submission_event: AttributeDict):
         """Validates submission event with scrt network and sends confirmation if valid"""
         self._validated_and_confirm(submission_event)
 

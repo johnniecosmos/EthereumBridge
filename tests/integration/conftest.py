@@ -53,15 +53,14 @@ def ethr_signers(event_listener, web3_provider, contract, test_configuration, et
         private_key = acc.privateKey
         address = acc.address
 
-        res.append(EthrSigner(event_listener, web3_provider, contract,  private_key, address, test_configuration))
+        res.append(EthrSigner(event_listener, web3_provider, contract, private_key, address, test_configuration))
 
     return res
 
 
 @fixture(scope="module")
-def scrt_signers(event_listener, scrt_signer_keys, web3_provider, contract, test_configuration, ethr_signers) ->\
+def scrt_signers(event_listener, scrt_signer_keys, web3_provider, contract, test_configuration, ethr_signers) -> \
         List[SecretSigner]:
-
     signers: List[SecretSigner] = []
     for index, key in enumerate(scrt_signer_keys):
         s = SecretSigner(web3_provider, key, contract, test_configuration)

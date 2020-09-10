@@ -1,9 +1,10 @@
 from time import sleep
 
 from web3 import Web3
-from src.util.web3 import normalize_address
+
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
+from src.util.web3 import normalize_address
 
 # Note:
 # 1. Tests should be executed in order. test_0, test_1, ...
@@ -70,8 +71,9 @@ def test_2(leader, test_configuration, contract, web3_provider, scrt_signers, et
     signed_txn = web3_provider.eth.account.sign_transaction(submit_tx, private_key=leader.private_key)
     web3_provider.eth.sendRawTransaction(signed_txn.rawTransaction)
 
-    # Verify that the signers have signed the tx.
-    pass  # TODO: Could either track 'Withdraw' events OR query the contract itself.
+    sleep(test_configuration.default_sleep_time_interval)
+    executed_index = 3
+    assert contract.contract.functions.transactions(0).call()[executed_index]
 
 
 def increase_block_number(web3_provider: Web3, increment: int) -> True:
