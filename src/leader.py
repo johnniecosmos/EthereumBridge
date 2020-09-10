@@ -1,7 +1,10 @@
 from threading import Event, Thread
-from typing import List
+from typing import List, Dict
+
+from web3 import Web3
 
 from src import config as temp_config
+from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.log import Logs
 from src.db.collections.signatures import Signatures
@@ -10,14 +13,22 @@ from src.util.common import temp_file, temp_files
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
 from src.util.secretcli import broadcast, multisign_tx
+from src.util.web3 import choose_default_account
 
 
 class Leader:
     """Broadcasts signed transactions Ethr <-> Scrt"""
 
-    def __init__(self, multisig_: MultiSig, config=temp_config):
+    def __init__(self, provider: Web3, multisig_: MultiSig, contract: Contract, acc_addr, private_key,
+                 config=temp_config):
+        self.provider = provider
         self.multisig = multisig_
         self.config = config
+        self.contract = contract
+        self.private_key = private_key
+
+        self.default_account = choose_default_account(self.provider, acc_addr)
+        self.provider.eth.defaultAccount = self.default_account
 
         self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
         self.stop_event = Event()
@@ -42,6 +53,7 @@ class Leader:
 
             self.stop_event.wait(self.config.default_sleep_time_interval)
 
+    #TODO: DO
     def scan_burn(self):
         pass
 
@@ -54,3 +66,17 @@ class Leader:
         success_index = 1
         with temp_file(signed_tx) as signed_tx_path:
             return catch_and_log(self.logger, broadcast, signed_tx_path)[success_index]
+
+    # TODO: Test
+    def _submit_tx(self, tx_data: Dict[str, any]):
+        submission_tx = self.contract.contract.functions.submitTransaction(
+            tx_data['dest'],
+            tx_data['value'],
+            tx_data['data']).\
+            buildTransaction(
+                            {'chainId': self.provider.eth.chainId,
+                             'gasPrice': self.provider.eth.gasPrice,
+                             'nonce': self.provider.eth.getTransactionCount(self.default_account),
+                             })
+        signed_txn = self.provider.eth.account.sign_transaction(submission_tx, private_key=self.private_key)
+        self.provider.eth.sendRawTransaction(signed_txn.rawTransaction)

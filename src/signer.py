@@ -15,7 +15,7 @@ from src.util.common import temp_file
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
 from src.util.secretcli import sign_tx as secretcli_sign, decrypt
-from src.util.web3 import event_log
+from src.util.web3 import event_log, choose_default_account
 
 MultiSig = namedtuple('MultiSig', ['multisig_acc_addr', 'signer_acc_name'])
 
@@ -31,7 +31,7 @@ class Signer:
         self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
         self.private_key = private_key
 
-        self.default_account = self._choose_default_account(acc_addr)
+        self.default_account = choose_default_account(self.provider, acc_addr)
         self.provider.eth.defaultAccount = self.default_account
 
         self.processed_submission_tx = set()
@@ -42,8 +42,6 @@ class Signer:
         Thread(target=self._swap_catch_up).start()
         # Thread(target=self._submission_catch_up).start()
 
-    def _choose_default_account(self, addr: str):
-        return next(filter(lambda x: x == addr, self.provider.eth.accounts))
 
     def _swap_catch_up(self):
         """Scans the db for unsigned swap tx and signs them"""
@@ -135,7 +133,7 @@ class Signer:
         with self.submissions_lock:
             if transaction_id in self.processed_submission_tx:
                 return
-            
+
             if not self._is_confirmed(transaction_id, data) and self._is_submission_valid(data):
                 self._confirm_transaction(transaction_id)
 
