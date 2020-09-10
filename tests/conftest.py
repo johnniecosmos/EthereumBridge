@@ -37,16 +37,17 @@ def db(test_configuration):
 @fixture(scope="module")
 def multisig_account(test_configuration):
     threshold = test_configuration.signatures_threshold
-    return MultiSig(multisig_acc_addr=get_key_multisig_addr(f"ms{threshold}"),
-                    signer_acc_name=f"ms{config.signatures_threshold}")
+    multisig_addr = get_key_multisig_addr(f"ms{threshold}")
+    return MultiSig(multisig_acc_addr=multisig_addr, signer_acc_name=f"ms{config.signatures_threshold}")
 
 
 @fixture(scope="module")
 def signer_accounts(test_configuration) -> List[MultiSig]:
     """multisig accounts for signers"""
     threshold = test_configuration.signatures_threshold
-    res = []
     multig_acc_addr = get_key_multisig_addr(f"ms{threshold}")
+
+    res = []
     for i in range(1, threshold + 1):
         res.append(MultiSig(multig_acc_addr, f"t{i}"))
     return res

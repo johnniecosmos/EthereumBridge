@@ -5,6 +5,7 @@ from typing import Dict
 
 from mongoengine import signals
 from web3 import Web3
+from web3.datastructures import AttributeDict
 
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
@@ -22,19 +23,27 @@ MultiSig = namedtuple('MultiSig', ['multisig_acc_addr', 'signer_acc_name'])
 class Signer:
     """Verifies Ethereum tx in SWAP_STATUS_UNSIGNED and adds it's signature"""
 
-    def __init__(self, event_listener: EventListener, provider: Web3, multisig_: MultiSig, contract: Contract, config):
+    def __init__(self, event_listener: EventListener, provider: Web3, multisig_: MultiSig, contract: Contract, config,
+                 private_key, acc_addr):
         self.provider = provider
         self.multisig = multisig_
         self.contract = contract
         self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
-        self.processed_submission_tx = set()
+        self.private_key = private_key
 
+        self.default_account = self._choose_default_account(acc_addr)
+        self.provider.eth.defaultAccount = self.default_account
+
+        self.processed_submission_tx = set()
         self.submissions_lock = Lock()
 
         signals.post_save.connect(self._new_tx_signal, sender=ETHSwap)
         event_listener.register(self.handle_submission, ['Submission'])
         Thread(target=self._swap_catch_up).start()
         # Thread(target=self._submission_catch_up).start()
+
+    def _choose_default_account(self, addr: str):
+        return next(filter(lambda x: x == addr, self.provider.eth.accounts))
 
     def _swap_catch_up(self):
         """Scans the db for unsigned swap tx and signs them"""
@@ -106,43 +115,63 @@ class Signer:
         msg = unsigned_tx['value']['msg'][0]['value']['msg']
         return decrypt(msg)
 
-    def handle_submission(self,  submission_id: int):
+    def handle_submission(self,  submission_event: AttributeDict):
         """Validates submission event with scrt network and sends confirmation if valid"""
-        self._validated_and_confirm(submission_id)
+        self._validated_and_confirm(submission_event)
 
     # TODO: add starting point of the catch_up
     def _submission_catch_up(self):
         """Iterates over the 'transactions map' of the smart contract, add validates tx if required"""
         # iterate the map
         # for each one, call _approve_and_submit
+        pass  # TODO
 
-    def _validated_and_confirm(self, submission_id: int):
+    def _validated_and_confirm(self, submission_event: AttributeDict):
         """Tries to validate the transaction corresponding to submission id on the smart contract,
         and confirms if valid"""
 
-        data = self._submission_data(submission_id)
+        transaction_id = submission_event.args.transactionId
+        data = self._submission_data(transaction_id)
         with self.submissions_lock:
-            if not self._is_confirmed(submission_id) and self._is_submission_valid(data):
-                self._confirm_transaction(data)
+            if transaction_id in self.processed_submission_tx:
+                return
+            
+            if not self._is_confirmed(transaction_id, data) and self._is_submission_valid(data):
+                self._confirm_transaction(transaction_id)
 
-            self.processed_submission_tx.add(submission_id)
+            self.processed_submission_tx.add(transaction_id)
 
     def _submission_data(self, transaction_id) -> Dict[str, any]:
-        temp = self.contract
-        pass
+        data = self.contract.contract.functions.transactions(transaction_id).call()
+        return {'dest': data[0], 'value': data[1], 'data': data[2], 'executed': data[3]}
 
     def _is_submission_valid(self, submission_data: Dict[str, any]) -> bool:
         # lookup the tx hash in scrt, and validate it.
         return True
 
-    def _is_confirmed(self, submission_id: int) -> bool:
+    def _is_confirmed(self, transaction_id: int, submission_data: Dict[str, any]) -> bool:
         """Checks with the data on the contract if signer already added confirmation or if threshold already reached"""
-        temp = self.contract
+
+        # check if already executed
+        if submission_data['executed']:
+            return True
+
+        # check if signer already signed the tx
+        if self.contract.contract.functions.confirmations(transaction_id, self.default_account.hex()).call():
+            return True
+
         return False
 
-    def _confirm_transaction(self, submission_data: Dict[str, any]) -> None:
+    # TODO: TEST
+    def _confirm_transaction(self, submission_id: int) -> None:
         """
-        Sends 'confirmTransaction' tx to the contract.
+        Sign the transaction with the signer's private key and then broadcast
         Note: This operation costs gas
         """
-        pass
+        submission_tx = self.contract.contract.functions.confirmTransaction(submission_id).buildTransaction(
+            {'chainId': self.provider.eth.chainId,
+             'gasPrice': self.provider.eth.gasPrice,
+             'nonce': self.provider.eth.getTransactionCount(self.default_account),
+             })
+        signed_txn = self.provider.eth.account.sign_transaction(submission_tx, private_key=self.private_key)
+        self.provider.eth.sendRawTransaction(signed_txn.rawTransaction)

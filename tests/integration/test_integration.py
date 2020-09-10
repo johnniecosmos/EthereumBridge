@@ -48,11 +48,10 @@ def test_2(leader, test_configuration, contract, web3_provider, signers):
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED.value
 
 
-    # send money to the smart contract
-
+    #send money to the smart contract
 
     # Create a "burn" tx on SCRT
-    pass # TODO
+    pass  # TODO
 
     # Verify that leader recognized the burn tx (might not be possible)
 

@@ -5,7 +5,7 @@ from typing import Dict
 
 
 def get_key_signer(key_name: str, keys_dir: str) -> Dict:
-    with open(path.join(keys_dir, key_name), "r") as f:
+    with open(path.join(keys_dir, key_name + ".json"), "r") as f:
         return json.load(f)
 
 

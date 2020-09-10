@@ -24,8 +24,8 @@ class EventListener:
 
     def register(self, callback: Callable, events: List[str], confirmations_required: int = 0):
         """
-        Allows registration to certain event of contract.
-        Note: events are case-sensitive
+        Allows registration to certain event of contract with confirmations threshold
+        Note: events are Case Sensitive
 
         :param callback: callback function that will be invoked upon event
         :param events: list of events the caller wants to register to
@@ -51,6 +51,7 @@ class EventListener:
 
 
 class Callbacks:
+    """Utility class that manages events registration by confirmation threshold"""
     def __init__(self):
         self.callbacks_by_confirmations: Dict[int, Dict[str, List[Callable]]] = dict()
         self.lock = Lock()
@@ -65,7 +66,7 @@ class Callbacks:
         """ call all the callbacks whose confirmation threshold reached """
 
         for threshold, val in self.callbacks_by_confirmations.items():
-            if not block_number - threshold <= 0:
+            if block_number - threshold <= 0:
                 continue
 
             block = provider.eth.getBlock(block_number - threshold, full_transactions=True)
