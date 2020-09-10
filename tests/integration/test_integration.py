@@ -1,7 +1,7 @@
 from time import sleep
 
 from web3 import Web3
-
+from src.util.web3 import normalize_address
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 
@@ -43,13 +43,12 @@ def test_1(manager, scrt_signers, web3_provider, test_configuration, contract):
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SIGNED.value
 
 
-def test_2(leader, test_configuration, contract, web3_provider, scrt_signers):
+def test_2(leader, test_configuration, contract, web3_provider, scrt_signers, ethr_signers):
     # give leader time to multisign already existing signatures
     sleep(1)
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED.value
 
-
-    #send money to the smart contract
+    # send money to the smart contract
 
     # Create a "burn" tx on SCRT
     pass  # TODO
@@ -57,10 +56,19 @@ def test_2(leader, test_configuration, contract, web3_provider, scrt_signers):
     # Verify that leader recognized the burn tx (might not be possible)
 
     # TODO: This will be delete with the complete flow.
-    withdraw_dest = web3_provider.eth.accounts[-1]
+    withdraw_dest = normalize_address(web3_provider.eth.accounts[-1])
     withdraw_value = 20
-    tx_hash = contract.contract.functions.submitTransaction(withdraw_dest, withdraw_value, "scrt tx hash".encode()).\
-        transact({'from': web3_provider.eth.coinbase}).hex().lower()
+
+    submit_tx = contract.contract.functions.submitTransaction(withdraw_dest, withdraw_value, "scrt tx hash".encode()). \
+        buildTransaction(
+        {
+            'from': leader.default_account,
+            'chainId': web3_provider.eth.chainId,
+            'gasPrice': web3_provider.eth.gasPrice,
+            'nonce': web3_provider.eth.getTransactionCount(leader.default_account),
+        })
+    signed_txn = web3_provider.eth.account.sign_transaction(submit_tx, private_key=leader.private_key)
+    web3_provider.eth.sendRawTransaction(signed_txn.rawTransaction)
 
     # Verify that the signers have signed the tx.
     pass  # TODO: Could either track 'Withdraw' events OR query the contract itself.

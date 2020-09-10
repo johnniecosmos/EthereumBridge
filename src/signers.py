@@ -108,8 +108,8 @@ class SecretSigner:
 class EthrSigner:
     """Verifies Secret burn tx and adds it's confirmation to the smart contract"""
 
-    def __init__(self, event_listener: EventListener, provider: Web3, contract: Contract, private_key, acc_addr,
-                 config):
+    def __init__(self, event_listener: EventListener, provider: Web3, contract: Contract, private_key: bytes,
+                 acc_addr: str, config):
         # TODO: acc_addr probably not required
         self.provider = provider
         self.contract = contract
@@ -167,7 +167,7 @@ class EthrSigner:
             return True
 
         # check if signer already signed the tx
-        if self.contract.contract.functions.confirmations(transaction_id, self.default_account.hex()).call():
+        if self.contract.contract.functions.confirmations(transaction_id, self.default_account).call():
             return True
 
         return False
@@ -181,6 +181,7 @@ class EthrSigner:
             {'chainId': self.provider.eth.chainId,
              'gasPrice': self.provider.eth.gasPrice,
              'nonce': self.provider.eth.getTransactionCount(self.default_account),
+             'from': self.default_account
              })
         signed_txn = self.provider.eth.account.sign_transaction(submission_tx, private_key=self.private_key)
         self.provider.eth.sendRawTransaction(signed_txn.rawTransaction)

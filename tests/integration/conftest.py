@@ -50,8 +50,8 @@ def ethr_signers(event_listener, web3_provider, contract, test_configuration, et
     res = []
 
     for acc in ether_accounts:
-        private_key = str(acc.privateKey)
-        address = str(acc.address)
+        private_key = acc.privateKey
+        address = acc.address
 
         res.append(EthrSigner(event_listener, web3_provider, contract,  private_key, address, test_configuration))
 
@@ -93,7 +93,7 @@ def ether_accounts(web3_provider, test_configuration):
         # account[0] is network.eth.coinbase
         web3_provider.eth.sendTransaction({'from': normalize_address(web3_provider.eth.accounts[0]),
                                            'to': normalize_address(acc.address),
-                                           'value': 1000000})
+                                           'value': 10000000000000000})
         res.append(acc)
 
     return res
@@ -113,8 +113,8 @@ def manager(event_listener, contract, multisig_account, test_configuration):
 
 @fixture(scope="module")
 def leader(multisig_account, test_configuration, web3_provider, contract, ether_accounts):
-    private_key = ethr_signers[0].privateKey
-    address = ethr_signers[0].address
+    private_key = ether_accounts[0].privateKey
+    address = normalize_address(ether_accounts[0].address)
     leader = Leader(web3_provider, multisig_account, contract, private_key, address, test_configuration)
     yield leader
     leader.stop_event.set()

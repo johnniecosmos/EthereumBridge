@@ -1,6 +1,5 @@
 from threading import Thread, Event
 
-from web3 import Web3
 from web3.datastructures import AttributeDict
 
 from src import config as temp_config

@@ -31,7 +31,7 @@ class Leader:
         self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
         self.stop_event = Event()
         Thread(target=self.scan_swap).start()
-        Thread(target=self.scan_burn).start()
+        # Thread(target=self.scan_burn).start()
 
     # TODO: Improve logic by separating 'catch_up' and 'signal' operations
     def scan_swap(self):
@@ -66,6 +66,7 @@ class Leader:
             return catch_and_log(self.logger, broadcast, signed_tx_path)[success_index]
 
     def _submit_tx(self, tx_data: Dict[str, any]):
+        # TODO: add private key signing here
         submission_tx = self.contract.contract.functions.submitTransaction(
             tx_data['dest'],
             tx_data['value'],
