@@ -19,7 +19,7 @@ from src.util.web3 import choose_default_account
 class Leader:
     """Broadcasts signed transactions Ethr <-> Scrt"""
 
-    def __init__(self, provider: Web3, multisig_: MultiSig, contract: Contract, acc_addr, private_key,
+    def __init__(self, provider: Web3, multisig_: MultiSig, contract: Contract, private_key, acc_addr,
                  config=temp_config):
         self.provider = provider
         self.multisig = multisig_
@@ -67,7 +67,6 @@ class Leader:
         with temp_file(signed_tx) as signed_tx_path:
             return catch_and_log(self.logger, broadcast, signed_tx_path)[success_index]
 
-    # TODO: Test
     def _submit_tx(self, tx_data: Dict[str, any]):
         submission_tx = self.contract.contract.functions.submitTransaction(
             tx_data['dest'],

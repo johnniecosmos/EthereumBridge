@@ -36,15 +36,7 @@ def make_project(db, test_configuration):
     from brownie.project.IntegrationTests import MultiSigSwapWallet
     network.connect('development')  # connect to ganache cli
 
-    # create signing ethr accounts
-    # eth_signers = [web3_.eth.accounts.create() for _ in range(test_configuration.signatures_threshold)]
-    # owners = get_eth_signers_accounts(eth_signers, accounts)
-
-    # account[0] is network.eth.coinbase
-    swap_contract = MultiSigSwapWallet.deploy(owners, test_configuration.signatures_threshold,
-                                              {'from': accounts[0]})
-
-    yield brownie_project, swap_contract, network, accounts
+    yield network
 
     # cleanup
     del brownie_project
@@ -53,37 +45,25 @@ def make_project(db, test_configuration):
 
 
 @fixture(scope="module")
-def brownie_project(make_project):
-    p, _, _, _, _ = make_project
-    return p
-
-
-@fixture(scope="module")
-def swap_contract(make_project):
-    _, contract, _, _ = make_project
-    return contract
-
-
-@fixture(scope="module")
-def brownie_network(make_project):
-    _, _, net, _ = make_project
-    return net
-
-
-@fixture(scope="module")
-def ganache_accounts(make_project):
-    _, _, _, acc = make_project
-    return acc
+def swap_contract(ethr_signers, test_configuration):
+    # noinspection PyUnresolvedReferences
+    from brownie.project.IntegrationTests import MultiSigSwapWallet
+    swap_contract = MultiSigSwapWallet.deploy(ethr_signers, test_configuration.signatures_threshold,
+                                              {'from': accounts[0]})
+    return swap_contract
 
 
 @fixture(scope="module")
 def ethr_signers(event_listener, web3_provider, contract, test_configuration):
     res = []
+
     for _ in test_configuration.signatures_threshold:
         account = web3_provider.eth.accounts.create()
         private_key = account["privateKey"]
         address = account["address"]
-        res.append(EthrSigner(event_listener, web3_provider, contract, test_configuration, private_key, address))
+        # account[0] is network.eth.coinbase
+        web3_provider.eth.sendTransaction({'from': web3_provider.eth.accounts[0], 'to': account, 'value': 1000000})
+        res.append(EthrSigner(event_listener, web3_provider, contract,  private_key, address, test_configuration))
 
     return res
 
@@ -101,8 +81,8 @@ def scrt_signers(event_listener, scrt_signer_keys, web3_provider, contract, test
 
 
 @fixture(scope="module")
-def web3_provider(brownie_network):
-    return brownie_network.web3
+def web3_provider(make_project):
+    return make_project.web3
 
 
 @fixture(scope="module")
@@ -118,10 +98,11 @@ def manager(event_listener, contract, multisig_account, test_configuration):
     manager.stop_signal.set()
 
 
-# TODO: fix init
 @fixture(scope="module")
-def leader(multisig_account, test_configuration):
-    leader = Leader(multisig_account, test_configuration)
+def leader(multisig_account, test_configuration, web3_provider, contract, ethr_signers):
+    private_key = ethr_signers[0]["privateKey"]
+    address = ethr_signers[0]["address"]
+    leader = Leader(web3_provider, multisig_account, contract, private_key, address, test_configuration)
     yield leader
     leader.stop_event.set()
 
@@ -131,8 +112,3 @@ def event_listener(contract, web3_provider, test_configuration):
     listener = EventListener(contract, web3_provider, test_configuration)
     yield listener
     listener.stop_event.set()
-
-#
-# @fixture(scope="module")
-# def owners(test_configuration, make_project):
-#     return [acc.address for acc in accounts[:test_configuration.signatures_threshold]]

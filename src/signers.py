@@ -108,8 +108,8 @@ class SecretSigner:
 class EthrSigner:
     """Verifies Secret burn tx and adds it's confirmation to the smart contract"""
 
-    def __init__(self, event_listener: EventListener, provider: Web3, contract: Contract, config,
-                 private_key, acc_addr):
+    def __init__(self, event_listener: EventListener, provider: Web3, contract: Contract, private_key, acc_addr,
+                 config):
         self.provider = provider
         self.contract = contract
         self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)

@@ -12,11 +12,11 @@ from src.db.collections.signatures import Signatures
 Ethr -> Scrt and then Scrt -> Ethr """
 
 
-def test_0(swap_contract, owners):
+def test_0(swap_contract, ethr_signers):
     # validate owners of contract - sanity check
     contract_owners = swap_contract.getOwners()
-    assert len(contract_owners) == len(owners)
-    for owner in owners:
+    assert len(contract_owners) == len(ethr_signers)
+    for owner in ethr_signers:
         assert owner in contract_owners
 
 
