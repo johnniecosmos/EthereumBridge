@@ -1,9 +1,9 @@
 db_name = "test_db"
-app_data = ".bridge"
+app_data = ".bridge_test"
 
 signatures_threshold = 3
-manager_sleep_time_seconds = 5.0
-default_sleep_time_interval = 5.0
+manager_sleep_time_seconds = 2.0
+default_sleep_time_interval = 2.0
 blocks_confirmation_required = 12
 
 logger_name = "test logger"

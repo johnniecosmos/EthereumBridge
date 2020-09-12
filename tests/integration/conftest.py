@@ -1,10 +1,13 @@
 import os
+from pathlib import Path
 from shutil import copy, rmtree
 from time import sleep
 from typing import List
+from copy import deepcopy
 
 from brownie import project, network, accounts
 from pytest import fixture
+from web3.datastructures import AttributeDict
 
 import src.contracts as contracts_package
 import tests.integration as integration_package
@@ -55,7 +58,19 @@ def ethr_signers(event_listener, web3_provider, contract, test_configuration, et
 
         res.append(EthrSigner(event_listener, web3_provider, contract, private_key, address, test_configuration))
 
-    return res
+    yield res
+    rmtree(Path.joinpath(Path.home(), ".bridge_test"), ignore_errors=True)
+
+
+@fixture(scope="module")
+def ethr_signer_late(event_listener, web3_provider, contract, test_configuration, ether_accounts):
+    fake_config = AttributeDict({'app_data': '.bridge_test_2', 'db_name': test_configuration.db_name})
+    acc = ether_accounts[-1]
+    private_key = acc.privateKey
+    address = acc.address
+
+    yield EthrSigner(event_listener, web3_provider, contract, private_key, address, fake_config)
+    rmtree(Path.joinpath(Path.home(), '.bridge_test_2'), ignore_errors=True)
 
 
 @fixture(scope="module")

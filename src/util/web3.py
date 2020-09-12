@@ -5,7 +5,6 @@ from hexbytes import HexBytes
 from web3 import Web3
 from web3.datastructures import AttributeDict
 
-from src.contracts.contract import Contract
 from src.contracts.secret_contract import tx_args
 from src.util.secretcli import create_unsigined_tx
 
@@ -69,7 +68,7 @@ def generate_unsigned_tx(secret_contract_address, log, chain_id, enclave_key, en
         multisig_acc_addr)
 
 
-def contract_event_in_range(provider: Web3, contract: Contract, event: str, from_block: int = 0, to_block: int = None):
+def contract_event_in_range(provider: Web3, contract, event: str, from_block: int = 0, to_block: int = None):
     """
     scans the blockchain, and yields blocks that has contract tx with the provided event
 

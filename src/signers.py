@@ -130,12 +130,13 @@ class EthrSigner:
 
     def _create_file_db(self):
         file_path = Path.joinpath(Path.home(), self.config.app_data, 'submission_events')
+        Path.joinpath(Path.home(), self.config.app_data).mkdir(parents=True, exist_ok=True)
         return open(file_path, "a+")
 
     def handle_submission(self, submission_event: AttributeDict):
         """ Validates submission event with scrt network and sends confirmation if valid """
         self._validated_and_confirm(submission_event)
-
+    
     def _submission_catch_up(self):
         """ Used to sync the signer with the chain after downtime, utilize local file to keep track of last processed
          block number.
