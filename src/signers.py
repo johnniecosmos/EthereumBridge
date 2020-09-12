@@ -1,6 +1,7 @@
 import json
 from collections import namedtuple
-from threading import Thread, Lock
+from pathlib import Path
+from threading import Thread, Lock, Event
 from typing import Dict
 
 from mongoengine import signals
@@ -15,7 +16,7 @@ from src.util.common import temp_file
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
 from src.util.secretcli import sign_tx as secretcli_sign, decrypt
-from src.util.web3 import event_log
+from src.util.web3 import event_log, contract_event_in_range
 
 MultiSig = namedtuple('MultiSig', ['multisig_acc_addr', 'signer_acc_name'])
 
@@ -27,12 +28,13 @@ class SecretSigner:
         self.provider = provider
         self.multisig = multisig_
         self.contract = contract
+        self.config = config
+
         self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
 
         signals.post_save.connect(self._tx_signal, sender=ETHSwap)
 
         Thread(target=self._catch_up).start()
-        # Thread(target=self._submission_catch_up).start()
 
     def _catch_up(self):
         """Scans the db for unsigned swap tx and signs them"""
@@ -110,31 +112,42 @@ class EthrSigner:
 
     def __init__(self, event_listener: EventListener, provider: Web3, contract: Contract, private_key: bytes,
                  acc_addr: str, config):
-        # TODO: acc_addr probably not required
         self.provider = provider
         self.contract = contract
-        self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
         self.private_key = private_key
-
         self.default_account = acc_addr
+        self.config = config
+        self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
+
         # self.provider.eth.defaultAccount = self.default_account
 
-        self.processed_submission_tx = set()
         self.submissions_lock = Lock()
 
+        self.catch_up_complete = Event()
+        self.file_db = self._create_file_db()
         event_listener.register(self.handle_submission, ['Submission'])
-        # Thread(target=self._submission_catch_up).start()
+        Thread(target=self._submission_catch_up).start()
+
+    def _create_file_db(self):
+        file_path = Path.joinpath(Path.home(), self.config.app_data, 'submission_events')
+        return open(file_path, "a+")
 
     def handle_submission(self, submission_event: AttributeDict):
-        """Validates submission event with scrt network and sends confirmation if valid"""
+        """ Validates submission event with scrt network and sends confirmation if valid """
         self._validated_and_confirm(submission_event)
 
-    # TODO: add starting point of the catch_up
     def _submission_catch_up(self):
-        """Iterates over the 'transactions map' of the smart contract, add validates tx if required"""
-        # iterate the map
-        # for each one, call _approve_and_submit
-        pass  # TODO
+        """ Used to sync the signer with the chain after downtime, utilize local file to keep track of last processed
+         block number.
+        """
+        from_block = self.file_db.read()
+        from_block = int(from_block) if from_block else 0
+
+        for event in contract_event_in_range(self.provider, self.contract, 'Submission', from_block=from_block):
+            self._update_last_block_processed(event.blockNumber)
+            Thread(target=self._validated_and_confirm, args=(event,)).start()
+
+        self.catch_up_complete.set()
 
     def _validated_and_confirm(self, submission_event: AttributeDict):
         """Tries to validate the transaction corresponding to submission id on the smart contract,
@@ -143,13 +156,17 @@ class EthrSigner:
         transaction_id = submission_event.args.transactionId
         data = self._submission_data(transaction_id)
         with self.submissions_lock:
-            if transaction_id in self.processed_submission_tx:
-                return
+            if self.catch_up_complete.isSet():
+                self._update_last_block_processed(submission_event.blockNumber)
 
             if not self._is_confirmed(transaction_id, data) and self._is_valid(data):
                 self._confirm_transaction(transaction_id)
 
-            self.processed_submission_tx.add(transaction_id)
+    def _update_last_block_processed(self, number: int):
+        self.file_db.seek(0)
+        self.file_db.write(str(number))
+        self.file_db.truncate()
+        self.file_db.flush()
 
     def _submission_data(self, transaction_id) -> Dict[str, any]:
         data = self.contract.contract.functions.transactions(transaction_id).call()

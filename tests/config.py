@@ -1,4 +1,5 @@
 db_name = "test_db"
+app_data = ".bridge"
 
 signatures_threshold = 3
 manager_sleep_time_seconds = 5.0
