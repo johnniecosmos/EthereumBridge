@@ -1,10 +1,10 @@
 from hexbytes import HexBytes
 from pytest import fixture
+from src.moderator import Moderator
 from web3.datastructures import AttributeDict
 
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
-from src.moderator import Moderator
 from src.util.web3 import web3_provider, generate_unsigned_tx
 
 swap_log = AttributeDict({

@@ -18,11 +18,6 @@ def web3_provider(address_: str) -> Web3:
         return Web3(Web3.IPCProvider(address_))
 
 
-def last_confirmable_block(provider: Web3, threshold: int = 12):
-    latest_block = provider.eth.getBlock('latest')
-    return latest_block.number - threshold
-
-
 def extract_tx_by_address(address, block) -> list:
     # Note: block attribute dict has to be generated with full_transactions=True flag
     return [tx for tx in block.transactions if tx.to and address.lower() == tx.to.lower()]
@@ -45,7 +40,6 @@ def event_log(tx_hash: Union[Hash32, HexBytes, HexStr], event: str, provider: We
 
 
 def normalize_address(address: str):
-    # TODO: remove and check if all address is normalized in the api calls
     """Converts address to address acceptable by web3"""
     try:
         return Web3.toChecksumAddress(address.lower())
@@ -68,7 +62,8 @@ def generate_unsigned_tx(secret_contract_address, log, chain_id, enclave_key, en
         multisig_acc_addr)
 
 
-def contract_event_in_range(provider: Web3, contract, event: str, from_block: int = 0, to_block: int = None):
+def contract_event_in_range(provider: Web3, contract, event: str, from_block: int = 0,
+                            to_block: Union[int, str] = 'latest'):
     """
     scans the blockchain, and yields blocks that has contract tx with the provided event
 
@@ -77,7 +72,7 @@ def contract_event_in_range(provider: Web3, contract, event: str, from_block: in
     :param to_block: end block, defaults to 'latest'
     :param event: name of the contract emit event you wish to be notified of
     """
-    if to_block is None:
+    if to_block == 'latest':
         to_block = provider.eth.getBlock('latest').number
 
     for block_num in range(from_block, to_block):

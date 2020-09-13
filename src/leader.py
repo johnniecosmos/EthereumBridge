@@ -57,7 +57,7 @@ class Leader:
 
     def _create_multisig(self, unsigned_tx: str, signatures: List[str]) -> str:
         with temp_file(unsigned_tx) as unsigned_tx_path:
-            with temp_files(signatures) as signed_tx_paths:
+            with temp_files(signatures, self.logger) as signed_tx_paths:
                 return multisign_tx(unsigned_tx_path, self.multisig.signer_acc_name, *signed_tx_paths)
 
     def _broadcast(self, signed_tx) -> bool:

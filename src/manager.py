@@ -1,10 +1,12 @@
 from threading import Thread, Event
 
+from mongoengine import DoesNotExist, MultipleObjectsReturned
 from web3.datastructures import AttributeDict
 
 from src import config as temp_config
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
+from src.db.collections.moderator import ModeratorData
 from src.db.collections.signatures import Signatures
 from src.event_listener import EventListener
 from src.signers import MultiSig
@@ -21,12 +23,14 @@ class Manager:
         self.contract = contract
         self.config = config
         self.multisig = multisig
+        self.event_listener = event_listener
 
         self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
         self.stop_signal = Event()
 
         event_listener.register(self._handle, ['Swap'], self.config.blocks_confirmation_required)
         Thread(target=self.run).start()
+        Thread(target=self.catch_up).start()
 
     # noinspection PyUnresolvedReferences
     def run(self):
@@ -37,6 +41,17 @@ class Manager:
                     transaction.status = Status.SWAP_STATUS_SIGNED.value
                     transaction.save()
             self.stop_signal.wait(self.config.manager_sleep_time_seconds)
+
+    # TODO: test
+    def catch_up(self):
+        from_block = self._resolve_last_block_scanned(self.logger) + 1
+        to_block = self.event_listener.provider.eth.getBlock('latest').number - self.config.blocks_confirmation_required
+
+        if to_block <= 0:
+            return
+
+        for event in self.event_listener.events_in_range('Swap', from_block, to_block):
+            self._handle(event)
 
     def _handle(self, transaction: AttributeDict):
         """Registers transaction to the db"""
@@ -52,3 +67,15 @@ class Manager:
                                              self.config.enclave_hash, self.multisig.multisig_acc_addr)
         if success:
             ETHSwap.save_web3_tx(event, unsigned_tx)
+
+    @staticmethod
+    def _resolve_last_block_scanned(logger) -> int:
+        try:
+            doc = ModeratorData.objects.get()
+        except DoesNotExist:
+            doc = ModeratorData(last_block=-1).save()
+        except MultipleObjectsReturned as e:  # Corrupted DB
+            logger.critical(msg=f"DB collection corrupter.\n{e}")
+            raise e
+
+        return doc.last_block

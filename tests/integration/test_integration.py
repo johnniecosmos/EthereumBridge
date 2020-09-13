@@ -7,11 +7,9 @@ from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 from src.util.web3 import normalize_address
 
-# Note:
-# 1. Tests should be executed in order. test_0, test_1, ...
 
-""" Note, the tests are ordered and named test_0...N and should be executed in that order as they demonstrate the flow 
-Ethr -> Scrt and then Scrt -> Ethr """
+# Note: The tests are ordered and named test_0...N and should be executed in that order as they demonstrate the flow
+# Ethr -> Scrt and then Scrt -> Ethr
 
 
 def test_0(swap_contract, ethr_signers):
@@ -58,7 +56,7 @@ def test_1(manager, scrt_signers, web3_provider, test_configuration, contract):
 # 2. Secret Contract "mint" and "burn"
 # 3. Leader "burn" event tracking
 def test_2(leader, test_configuration, contract, web3_provider, scrt_signers):
-    # give leader time to multisign already existing signatures
+    # give leader time to multi-sign already existing signatures
     sleep(1)
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED.value
 
@@ -71,7 +69,7 @@ def test_2(leader, test_configuration, contract, web3_provider, scrt_signers):
 
 @fixture(scope="module")
 def test_3_setup(web3_provider, contract, leader, ethr_signers):
-    del ethr_signers[-1] # delete one of the singers so threshold won't be reached
+    del ethr_signers[-1]  # delete one of the singers so threshold won't be reached
     # create data to be used
     mock_submit_tx(web3_provider, contract, leader)
 
@@ -83,7 +81,7 @@ def test_3_setup(web3_provider, contract, leader, ethr_signers):
 # Components tested:
 # 1. EthrSigner - confirmation and offline catchup
 # 2. SmartContract multisig functionality
-def test_3(test3_setup, contract, web3_provider, ethr_signers, ethr_signer_late, leader, test_configuration):
+def test_3(test_3_setup, contract, web3_provider, ethr_signers, ethr_signer_late, leader, test_configuration):
     # use ethr_signer_late to test the catch up (the submit tx won't work without it)
     # validate with contract
 

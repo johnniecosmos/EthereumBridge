@@ -80,7 +80,7 @@ class SecretSigner:
         log = event_log(tx.tx_hash, 'Swap', self.provider, self.contract.contract)
         unsigned_tx = json.loads(tx.unsigned_tx)
         try:
-            res, success = catch_and_log(self.logger, self.decrypt, unsigned_tx)
+            res, success = catch_and_log(self.logger, self._decrypt, unsigned_tx)
             if not success:
                 return False
             json_start_index = res.find('{')
@@ -102,7 +102,7 @@ class SecretSigner:
         return res
 
     @staticmethod
-    def decrypt(unsigned_tx: Dict):
+    def _decrypt(unsigned_tx: Dict):
         msg = unsigned_tx['value']['msg'][0]['value']['msg']
         return decrypt(msg)
 
@@ -128,15 +128,15 @@ class EthrSigner:
         event_listener.register(self.handle_submission, ['Submission'])
         Thread(target=self._submission_catch_up).start()
 
+    def handle_submission(self, submission_event: AttributeDict):
+        """ Validates submission event with scrt network and sends confirmation if valid """
+        self._validated_and_confirm(submission_event)
+
     def _create_file_db(self):
         file_path = Path.joinpath(Path.home(), self.config.app_data, 'submission_events')
         Path.joinpath(Path.home(), self.config.app_data).mkdir(parents=True, exist_ok=True)
         return open(file_path, "a+")
 
-    def handle_submission(self, submission_event: AttributeDict):
-        """ Validates submission event with scrt network and sends confirmation if valid """
-        self._validated_and_confirm(submission_event)
-    
     def _submission_catch_up(self):
         """ Used to sync the signer with the chain after downtime, utilize local file to keep track of last processed
          block number.

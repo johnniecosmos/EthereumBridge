@@ -7,7 +7,7 @@ from web3.exceptions import BlockNotFound
 
 from src import config as temp_config
 from src.contracts.contract import Contract
-from src.util.web3 import extract_tx_by_address, event_log
+from src.util.web3 import extract_tx_by_address, event_log, contract_event_in_range
 
 
 class EventListener:
@@ -48,6 +48,10 @@ class EventListener:
             self.callbacks.call(self.provider, self.contract, block.number)
 
             current_block_num += 1
+
+    def events_in_range(self, event: str, from_block: int, to_block: int = None):
+        """ Returns a generator that yields all contract events in range"""
+        return contract_event_in_range(self.provider, self.contract, event, from_block=from_block, to_block=to_block)
 
 
 class Callbacks:

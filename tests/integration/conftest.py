@@ -3,7 +3,6 @@ from pathlib import Path
 from shutil import copy, rmtree
 from time import sleep
 from typing import List
-from copy import deepcopy
 
 from brownie import project, network, accounts
 from pytest import fixture

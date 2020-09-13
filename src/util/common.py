@@ -6,7 +6,6 @@ from tempfile import NamedTemporaryFile
 from typing import List
 
 import src
-from src.db.collections.log import Logs
 
 
 @contextmanager
@@ -19,7 +18,7 @@ def temp_file(data: str):
 
 
 @contextmanager
-def temp_files(data: List[str]) -> List[str]:
+def temp_files(data: List[str], logger) -> List[str]:
     temp = []
     for d in data:
         temp.append(temp_file(d))
@@ -29,7 +28,7 @@ def temp_files(data: List[str]) -> List[str]:
         try:
             manager.__exit__(*sys.exc_info())
         except OSError as e:
-            Logs(log=f"{e}")
+            logger.debug(msg=e)
 
 
 # noinspection PyTypeChecker
