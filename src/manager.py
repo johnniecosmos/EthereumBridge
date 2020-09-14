@@ -1,6 +1,5 @@
 from threading import Thread, Event
 
-from mongoengine import DoesNotExist, MultipleObjectsReturned
 from web3.datastructures import AttributeDict
 
 from src import config as temp_config
@@ -67,4 +66,3 @@ class Manager:
                                              self.config.enclave_hash, self.multisig.multisig_acc_addr)
         if success:
             ETHSwap.save_web3_tx(event, unsigned_tx)
-

@@ -1,7 +1,6 @@
 from subprocess import run, PIPE
 from typing import List
 
-
 # Note: tx accepted in this module are valid file path or valid json string
 from src.contracts.secret_contract import burn_query
 

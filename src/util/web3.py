@@ -97,7 +97,7 @@ def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str
 
 
 def send_contract_tx(logger: Logger, provider: Web3, contract, function_name: str, from_acc: str, private_key: str,
-                *args, gas: int = 0):
+                     *args, gas: int = 0):
     submit_tx = getattr(contract.contract.functions, function_name)(*args). \
         buildTransaction(
         {

@@ -15,7 +15,7 @@ from src.event_listener import EventListener
 from src.util.common import temp_file
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
-from src.util.secretcli import sign_tx as secretcli_sign, decrypt
+from src.util.secretcli import sign_tx as secretcli_sign, decrypt, query_burn
 from src.util.web3 import event_log, contract_event_in_range
 
 MultiSig = namedtuple('MultiSig', ['multisig_acc_addr', 'signer_acc_name'])
@@ -145,7 +145,8 @@ class EthrSigner:
         from_block = int(from_block) if from_block else 0
         to_block = self.provider.eth.getBlock('latest').number - 1  # handle_submission starts from 'latest'
 
-        for event in contract_event_in_range(self.provider, self.contract, 'Submission', from_block, to_block):
+        for event in contract_event_in_range(self.logger, self.provider, self.contract, 'Submission', from_block,
+                                             to_block):
             self._update_last_block_processed(event.blockNumber)
             Thread(target=self._validated_and_confirm, args=(event,)).start()
 
@@ -176,7 +177,21 @@ class EthrSigner:
 
     def _is_valid(self, submission_data: Dict[str, any]) -> bool:
         # lookup the tx hash in scrt, and validate it.
-        return True
+        nonce = submission_data['transactionId']
+        burn, success = catch_and_log(self.logger, query_burn, nonce,
+                                      self.config.secret_contract_address, self.config.viewing_key)
+        if success:
+            try:
+                burn_data = json.loads(burn)
+            except Exception as e:
+                self.logger.critical(msg=e)
+                return False
+
+            if burn_data['dest'].decode() == submission_data['dest']\
+                    and burn_data['value'] == submission_data['amount']:
+                return True
+
+        return False
 
     def _is_confirmed(self, transaction_id: int, submission_data: Dict[str, any]) -> bool:
         """Checks with the data on the contract if signer already added confirmation or if threshold already reached"""
