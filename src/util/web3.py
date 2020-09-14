@@ -1,5 +1,5 @@
 from logging import Logger
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Optional
 
 from eth_typing import HexStr, Hash32
 from hexbytes import HexBytes
@@ -23,14 +23,14 @@ def extract_tx_by_address(address, block: BlockData) -> list:
 
 
 def event_log(tx_hash: Union[Hash32, HexBytes, HexStr], events: List[str], provider: Web3, contract) -> \
-        Union[Tuple[str, AttributeDict], None]:
+        Tuple[str, Optional[AttributeDict]]:
     """
     Extracts logs of @event from tx_hash if present
     :param tx_hash:
     :param events: Case sensitive events name
     :param provider:
     :param contract: Web3 Contract
-    :return: logs represented in 'AttributeDict' or 'None' if not found
+    :return: event name and log represented in 'AttributeDict' or 'None' if not found
     """
     receipt = provider.eth.getTransactionReceipt(tx_hash)
     for event in events:
@@ -38,6 +38,7 @@ def event_log(tx_hash: Union[Hash32, HexBytes, HexStr], events: List[str], provi
         if log:
             data_index = 0
             return event, log[data_index]
+    return '', None
 
 
 def normalize_address(address: str):
@@ -72,7 +73,7 @@ def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str
             for tx in contract_transactions:
                 _, log = event_log(tx_hash=tx.hash, events=[event], provider=provider, contract=contract.contract)
 
-                if not log:
+                if log is None:
                     continue
 
                 yield log

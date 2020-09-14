@@ -7,7 +7,7 @@ from web3 import Web3
 
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
-from src.db.collections.moderator import Management, Source
+from src.db.collections.management import Management, Source
 from src.db.collections.signatures import Signatures
 from src.signers import MultiSig
 from src.util.common import temp_file, temp_files
@@ -67,14 +67,14 @@ class Leader:
     # TODO: test
     def _scan_burn(self):
         """ Scans secret network contract for burn events """
-        last_burn_nonce = Management.last_block(Source.scrt.value, self.logger) + 1
+        current_nonce = Management.last_block(Source.scrt.value, self.logger) + 1
 
         while not self.stop_event.is_set():
-            burn, success = catch_and_log(self.logger, query_burn, last_burn_nonce + 1,
+            burn, success = catch_and_log(self.logger, query_burn, current_nonce + 1,
                                           self.config.secret_contract_address, self.config.viewing_key)
             if success:
-                self._handle_burn(burn, last_burn_nonce + 1)
-                last_burn_nonce += 1
+                self._handle_burn(burn, current_nonce + 1)
+                current_nonce += 1
                 continue
 
             self.stop_event.wait(self.config.default_sleep_time_interval)

@@ -18,9 +18,8 @@ class ETHSwap(Document):
     unsigned_tx = StringField(required=True)
     creation = DateTimeField(default=datetime.now, required=True)
 
-
-    @classmethod
-    def save_web3_tx(cls, tx, unsigned_tx=str):
+    @staticmethod
+    def save_web3_tx(tx, unsigned_tx=str):
         tx_hash = tx.transactionHash.hex()
         if ETHSwap.objects(tx_hash=tx_hash).count() == 0:
             ETHSwap(tx_hash=tx_hash, status=Status.SWAP_STATUS_UNSIGNED.value, unsigned_tx=unsigned_tx).save()

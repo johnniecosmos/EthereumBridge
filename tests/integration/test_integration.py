@@ -1,3 +1,4 @@
+import json
 from time import sleep
 
 from pytest import fixture
@@ -97,7 +98,10 @@ def test_3(test_3_setup, contract, web3_provider, ethr_signers, ethr_signer_late
 def mock_submit_tx(web3_provider, contract, leader):
     withdraw_dest = normalize_address(web3_provider.eth.accounts[-1])
     withdraw_value = 20
-    submit_tx = contract.contract.functions.submitTransaction(withdraw_dest, withdraw_value, "scrt tx hash".encode()). \
+    submit_tx = contract.contract.functions.submitTransaction(
+        withdraw_dest,
+        withdraw_value,
+        json.dumps({'nonce': 0})). \
         buildTransaction(
         {
             'from': leader.default_account,
@@ -110,7 +114,7 @@ def mock_submit_tx(web3_provider, contract, leader):
 
 
 def increase_block_number(web3_provider: Web3, increment: int) -> True:
-    # Creates stupid tx on the chain to increase the last block number
+    # Creates irrelevant tx on the chain to increase the last block number
     for i in range(increment):
         web3_provider.eth.sendTransaction({
             'from': web3_provider.eth.coinbase,

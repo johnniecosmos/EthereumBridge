@@ -174,11 +174,11 @@ class EthrSigner:
 
     def _submission_data(self, transaction_id) -> Dict[str, any]:
         data = self.contract.contract.functions.transactions(transaction_id).call()
-        return {'dest': data[0], 'value': data[1], 'data': data[2], 'executed': data[3]}
+        return {'dest': data[0], 'value': data[1], 'data': json.loads(data[2]), 'executed': data[3]}
 
     def _is_valid(self, submission_data: Dict[str, any]) -> bool:
         # lookup the tx hash in scrt, and validate it.
-        nonce = submission_data['transactionId']
+        nonce = submission_data['data']['nonce']
         burn, success = catch_and_log(self.logger, query_burn, nonce,
                                       self.config.secret_contract_address, self.config.viewing_key)
         if success:

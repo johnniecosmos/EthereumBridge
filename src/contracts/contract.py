@@ -11,7 +11,7 @@ class Contract:
     """Container for contract relevant data"""
 
     def __init__(self, provider: Web3, contract_address: str):
-        abi_path = os.path.join(project_base_path(), 'contracts', 'MultiSigSwapWallet.json')
+        abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'MultiSigSwapWallet.json')
         self.abi = self.load_abi(abi_path)
         self.address = contract_address
         self.contract = provider.eth.contract(address=self.normalized_address(), abi=self.abi)

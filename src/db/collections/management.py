@@ -8,8 +8,8 @@ class Management(Document):
     nonce = IntField(required=True)
     src = IntField(required=True)
 
-    @staticmethod
-    def last_block(src: int, logger: Logger):
+    @classmethod
+    def last_block(cls, src: int, logger: Logger):
         """
         Returns last processed contract tx sequence number
         :param src: string describing src network (i.e: scrt, eth)
@@ -17,12 +17,12 @@ class Management(Document):
         try:
             doc = Management.objects.get(src=src)
         except DoesNotExist:
-            doc = Management(last_block=-1).save()
+            doc = Management(nonce=-1, src=src).save()
         except MultipleObjectsReturned as e:  # Corrupted DB
             logger.critical(msg=f"DB collection corrupter.\n{e}")
             raise e
 
-        return doc.last_block
+        return doc.nonce
 
 
 class Source(Enum):

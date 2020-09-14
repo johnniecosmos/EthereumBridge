@@ -85,7 +85,7 @@ class Callbacks:
             for tx in contract_transactions:
                 event_name, log = event_log(tx_hash=tx.hash, events=list(callbacks.keys()), provider=provider,
                                             contract=contract.contract)
-                if not log:
+                if log is None:
                     continue
 
                 for callback in callbacks[event_name]:
