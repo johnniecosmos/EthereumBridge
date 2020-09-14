@@ -93,7 +93,6 @@ class Leader:
 
     def _broadcast(self, signed_tx) -> bool:
         # Note: This operation costs Scrt
-        # TODO: do I need to add the '-b block' here, is there send speed limit?
         success_index = 1
         with temp_file(signed_tx) as signed_tx_path:
             return catch_and_log(self.logger, broadcast, signed_tx_path)[success_index]

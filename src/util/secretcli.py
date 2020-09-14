@@ -1,7 +1,6 @@
 from subprocess import run, PIPE
 from typing import List
 
-# Note: tx accepted in this module are valid file path or valid json string
 from src.contracts.secret_contract import burn_query
 
 
@@ -26,8 +25,9 @@ def create_unsigined_tx(secret_contract_addr: str, encoded_args: str, chain_id: 
     return run_secret_cli(cmd)
 
 
+# TODO: test -b block
 def broadcast(signed_tx_path: str) -> str:
-    cmd = ['secretcli', 'tx', 'broadcast', signed_tx_path]
+    cmd = ['secretcli', 'tx', 'broadcast', signed_tx_path, '-b', 'block']
     return run_secret_cli(cmd)
 
 

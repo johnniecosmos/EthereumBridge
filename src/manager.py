@@ -3,6 +3,7 @@ from threading import Thread, Event
 from web3.datastructures import AttributeDict
 
 from src.contracts.contract import Contract
+from src.contracts.secret_contract import unsigned_mint_tx
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.moderator import Management, Source
 from src.db.collections.signatures import Signatures
@@ -10,7 +11,7 @@ from src.event_listener import EventListener
 from src.signers import MultiSig
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
-from src.util.web3 import generate_unsigned_tx
+from src.util.secretcli import create_unsigined_tx
 
 
 class Manager:
@@ -57,9 +58,12 @@ class Manager:
     def _handle_swap_events(self, event: AttributeDict):
         """Extracts tx of event 'swap' and saves to db"""
         unsigned_tx, success = catch_and_log(self.logger,
-                                             generate_unsigned_tx,
+                                             create_unsigined_tx,
                                              self.config.secret_contract_address,
-                                             event,
+                                             unsigned_mint_tx(
+                                                 event.args.value,
+                                                 event.transactionHash.hex(),
+                                                 event.args.recipient.decode()),
                                              self.config.chain_id, self.config.enclave_key,
                                              self.config.enclave_hash, self.multisig.multisig_acc_addr)
         if success:

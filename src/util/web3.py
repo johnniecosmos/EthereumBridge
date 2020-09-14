@@ -1,4 +1,3 @@
-from collections import defaultdict
 from logging import Logger
 from typing import Union, List, Tuple
 
@@ -6,9 +5,7 @@ from eth_typing import HexStr, Hash32
 from hexbytes import HexBytes
 from web3 import Web3
 from web3.datastructures import AttributeDict
-
-from src.contracts.secret_contract import tx_args
-from src.util.secretcli import create_unsigined_tx
+from web3.types import BlockData
 
 
 def web3_provider(address_: str) -> Web3:
@@ -20,7 +17,7 @@ def web3_provider(address_: str) -> Web3:
         return Web3(Web3.IPCProvider(address_))
 
 
-def extract_tx_by_address(address, block) -> list:
+def extract_tx_by_address(address, block: BlockData) -> list:
     # Note: block attribute dict has to be generated with full_transactions=True flag
     return [tx for tx in block.transactions if tx.to and address.lower() == tx.to.lower()]
 
@@ -51,22 +48,6 @@ def normalize_address(address: str):
         return address
 
 
-def generate_unsigned_tx(secret_contract_address, log, chain_id, enclave_key, enclave_hash,
-                         multisig_acc_addr: str):
-    """Extracts the data from the web3 log objects and creates unsigned_tx acceptable by SCRT network"""
-    # TODO: change
-    return create_unsigined_tx(
-        secret_contract_address,
-        tx_args(
-            log.args.value,
-            log.transactionHash.hex(),
-            log.args.recipient.decode()),
-        chain_id,
-        enclave_key,
-        enclave_hash,
-        multisig_acc_addr)
-
-
 def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str, from_block: int = 0,
                             to_block: Union[int, str] = 'latest'):
     """
@@ -89,7 +70,7 @@ def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str
                 continue
 
             for tx in contract_transactions:
-                _, log = event_log(tx_hash=tx.hash, event=[event], provider=provider, contract=contract.contract)
+                _, log = event_log(tx_hash=tx.hash, events=[event], provider=provider, contract=contract.contract)
 
                 if not log:
                     continue
@@ -101,6 +82,8 @@ def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str
 
 def send_contract_tx(logger: Logger, provider: Web3, contract, function_name: str, from_acc: str, private_key: str,
                      *args, gas: int = 0):
+    """ Creates the contract tx and signes it with private_key to be transmitted as raw tx """
+
     submit_tx = getattr(contract.contract.functions, function_name)(*args). \
         buildTransaction(
         {

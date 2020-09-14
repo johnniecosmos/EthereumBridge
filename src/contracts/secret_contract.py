@@ -2,7 +2,7 @@ import json
 
 
 # TODO: talk about units(amount_seth)
-def tx_args(amount, eth_tx_hash, recipient_address) -> str:
+def unsigned_mint_tx(amount, eth_tx_hash, recipient_address) -> str:
     return json.dumps({"mint": {"to": recipient_address, "amount_seth": amount, "eth_tx_hash": eth_tx_hash}})
 
 

@@ -1,19 +1,19 @@
 import json
+import os
 
 from web3 import Web3
 
+from src.util.common import project_base_path
 from src.util.web3 import normalize_address
-
-# TODO: move to config?
-abi_path = r"/home/guy/Workspace/dev/EthereumBridge/src/contracts/MultiSigSwapWallet.json"
 
 
 class Contract:
     """Container for contract relevant data"""
 
     def __init__(self, provider: Web3, contract_address: str):
-        self.address = contract_address
+        abi_path = os.path.join(project_base_path(), 'contracts', 'MultiSigSwapWallet.json')
         self.abi = self.load_abi(abi_path)
+        self.address = contract_address
         self.contract = provider.eth.contract(address=self.normalized_address(), abi=self.abi)
 
     def normalized_address(self):

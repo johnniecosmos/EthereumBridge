@@ -2,9 +2,9 @@ from logging import Logger, ERROR
 from typing import Tuple, Callable
 
 
-def catch_and_log(logger: Logger, callable: Callable, *args, **kwargs) -> Tuple[any, bool]:
+def catch_and_log(logger: Logger, callable_: Callable, *args, **kwargs) -> Tuple[any, bool]:
     try:
-        return callable(*args, **kwargs), True
+        return callable_(*args, **kwargs), True
     except Exception as e:
         logger.log(level=ERROR, msg=e)
         return None, False
