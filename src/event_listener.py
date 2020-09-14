@@ -72,7 +72,7 @@ class Callbacks:
     def call(self, provider: Web3, contract: Contract, block_number: int):
         """ call all the callbacks whose confirmation threshold reached """
 
-        for threshold, val in self.callbacks_by_confirmations.items():
+        for threshold, callbacks in self.callbacks_by_confirmations.items():
             if block_number - threshold <= 0:
                 continue
 
@@ -82,13 +82,11 @@ class Callbacks:
             if not contract_transactions:
                 continue
 
-            # TODO: improve to o(n) run time by providing event_log list of events (will save calls to the ethr node)
-            for event, callbacks in val.items():
-                for tx in contract_transactions:
-                    log = event_log(tx_hash=tx.hash, event=event, provider=provider, contract=contract.contract)
+            for tx in contract_transactions:
+                event_name, log = event_log(tx_hash=tx.hash, events=list(callbacks.keys()), provider=provider,
+                                            contract=contract.contract)
+                if not log:
+                    continue
 
-                    if not log:
-                        continue
-
-                    for callback in callbacks:
-                        callback(log)
+                for callback in callbacks[event_name]:
+                    callback(log)

@@ -77,7 +77,7 @@ class SecretSigner:
 
     def _is_valid(self, tx: ETHSwap) -> bool:
         """Assert that the data in the unsigned_tx matches the tx on the chain"""
-        log = event_log(tx.tx_hash, 'Swap', self.provider, self.contract.contract)
+        _, log = event_log(tx.tx_hash, ['Swap'], self.provider, self.contract.contract)
         unsigned_tx = json.loads(tx.unsigned_tx)
         try:
             res, success = catch_and_log(self.logger, self._decrypt, unsigned_tx)
@@ -152,6 +152,7 @@ class EthrSigner:
 
         self.catch_up_complete.set()
 
+    # noinspection PyUnresolvedReferences
     def _validated_and_confirm(self, submission_event: AttributeDict):
         """Tries to validate the transaction corresponding to submission id on the smart contract,
         and confirms if valid"""
