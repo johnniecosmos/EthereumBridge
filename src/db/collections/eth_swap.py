@@ -1,6 +1,7 @@
+from datetime import datetime
 from enum import Enum
 
-from mongoengine import Document, StringField, IntField
+from mongoengine import Document, StringField, IntField, DateTimeField
 
 
 class Status(Enum):
@@ -15,6 +16,8 @@ class ETHSwap(Document):
     tx_hash = StringField(required=True, unique=True)
     status = IntField(required=True)
     unsigned_tx = StringField(required=True)
+    creation = DateTimeField(default=datetime.now, required=True)
+
 
     @classmethod
     def save_web3_tx(cls, tx, unsigned_tx=str):
