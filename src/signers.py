@@ -187,7 +187,7 @@ class EthrSigner:
                 self.logger.critical(msg=e)
                 return False
 
-            if burn_data['dest'].decode() == submission_data['dest']\
+            if burn_data['dest'].decode() == submission_data['dest'] \
                     and burn_data['value'] == submission_data['amount']:
                 return True
 

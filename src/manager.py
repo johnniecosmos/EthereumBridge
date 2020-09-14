@@ -2,7 +2,6 @@ from threading import Thread, Event
 
 from web3.datastructures import AttributeDict
 
-from src import config as temp_config
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.moderator import Management, Source
@@ -17,8 +16,7 @@ from src.util.web3 import generate_unsigned_tx
 class Manager:
     """Accepts new swap events and manages the tx status in db"""
 
-    def __init__(self, event_listener: EventListener, contract: Contract, multisig: MultiSig,
-                 config=temp_config):
+    def __init__(self, event_listener: EventListener, contract: Contract, multisig: MultiSig, config):
         self.contract = contract
         self.config = config
         self.multisig = multisig

@@ -4,7 +4,6 @@ from typing import List, Dict
 
 from web3 import Web3
 
-from src import config as temp_config
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.moderator import Management, Source
@@ -20,8 +19,7 @@ from src.util.web3 import send_contract_tx
 class Leader:
     """Broadcasts signed transactions Ethr <-> Scrt"""
 
-    def __init__(self, provider: Web3, multisig_: MultiSig, contract: Contract, private_key, acc_addr,
-                 config=temp_config):
+    def __init__(self, provider: Web3, multisig_: MultiSig, contract: Contract, private_key, acc_addr, config):
         self.provider = provider
         self.multisig = multisig_
         self.config = config
@@ -67,7 +65,7 @@ class Leader:
                 last_burn_nonce += 1
                 continue
 
-            self.stop_event.wait(self.default_sleep_time_interval)
+            self.stop_event.wait(self.config.default_sleep_time_interval)
 
     # TODO: test
     def _handle_burn(self, burn_data: str, nonce: int):
