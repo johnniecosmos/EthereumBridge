@@ -14,6 +14,7 @@ chain_id = "enigma-testnet"
 multisig_acc_addr = "dynamic update"
 enclave_key = "dynamic update"
 secret_contract_address = "dynamic update"
+viewing_key = ""  # TODO
 
 # unit test:
 provider_address = "wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74"

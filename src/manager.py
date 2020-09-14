@@ -6,7 +6,7 @@ from web3.datastructures import AttributeDict
 from src import config as temp_config
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
-from src.db.collections.moderator import ModeratorData
+from src.db.collections.moderator import Management, Source
 from src.db.collections.signatures import Signatures
 from src.event_listener import EventListener
 from src.signers import MultiSig
@@ -44,7 +44,7 @@ class Manager:
 
     # TODO: test
     def catch_up(self):
-        from_block = self._resolve_last_block_scanned(self.logger) + 1
+        from_block = Management.last_block(Source.eth.value, self.logger) + 1
         to_block = self.event_listener.provider.eth.getBlock('latest').number - self.config.blocks_confirmation_required
 
         if to_block <= 0:
@@ -68,14 +68,3 @@ class Manager:
         if success:
             ETHSwap.save_web3_tx(event, unsigned_tx)
 
-    @staticmethod
-    def _resolve_last_block_scanned(logger) -> int:
-        try:
-            doc = ModeratorData.objects.get()
-        except DoesNotExist:
-            doc = ModeratorData(last_block=-1).save()
-        except MultipleObjectsReturned as e:  # Corrupted DB
-            logger.critical(msg=f"DB collection corrupter.\n{e}")
-            raise e
-
-        return doc.last_block

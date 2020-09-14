@@ -1,3 +1,4 @@
+from logging import Logger
 from typing import Union
 
 from eth_typing import HexStr, Hash32
@@ -50,6 +51,7 @@ def normalize_address(address: str):
 def generate_unsigned_tx(secret_contract_address, log, chain_id, enclave_key, enclave_hash,
                          multisig_acc_addr: str):
     """Extracts the data from the web3 log objects and creates unsigned_tx acceptable by SCRT network"""
+    # TODO: change
     return create_unsigined_tx(
         secret_contract_address,
         tx_args(
@@ -62,7 +64,7 @@ def generate_unsigned_tx(secret_contract_address, log, chain_id, enclave_key, en
         multisig_acc_addr)
 
 
-def contract_event_in_range(provider: Web3, contract, event: str, from_block: int = 0,
+def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str, from_block: int = 0,
                             to_block: Union[int, str] = 'latest'):
     """
     scans the blockchain, and yields blocks that has contract tx with the provided event
@@ -76,16 +78,36 @@ def contract_event_in_range(provider: Web3, contract, event: str, from_block: in
         to_block = provider.eth.getBlock('latest').number
 
     for block_num in range(from_block, to_block):
-        block = provider.eth.getBlock(block_num, full_transactions=True)
-        contract_transactions = extract_tx_by_address(contract.address, block)
+        try:
+            block = provider.eth.getBlock(block_num, full_transactions=True)
+            contract_transactions = extract_tx_by_address(contract.address, block)
 
-        if not contract_transactions:
-            continue
-
-        for tx in contract_transactions:
-            log = event_log(tx_hash=tx.hash, event=event, provider=provider, contract=contract.contract)
-
-            if not log:
+            if not contract_transactions:
                 continue
 
-            yield log
+            for tx in contract_transactions:
+                log = event_log(tx_hash=tx.hash, event=event, provider=provider, contract=contract.contract)
+
+                if not log:
+                    continue
+
+                yield log
+        except Exception as e:
+            logger.error(msg=e)
+
+
+def send_contract_tx(logger: Logger, provider: Web3, contract, function_name: str, from_acc: str, private_key: str,
+                *args, gas: int = 0):
+    submit_tx = getattr(contract.contract.functions, function_name)(*args). \
+        buildTransaction(
+        {
+            'from': from_acc,
+            'chainId': provider.eth.chainId,
+            'gasPrice': provider.eth.gasPrice if not gas else gas,
+            'nonce': provider.eth.getTransactionCount(from_acc),
+        })
+    signed_txn = provider.eth.account.sign_transaction(submit_tx, private_key)
+    try:
+        provider.eth.sendRawTransaction(signed_txn.rawTransaction)
+    except Exception as e:
+        logger.error(msg=e)

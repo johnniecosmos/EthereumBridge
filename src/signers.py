@@ -143,8 +143,9 @@ class EthrSigner:
         """
         from_block = self.file_db.read()
         from_block = int(from_block) if from_block else 0
+        to_block = self.provider.eth.getBlock('latest').number - 1  # handle_submission starts from 'latest'
 
-        for event in contract_event_in_range(self.provider, self.contract, 'Submission', from_block=from_block):
+        for event in contract_event_in_range(self.provider, self.contract, 'Submission', from_block, to_block):
             self._update_last_block_processed(event.blockNumber)
             Thread(target=self._validated_and_confirm, args=(event,)).start()
 

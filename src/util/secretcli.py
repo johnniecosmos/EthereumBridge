@@ -3,6 +3,8 @@ from typing import List
 
 
 # Note: tx accepted in this module are valid file path or valid json string
+from src.contracts.secret_contract import burn_query
+
 
 def sign_tx(unsigned_tx_path: str, multi_sig_account_addr: str, account_name: str):
     cmd = ['secretcli', 'tx', 'sign', unsigned_tx_path, '--signature-only', '--multisig',
@@ -32,6 +34,13 @@ def broadcast(signed_tx_path: str) -> str:
 
 def decrypt(data: str) -> str:
     cmd = ['secretcli', 'query', 'compute', 'decrypt', data]
+    return run_secret_cli(cmd)
+
+
+# TODO: test
+def query_burn(nonce: int, contract_addr: str, viewing_key: str):
+    query_str = burn_query(nonce, viewing_key)
+    cmd = ['secretcli', 'query', 'compute', 'query', contract_addr, query_str]
     return run_secret_cli(cmd)
 
 
