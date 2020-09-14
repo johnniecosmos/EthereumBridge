@@ -2,6 +2,7 @@ import json
 from threading import Event, Thread
 from typing import List, Dict
 
+from mongoengine import signals
 from web3 import Web3
 
 from src.contracts.contract import Contract
@@ -30,27 +31,38 @@ class Leader:
 
         self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
         self.stop_event = Event()
-        # TODO: add DB signals
-        Thread(target=self._scan_swap).start()
+
+        Thread(target=self._catch_up_swap).start()
         Thread(target=self._scan_burn).start()
 
-    # TODO: Improve logic by separating 'catch_up' and 'signal' operations
-    def _scan_swap(self):
-        """ Scans the DB for signed swap tx """
-        while not self.stop_event.is_set():
-            for tx in ETHSwap.objects(status=Status.SWAP_STATUS_SIGNED.value):
-                signatures = [signature.signed_tx for signature in Signatures.objects(tx_id=tx.id)]
+        signals.post_save.connect(self._swap_signal, sender=ETHSwap)
 
-                if len(signatures) < self.config.signatures_threshold:
-                    self.logger.error(msg=f"Tried to sign tx {tx.id}, without enough signatures"
-                                          f" (required: {self.config.signatures_threshold}, have: {len(signatures)})")
+    def _catch_up_swap(self):
+        """ Scans the DB for signed swap tx at startup"""
+        # Note: As Collection.objects() call is cached, there shouldn't be collisions with DB signals
+        for tx in ETHSwap.objects(status=Status.SWAP_STATUS_SIGNED.value):
+            self._handle_swap(tx)
 
-                signed_tx, success = catch_and_log(self.logger, self._create_multisig, tx.unsigned_tx, signatures)
-                if success and self._broadcast(signed_tx):
-                    tx.status = Status.SWAP_STATUS_SUBMITTED.value
-                    tx.save()
+    # noinspection PyUnusedLocal
+    def _swap_signal(self, sender, document, **kwargs):
+        """Callback function to handle db signals"""
+        if not document.status == Status.SWAP_STATUS_SIGNED.value:
+            return
+        try:
+            self._handle_swap(document)
+        except Exception as e:
+            self.logger.error(msg=e)
 
-            self.stop_event.wait(self.config.default_sleep_time_interval)
+    def _handle_swap(self, tx):
+        signatures = [signature.signed_tx for signature in Signatures.objects(tx_id=tx.id)]
+        if len(signatures) < self.config.signatures_threshold:
+            self.logger.error(msg=f"Tried to sign tx {tx.id}, without enough signatures"
+                                  f" (required: {self.config.signatures_threshold}, have: {len(signatures)})")
+
+        signed_tx, success = catch_and_log(self.logger, self._create_multisig, tx.unsigned_tx, signatures)
+        if success and self._broadcast(signed_tx):
+            tx.status = Status.SWAP_STATUS_SUBMITTED.value
+            tx.save()
 
     # TODO: test
     def _scan_burn(self):
