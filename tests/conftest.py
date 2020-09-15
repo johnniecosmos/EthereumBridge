@@ -1,5 +1,6 @@
 from os import path
 from typing import List
+from subprocess import run, PIPE
 
 from mongoengine import connect
 from pytest import fixture
@@ -19,7 +20,26 @@ tests_folder = module_dir(tests_package)
 def test_configuration():
     config.multisig_acc_addr = get_key_multisig_addr(f"ms{config.signatures_threshold}")
     config.enclave_key = path.join(tests_folder, 'deployment', 'io-master-cert.der')
-    config.secret_contract_address = config.multisig_acc_addr  # TODO: change once secret contract is deployed
+
+    res = run("secretcli query compute list-contract-by-code 1 | jq '.[0].address'", shell=True, stdout=PIPE)
+    config.secret_contract_address = res.stdout.decode().strip()[1:-1]
+
+    res = run(f"secretcli q compute contract-hash {config.secret_contract_address}").stdout.decode().strip()[2:-1]
+    config.code_hash = res
+
+    # get address of account 'a' on docker
+    a_address = run("docker exec secretdev secretcli keys show a | jq '.address'", shell=True, stdout=PIPE)
+    a_address = a_address.stdout.decode().strip()[1:-1]
+
+    # get view key
+    json_q = '{"create_viewing_key": {"entropy": "random phrase"}}'
+    view_key_tx_hash = run(f"docker exec secretdev secretcli tx compute execute {config.secret_contract_address} '{json_q}'"
+                   f" --from {a_address} --gas 3000000 -y | jq '.txhash'", shell=True, stdout=PIPE)
+    view_key_tx_hash = view_key_tx_hash.stdout.decode().strip()[1:-1]
+    view_key = run(f"docker exec secretdev secretcli q compute tx {view_key_tx_hash} | jq '.output_log' | "
+                   f"jq '.[0].attributes[1].value'", shell=True, stdout=PIPE).stdout.decode().strip()[1:-1]
+    config.viewing_key = view_key
+
     return config
 
 

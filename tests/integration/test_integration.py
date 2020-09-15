@@ -43,11 +43,12 @@ def test_1(manager, scrt_signers, web3_provider, test_configuration, contract):
     sleep(test_configuration.default_sleep_time_interval)
     assert ETHSwap.objects(tx_hash=tx_hash).count() == 1  # verify swap event recorded
 
+    sleep(1)
     # check signers were notified of the tx and signed it
     assert Signatures.objects().count() == len(scrt_signers)
 
     # give time for manager to process the signatures
-    sleep(test_configuration.manager_sleep_time_seconds)
+    sleep(test_configuration.default_sleep_time_interval + 1)
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SIGNED.value
 
 
@@ -58,7 +59,7 @@ def test_1(manager, scrt_signers, web3_provider, test_configuration, contract):
 # 3. Leader "burn" event tracking
 def test_2(leader, test_configuration, contract, web3_provider, scrt_signers):
     # give leader time to multi-sign already existing signatures
-    sleep(test_configuration.default_sleep_time_interval)
+    sleep(test_configuration.default_sleep_time_interval + 2)
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED.value
 
     # Create a "burn" tx on SCRT

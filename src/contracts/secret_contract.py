@@ -8,4 +8,4 @@ def unsigned_mint_tx(amount, eth_tx_hash, recipient_address) -> str:
 
 # TODO: test
 def burn_query(nonce: int, viewing_key: str) -> str:
-    return json.dumps({"burn": {"nonce": nonce, "viewing_key": viewing_key}})
+    return json.dumps({"Swap": {"nonce": nonce, "viewing_key": viewing_key}})
