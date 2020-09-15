@@ -13,7 +13,7 @@ from src.signers import MultiSig
 from src.util.common import temp_file, temp_files
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
-from src.util.secretcli import broadcast, multisign_tx, query_burn
+from src.util.secretcli import broadcast, multisign_tx, query_scrt_swap
 from src.util.web3 import send_contract_tx
 
 
@@ -32,12 +32,12 @@ class Leader:
         self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
         self.stop_event = Event()
 
-        Thread(target=self._catch_up_swap).start()
-        Thread(target=self._scan_burn).start()
+        Thread(target=self._catch_up_ethr_swap).start()
+        Thread(target=self._scan_scrt_swap).start()
 
         signals.post_save.connect(self._swap_signal, sender=ETHSwap)
 
-    def _catch_up_swap(self):
+    def _catch_up_ethr_swap(self):
         """ Scans the DB for signed swap tx at startup"""
         # Note: As Collection.objects() call is cached, there shouldn't be collisions with DB signals
         for tx in ETHSwap.objects(status=Status.SWAP_STATUS_SIGNED.value):
@@ -64,17 +64,20 @@ class Leader:
             tx.status = Status.SWAP_STATUS_SUBMITTED.value
             tx.save()
 
-    # TODO: test
-    def _scan_burn(self):
+    def _scan_scrt_swap(self):
         """ Scans secret network contract for burn events """
-        current_nonce = Management.last_block(Source.scrt.value, self.logger) + 1
+        current_nonce = Management.last_block(Source.scrt.value, self.logger)
+        doc = Management(nonce=current_nonce, src=Source.scrt.value)
+        next_nonce = current_nonce + 1
 
         while not self.stop_event.is_set():
-            burn, success = catch_and_log(self.logger, query_burn, current_nonce + 1,
+            burn, success = catch_and_log(self.logger, query_scrt_swap, next_nonce,
                                           self.config.secret_contract_address, self.config.viewing_key)
             if success:
-                self._handle_burn(burn, current_nonce + 1)
-                current_nonce += 1
+                self._handle_burn(burn, next_nonce)
+                doc.nonce = next_nonce
+                doc.save()
+                next_nonce += 1
                 continue
 
             self.stop_event.wait(self.config.default_sleep_time_interval)

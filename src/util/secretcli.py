@@ -1,7 +1,7 @@
 from subprocess import run, PIPE
 from typing import List
 
-from src.contracts.secret_contract import burn_query
+from src.contracts.secret_contract import scrt_swap_query
 
 
 def sign_tx(unsigned_tx_path: str, multi_sig_account_addr: str, account_name: str):
@@ -35,9 +35,8 @@ def decrypt(data: str) -> str:
     return run_secret_cli(cmd)
 
 
-# TODO: test
-def query_burn(nonce: int, contract_addr: str, viewing_key: str):
-    query_str = burn_query(nonce, viewing_key)
+def query_scrt_swap(nonce: int, contract_addr: str, viewing_key: str):
+    query_str = scrt_swap_query(nonce, viewing_key)
     cmd = ['secretcli', 'query', 'compute', 'query', contract_addr, query_str]
     return run_secret_cli(cmd)
 

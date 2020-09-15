@@ -15,7 +15,7 @@ from src.event_listener import EventListener
 from src.util.common import temp_file
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
-from src.util.secretcli import sign_tx as secretcli_sign, decrypt, query_burn
+from src.util.secretcli import sign_tx as secretcli_sign, decrypt, query_scrt_swap
 from src.util.web3 import event_log, contract_event_in_range
 
 MultiSig = namedtuple('MultiSig', ['multisig_acc_addr', 'signer_acc_name'])
@@ -179,7 +179,7 @@ class EthrSigner:
     def _is_valid(self, submission_data: Dict[str, any]) -> bool:
         # lookup the tx hash in scrt, and validate it.
         nonce = submission_data['data']['nonce']
-        burn, success = catch_and_log(self.logger, query_burn, nonce,
+        burn, success = catch_and_log(self.logger, query_scrt_swap, nonce,
                                       self.config.secret_contract_address, self.config.viewing_key)
         if success:
             try:

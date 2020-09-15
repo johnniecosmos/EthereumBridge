@@ -51,7 +51,8 @@ def make_project(db, test_configuration):
 def ethr_signers(event_listener, web3_provider, contract, test_configuration, ether_accounts):
     res = []
 
-    for acc in ether_accounts:
+    # we will manually create the last signer in test_3
+    for acc in ether_accounts[:-1]:
         private_key = acc.privateKey
         address = acc.address
 
