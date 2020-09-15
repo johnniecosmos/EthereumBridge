@@ -58,7 +58,7 @@ def test_1(manager, scrt_signers, web3_provider, test_configuration, contract):
 # 3. Leader "burn" event tracking
 def test_2(leader, test_configuration, contract, web3_provider, scrt_signers):
     # give leader time to multi-sign already existing signatures
-    sleep(1)
+    sleep(test_configuration.default_sleep_time_interval)
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED.value
 
     # Create a "burn" tx on SCRT
@@ -114,7 +114,7 @@ def mock_submit_tx(web3_provider, contract, leader):
 
 
 def increase_block_number(web3_provider: Web3, increment: int) -> True:
-    # Creates irrelevant tx on the chain to increase the last block number
+    # Creates irrelevantn tx on the chain to increase the last block number
     for i in range(increment):
         web3_provider.eth.sendTransaction({
             'from': web3_provider.eth.coinbase,

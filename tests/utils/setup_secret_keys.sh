@@ -13,6 +13,7 @@ threshold=$1
 keys_directory="$2/keys"
 base_dir=$2
 deployment_directory="$base_dir/deployment"
+docker_name="secretdev"
 
 mkdir -p "$keys_directory"
 mkdir -p "$deployment_directory"
@@ -33,7 +34,7 @@ for ((i = 1; i <= $1; i++)); do
 done
 accounts=${accounts::-1}
 
-# Create multisig account if it doesn't exist
+# Create multisig account
 echo y | secretcli keys add "--multisig=$accounts" "--multisig-threshold=$threshold" "ms$threshold" &>"$keys_directory/ms$threshold.json"
 
 # Send money to signing accounts
@@ -46,3 +47,16 @@ done
 # Send money to multisig account
 multisigAddr=$(secretcli keys show "ms$threshold" -a)
 docker exec -it secretdev secretcli tx send -y "$moneyAddr" "$multisigAddr" 10000000uscrt -b block
+
+# copy contract to docker container
+contract_dir="$base_dir/../src/contracts/contract.wasm.gz"
+docker cp "$contract_dir" "$docker_name:/contract.wasm.gz"
+
+# store contract on the chain
+docker exec -it secretdev secretcli tx compute store /contract.wasm.gz --from a --gas 2000000 -b block -y
+
+# get the admin address
+a_addr=$(docker exec -it secretdev secretcli keys show a | jq '.address')
+
+# init contract as 'a' account admin
+docker exec -it secretdev secretcli tx compute instantiate 1 --label LABEL '{"admin": '$a_addr', "name": "CoinName", "symbol": "SYMBL", "decimals": 6, "initial_balances": []}' --from a -y
