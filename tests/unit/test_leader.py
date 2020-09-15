@@ -30,7 +30,7 @@ def test_run(leader, scrt_signer_accounts, multisig_account, mock_tx, test_confi
     unsigned_tx_args = tx_args(1, mock_tx['transactionHash'], scrt_signer_accounts[0].multisig_acc_addr)
     unsigned_tx = create_unsigined_tx(test_configuration.secret_contract_address, unsigned_tx_args,
                                       test_configuration.chain_id, test_configuration.enclave_key,
-                                      test_configuration.enclave_hash, multisig_account.multisig_acc_addr)
+                                      test_configuration.code_hash, multisig_account.multisig_acc_addr)
     eth_swap = ETHSwap(tx_hash=mock_tx['transactionHash'], status=Status.SWAP_STATUS_UNSIGNED.value,
                        unsigned_tx=unsigned_tx).save()
 

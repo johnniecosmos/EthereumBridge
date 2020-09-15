@@ -17,7 +17,7 @@ from src.util.web3 import event_log
 def test_0(swap_contract, ethr_signers):
     # validate owners of contract - sanity check
     contract_owners = swap_contract.getOwners()
-    assert len(contract_owners) == len(ethr_signers)
+    assert len(contract_owners) == len(ethr_signers) + 1
     for owner in ethr_signers:
         assert owner.default_account in contract_owners
 

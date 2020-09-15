@@ -49,7 +49,7 @@ def contract(web3_provider):
 def offline_data(db, test_configuration):
     unsigned_tx = generate_unsigned_tx(test_configuration.secret_contract_address, swap_log,
                                        test_configuration.chain_id, test_configuration.enclave_key,
-                                       test_configuration.enclave_hash, test_configuration.multisig_acc_addr,
+                                       test_configuration.code_hash, test_configuration.multisig_acc_addr,
                                        )
     return ETHSwap(tx_hash=f"0xfc2ee006541030836591b7ebfb7bc7d5b233959f9d8df5ffdade7014782baeea",
                    status=Status.SWAP_STATUS_UNSIGNED.value,

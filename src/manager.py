@@ -65,6 +65,6 @@ class Manager:
                                                  event.transactionHash.hex(),
                                                  event.args.recipient.decode()),
                                              self.config.chain_id, self.config.enclave_key,
-                                             self.config.enclave_hash, self.multisig.multisig_acc_addr)
+                                             self.config.code_hash, self.multisig.multisig_acc_addr)
         if success:
             ETHSwap.save_web3_tx(event, unsigned_tx)
