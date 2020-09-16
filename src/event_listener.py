@@ -78,6 +78,7 @@ class Callbacks:
 
             block = provider.eth.getBlock(block_number - threshold, full_transactions=True)
             contract_transactions = extract_tx_by_address(contract.address, block)
+            # TODO: can add info log of contract tx - up to them
 
             if not contract_transactions:
                 continue

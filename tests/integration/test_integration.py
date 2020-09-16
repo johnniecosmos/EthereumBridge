@@ -35,7 +35,7 @@ def test_1(manager, scrt_signers, web3_provider, test_configuration, contract):
     # chain is initiated with block number one, and the contract tx will be block # 2
     assert increase_block_number(web3_provider, test_configuration.blocks_confirmation_required - 1)
 
-    sleep(test_configuration.default_sleep_time_interval)
+    sleep(test_configuration.default_sleep_time_interval + 2)
 
     assert ETHSwap.objects(tx_hash=tx_hash).count() == 0  # verify blocks confirmation threshold wasn't meet
     assert increase_block_number(web3_provider, 1)  # add the 'missing' confirmation block
@@ -49,7 +49,7 @@ def test_1(manager, scrt_signers, web3_provider, test_configuration, contract):
     assert Signatures.objects().count() == len(scrt_signers)
 
     # give time for manager to process the signatures
-    sleep(test_configuration.default_sleep_time_interval + 1)
+    sleep(test_configuration.default_sleep_time_interval + 2)
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SIGNED.value
 
 
@@ -62,7 +62,7 @@ def test_2(leader, test_configuration, contract, web3_provider, scrt_signers, et
     # Note: :param ethr_signers: is here only so it will be created before test_3
 
     # give leader time to multi-sign already existing signatures
-    sleep(test_configuration.default_sleep_time_interval + 2)
+    sleep(test_configuration.default_sleep_time_interval + 3)
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED.value
 
     # get tx details
@@ -74,10 +74,10 @@ def test_2(leader, test_configuration, contract, web3_provider, scrt_signers, et
     # validate tx on the chain
     balance_query = '{"balancef": {}}'
     tx_hash = run(f"docker exec secretdev secretcli tx compute execute {test_configuration.secret_contract_address} "
-                  f"'{balance_query}' --from {dest} -y | jq '.txhash'", shell=True, stdout=PIPE)
+                  f"'{balance_query}' --from {dest} -b block -y | jq '.txhash'", shell=True, stdout=PIPE)
     tx_hash = tx_hash.stdout.decode().strip()[1:-1]
 
-    res = run(f"docker exec secretdev secretcli q compute tx {tx_hash} | jq '.output_log' | jq '.[0].attributes' |"
+    res = run(f"docker exec secretdev secretcli q compute tx {tx_hash} -b block | jq '.output_log' | jq '.[0].attributes' |"
               f" jq '.[3].value'", shell=True, stdout=PIPE).stdout.decode().strip()[-1:1]
     start_indx = res.find('.') + 1
     end_index = res.find(' ')

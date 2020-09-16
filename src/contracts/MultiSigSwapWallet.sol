@@ -29,6 +29,7 @@ contract MultiSigSwapWallet {
     mapping(uint => Transaction) public transactions;
     mapping(uint => mapping(address => bool)) public confirmations;
     mapping(address => bool) public isOwner;
+    mapping(uint => bool) public scrtNonce;
     address[] public owners;
     uint public required;
     uint public transactionCount;
@@ -38,6 +39,7 @@ contract MultiSigSwapWallet {
         uint value;
         bytes data;
         bool executed;
+        uint nonce;
     }
 
     /*
@@ -75,6 +77,11 @@ contract MultiSigSwapWallet {
 
     modifier notExecuted(uint transactionId) {
         require(!transactions[transactionId].executed);
+        _;
+    }
+
+    modifier notSubmitted(uint nonce){
+        require(!scrtNonce[nonce]);
         _;
     }
 
@@ -194,11 +201,14 @@ contract MultiSigSwapWallet {
     /// @param value Transaction ether value.
     /// @param data Transaction data payload.
     /// @return Returns transaction ID.
-    function submitTransaction(address destination, uint value, bytes data)
+    function submitTransaction(address destination, uint value, uint nonce, bytes data)
     public
+    notSubmitted(nonce)
     returns (uint transactionId)
     {
-        transactionId = addTransaction(destination, value, data);
+        transactionId = addTransaction(destination, value, nonce, data);
+        scrtNonce[nonce] = true;
+
         confirmTransaction(transactionId);
     }
 
@@ -295,7 +305,7 @@ contract MultiSigSwapWallet {
     /// @param value Transaction ether value.
     /// @param data Transaction data payload.
     /// @return Returns transaction ID.
-    function addTransaction(address destination, uint value, bytes data)
+    function addTransaction(address destination, uint value, uint nonce, bytes data)
     internal
     notNull(destination)
     returns (uint transactionId)
@@ -305,7 +315,8 @@ contract MultiSigSwapWallet {
         destination : destination,
         value : value,
         data : data,
-        executed : false
+        executed : false,
+        nonce: nonce
         });
         transactionCount += 1;
         emit Submission(transactionId);
