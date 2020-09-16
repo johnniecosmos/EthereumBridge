@@ -24,8 +24,8 @@ def test_configuration():
     res = run("secretcli query compute list-contract-by-code 1 | jq '.[0].address'", shell=True, stdout=PIPE)
     config.secret_contract_address = res.stdout.decode().strip()[1:-1]
 
-    res = run(f"secretcli q compute contract-hash {config.secret_contract_address}", shell=True, stdout=PIPE). \
-              stdout.decode().strip()[2:-1]
+    res = run(f"secretcli q compute contract-hash {config.secret_contract_address}",
+              shell=True, stdout=PIPE).stdout.decode().strip()[2:-1]
     config.code_hash = res
 
     # get address of account 'a' on docker
@@ -35,7 +35,8 @@ def test_configuration():
     # get view key
     json_q = '{"create_viewing_key": {"entropy": "random phrase"}}'
     view_key_tx_hash = run(f"docker exec secretdev secretcli tx compute execute {config.secret_contract_address} "
-                           f"'{json_q}' --from {a_address} --gas 3000000 -y | jq '.txhash'", shell=True, stdout=PIPE)
+                           f"'{json_q}' --from {a_address} --gas 3000000 -b block -y | jq '.txhash'", shell=True,
+                           stdout=PIPE)
     view_key_tx_hash = view_key_tx_hash.stdout.decode().strip()[1:-1]
     view_key = run(f"docker exec secretdev secretcli q compute tx {view_key_tx_hash} | jq '.output_log' | "
                    f"jq '.[0].attributes[1].value'", shell=True, stdout=PIPE).stdout.decode().strip()[1:-1]
@@ -66,9 +67,9 @@ def multisig_account(test_configuration):
 def scrt_signer_keys(test_configuration) -> List[MultiSig]:
     """multisig accounts for signers"""
     threshold = test_configuration.signatures_threshold
-    multig_acc_addr = get_key_multisig_addr(f"ms{threshold}")
+    multisig_acc_addr = get_key_multisig_addr(f"ms{threshold}")
 
     res = []
     for i in range(1, threshold + 1):
-        res.append(MultiSig(multig_acc_addr, f"t{i}"))
+        res.append(MultiSig(multisig_acc_addr, f"t{i}"))
     return res

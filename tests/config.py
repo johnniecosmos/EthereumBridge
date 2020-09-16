@@ -14,6 +14,8 @@ multisig_acc_addr = "dynamic update"
 enclave_key = "dynamic update"
 secret_contract_address = "dynamic update"
 viewing_key = "dynamic update"
+
+# TODO: update
 code_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 # unit test:

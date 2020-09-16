@@ -17,6 +17,7 @@ from src.util.secretcli import broadcast, multisign_tx, query_scrt_swap
 from src.util.web3 import send_contract_tx
 
 
+# TODO: split to ethr leader and scrt leader
 class Leader:
     """Broadcasts signed transactions Ethr <-> Scrt"""
 
@@ -71,10 +72,10 @@ class Leader:
         next_nonce = current_nonce + 1
 
         while not self.stop_event.is_set():
-            burn, success = catch_and_log(self.logger, query_scrt_swap, next_nonce,
-                                          self.config.secret_contract_address, self.config.viewing_key)
+            swap_data, success = catch_and_log(self.logger, query_scrt_swap, next_nonce,
+                                               self.config.secret_contract_address, self.config.viewing_key)
             if success:
-                self._handle_burn(burn, next_nonce)
+                self._handle_scrt_swap(swap_data)
                 doc.nonce = next_nonce
                 doc.save()
                 next_nonce += 1
@@ -83,11 +84,13 @@ class Leader:
             self.stop_event.wait(self.config.default_sleep_time_interval)
 
     # TODO: test
-    def _handle_burn(self, burn_data: str, nonce: int):
-        burn_data = json.loads(burn_data)
+    def _handle_scrt_swap(self, swap_data: str):
+        # Note: This operation costs Ethr
+        swap_data = json.loads(swap_data)['swap']['result']
 
         send_contract_tx(self.logger, self.provider, self.contract, 'submitTransaction', self.default_account,
-                         self.private_key, burn_data['dest'], burn_data['amount'], nonce)
+                         self.private_key, swap_data['destination'], int(swap_data['amount']), int(swap_data['nonce']),
+                         b"")
 
     def _create_multisig(self, unsigned_tx: str, signatures: List[str]) -> str:
         with temp_file(unsigned_tx) as unsigned_tx_path:
@@ -99,18 +102,18 @@ class Leader:
         success_index = 1
         with temp_file(signed_tx) as signed_tx_path:
             return catch_and_log(self.logger, broadcast, signed_tx_path)[success_index]
-
-    def _submit_tx(self, tx_data: Dict[str, any]):
-        # Note: This operation costs Ethr
-        submission_tx = self.contract.contract.functions.submitTransaction(
-            tx_data['dest'],
-            tx_data['value'],
-            tx_data['data']). \
-            buildTransaction(
-            {'chainId': self.provider.eth.chainId,
-             'gasPrice': self.provider.eth.gasPrice,
-             'nonce': self.provider.eth.getTransactionCount(self.default_account),
-             'from': self.default_account
-             })
-        signed_txn = self.provider.eth.account.sign_transaction(submission_tx, private_key=self.private_key)
-        self.provider.eth.sendRawTransaction(signed_txn.rawTransaction)
+    #
+    # def _submit_tx(self, tx_data: Dict[str, any]):
+    #     # Note: This operation costs Ethr
+    #     submission_tx = self.contract.contract.functions.submitTransaction(
+    #         tx_data['dest'],
+    #         tx_data['value'],
+    #         tx_data['data']). \
+    #         buildTransaction(
+    #         {'chainId': self.provider.eth.chainId,
+    #          'gasPrice': self.provider.eth.gasPrice,
+    #          'nonce': self.provider.eth.getTransactionCount(self.default_account),
+    #          'from': self.default_account
+    #          })
+    #     signed_txn = self.provider.eth.account.sign_transaction(submission_tx, private_key=self.private_key)
+    #     self.provider.eth.sendRawTransaction(signed_txn.rawTransaction)
