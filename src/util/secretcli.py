@@ -1,5 +1,6 @@
+from logging import Logger
 from subprocess import run, PIPE
-from typing import List
+from typing import List, Tuple
 
 from src.contracts.secret_contract import scrt_swap_query
 
@@ -35,10 +36,17 @@ def decrypt(data: str) -> str:
     return run_secret_cli(cmd)
 
 
-def query_scrt_swap(nonce: int, contract_addr: str, viewing_key: str):
+def query_scrt_swap(logger: Logger, nonce: int, contract_addr: str, viewing_key: str) -> Tuple[str, bool]:
     query_str = scrt_swap_query(nonce, viewing_key)
     cmd = ['secretcli', 'query', 'compute', 'query', contract_addr, query_str]
-    return run_secret_cli(cmd)
+    p = run(cmd, stdout=PIPE, stderr=PIPE)
+
+    if p.stderr:
+        if 'ERROR: query result: encrypted: Tx does not exist' not in p.stderr.decode():
+            logger.error(msg=p.stderr.decode())
+        return '', False
+    
+    return p.stdout.decode(), True
 
 
 def run_secret_cli(cmd: List[str]) -> str:

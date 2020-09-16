@@ -179,6 +179,7 @@ class EthrSigner:
     def _is_valid(self, submission_data: Dict[str, any]) -> bool:
         # lookup the tx hash in scrt, and validate it.
         nonce = submission_data['nonce']
+        query_scrt_swap
         swap, success = catch_and_log(self.logger, query_scrt_swap, nonce,
                                       self.config.secret_contract_address, self.config.viewing_key)
         if success:
