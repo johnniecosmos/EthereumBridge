@@ -30,12 +30,11 @@ def test_configuration():
 
     # get address of account 'a' on docker
     a_address = run("docker exec secretdev secretcli keys show a | jq '.address'", shell=True, stdout=PIPE)
-    a_address = a_address.stdout.decode().strip()[1:-1]
-    config.a_address = a_address
+    config.a_address = a_address.stdout.decode().strip()[1:-1].encode()
     # get view key
     json_q = '{"create_viewing_key": {"entropy": "random phrase"}}'
     view_key_tx_hash = run(f"docker exec secretdev secretcli tx compute execute {config.secret_contract_address} "
-                           f"'{json_q}' --from {a_address} --gas 3000000 -b block -y | jq '.txhash'", shell=True,
+                           f"'{json_q}' --from {config.a_address.decode()} --gas 3000000 -b block -y | jq '.txhash'", shell=True,
                            stdout=PIPE)
     view_key_tx_hash = view_key_tx_hash.stdout.decode().strip()[1:-1]
     view_key = run(f"docker exec secretdev secretcli q compute tx {view_key_tx_hash} | jq '.output_log' | "

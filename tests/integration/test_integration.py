@@ -29,7 +29,8 @@ def test_0(swap_contract, ethr_signers):
 # 3. SecretSigners validation and signing.
 # 4. Smart Contract swap functionality.
 def test_1(manager, scrt_signers, web3_provider, test_configuration, contract):
-    tx_hash = contract.contract.functions.swap(scrt_signers[0].multisig.multisig_acc_addr.encode()). \
+    # swap ethr for scrt token, deliver tokens to address of 'a'
+    tx_hash = contract.contract.functions.swap(test_configuration.a_address). \
         transact({'from': web3_provider.eth.coinbase, 'value': 100}).hex().lower()
     # TODO: validate ethr increase of the smart contract
     # add confirmation threshold -1 new tx after the above swap tx
@@ -71,19 +72,22 @@ def test_2(leader, test_configuration, contract, web3_provider, scrt_signers, et
     transfer_amount = log.args.value,
     dest = log.args.recipient.decode()
 
-    # validate tx on the chain
-    balance_query = '{"balancef": {}}'
+    # validate swap tx on ethr delivers to the destination
+    balance_query = '{"balance": {}}'
     tx_hash = run(f"docker exec secretdev secretcli tx compute execute {test_configuration.secret_contract_address} "
                   f"'{balance_query}' --from {dest} -b block -y | jq '.txhash'", shell=True, stdout=PIPE)
     tx_hash = tx_hash.stdout.decode().strip()[1:-1]
 
-    res = run(f"docker exec secretdev secretcli q compute tx {tx_hash} -b block | jq '.output_log' | jq '.[0].attributes' |"
-              f" jq '.[3].value'", shell=True, stdout=PIPE).stdout.decode().strip()[-1:1]
-    start_indx = res.find('.') + 1
+    res = run(f"docker exec secretdev secretcli q compute tx {tx_hash} | jq '.output_log' | jq '.[0].attributes' "
+              f"| jq '.[3].value'", shell=True, stdout=PIPE).stdout.decode().strip()[1:-1]
+    # TODO: this wont allow to check amounts greater than 0.9999....
+    start_index = res.find('.') + 1
     end_index = res.find(' ')
-    amount = res[start_indx:end_index]
+    amount = res[start_index:end_index]
 
-    assert amount == transfer_amount
+
+    assert int(amount) == transfer_amount
+    # end of ethr to scrt validation
 
     # Generate swap tx on secret network
     last_nonce = Management.last_block(Source.scrt.value, leader.logger)
@@ -108,7 +112,7 @@ def test_3(event_listener, contract, web3_provider, ether_accounts, test_configu
     # use ethr_signer_late to test the catch up (the submit tx won't work without it)
     # validate with contract
 
-    # To allow the new sacnner to "catch up", we start it after the event submission event in Ethereum
+    # To allow the new EthrSigner to "catch up", we start it after the event submission event in Ethereum
     private_key = ether_accounts[-1].privateKey
     address = ether_accounts[-1].address
     eth_signer = EthrSigner(event_listener, web3_provider, contract, private_key, address, test_configuration)

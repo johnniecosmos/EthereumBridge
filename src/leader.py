@@ -72,8 +72,8 @@ class Leader:
         next_nonce = current_nonce + 1
 
         while not self.stop_event.is_set():
-            swap_data, success = catch_and_log(self.logger, query_scrt_swap, next_nonce,
-                                               self.config.secret_contract_address, self.config.viewing_key)
+            swap_data, success = query_scrt_swap(self.logger, next_nonce, self.config.secret_contract_address,
+                                                 self.config.viewing_key)
             if success:
                 self._handle_scrt_swap(swap_data)
                 doc.nonce = next_nonce

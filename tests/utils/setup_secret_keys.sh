@@ -59,6 +59,6 @@ docker exec -it secretdev secretcli tx compute store /contract.wasm.gz --from a 
 a_addr=$(docker exec -it secretdev secretcli keys show a | jq '.address')
 
 # init contract as 'a' account admin
-docker exec -it secretdev secretcli tx compute instantiate 1 --label LABEL '{"admin": '$a_addr', "name": "CoinName", "symbol": "SYMBL", "decimals": 6, "initial_balances": []}' --from a -b block -y
+docker exec -it secretdev secretcli tx compute instantiate 1 --label LABEL '{"admin": '$a_addr', "name": "CoinName", "symbol": "SYMBL", "decimals": 18, "initial_balances": []}' --from a -b block -y
 
 echo "contract address: $(secretcli query compute list-contract-by-code 1 | jq '.[0].address')"

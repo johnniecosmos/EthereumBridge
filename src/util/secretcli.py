@@ -45,7 +45,7 @@ def query_scrt_swap(logger: Logger, nonce: int, contract_addr: str, viewing_key:
         if 'ERROR: query result: encrypted: Tx does not exist' not in p.stderr.decode():
             logger.error(msg=p.stderr.decode())
         return '', False
-    
+
     return p.stdout.decode(), True
 
 

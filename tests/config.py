@@ -14,9 +14,11 @@ multisig_acc_addr = "dynamic update"
 enclave_key = "dynamic update"
 secret_contract_address = "dynamic update"
 viewing_key = "dynamic update"
+code_hash = "dynamic update"
 
-# TODO: update
-code_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+# tests only configuration:
+
+a_address = "dynamic update - tests only"
 
 # unit test:
 provider_address = "wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74"
