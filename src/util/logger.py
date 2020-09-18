@@ -56,7 +56,7 @@ def get_logger(db_name: str, logger_name: str = 'enigma') -> logging.Logger:
 
 
 class DBLoggerHandler(logging.Handler):
-    def __init__(self, db_name, level: int = logging.DEBUG):
+    def __init__(self, db_name, level: int = logging.INFO):
         super().__init__(level)
         self.connection = connect(db_name)
         self.formatter = CustomFormatter()

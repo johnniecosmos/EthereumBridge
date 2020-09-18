@@ -79,6 +79,7 @@ def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str
                 yield log
         except Exception as e:
             logger.error(msg=e)
+    raise StopIteration()
 
 
 def send_contract_tx(logger: Logger, provider: Web3, contract, function_name: str, from_acc: str, private_key: str,

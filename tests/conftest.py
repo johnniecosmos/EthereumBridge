@@ -34,8 +34,8 @@ def test_configuration():
     # get view key
     json_q = '{"create_viewing_key": {"entropy": "random phrase"}}'
     view_key_tx_hash = run(f"docker exec secretdev secretcli tx compute execute {config.secret_contract_address} "
-                           f"'{json_q}' --from {config.a_address.decode()} --gas 3000000 -b block -y | jq '.txhash'", shell=True,
-                           stdout=PIPE)
+                           f"'{json_q}' --from {config.a_address.decode()} --gas 3000000 -b block -y | jq '.txhash'",
+                           shell=True, stdout=PIPE)
     view_key_tx_hash = view_key_tx_hash.stdout.decode().strip()[1:-1]
     view_key = run(f"docker exec secretdev secretcli q compute tx {view_key_tx_hash} | jq '.output_log' | "
                    f"jq '.[0].attributes[1].value'", shell=True, stdout=PIPE).stdout.decode().strip()[1:-1]

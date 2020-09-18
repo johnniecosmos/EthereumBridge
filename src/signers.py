@@ -86,9 +86,9 @@ class SecretSigner:
             json_start_index = res.find('{')
             json_end_index = res.rfind('}') + 1
             decrypted_data = json.loads(res[json_start_index:json_end_index])
-            assert decrypted_data['mint']['eth_tx_hash'] == log.transactionHash.hex()
-            assert decrypted_data['mint']['amount_seth'] == log.args.value
-            assert decrypted_data['mint']['to'] == log.args.recipient.decode()
+            # assert decrypted_data['mint']['eth_tx_hash'] == log.transactionHash.hex()
+            assert int(decrypted_data['mint']['amount']) == log.args.value
+            assert decrypted_data['mint']['address'] == log.args.recipient.decode()
         except AssertionError as e:
             self.logger.error(e)
             return False
@@ -119,12 +119,10 @@ class EthrSigner:
         self.config = config
         self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
 
-        # self.provider.eth.defaultAccount = self.default_account
-
         self.submissions_lock = Lock()
-
-        self.catch_up_complete = Event()
+        self.catch_up_complete = False
         self.file_db = self._create_file_db()
+
         event_listener.register(self.handle_submission, ['Submission'])
         Thread(target=self._submission_catch_up).start()
 
@@ -136,6 +134,20 @@ class EthrSigner:
         file_path = Path.joinpath(Path.home(), self.config.app_data, 'submission_events')
         Path.joinpath(Path.home(), self.config.app_data).mkdir(parents=True, exist_ok=True)
         return open(file_path, "a+")
+
+    # noinspection PyUnresolvedReferences
+    def _validated_and_confirm(self, submission_event: AttributeDict):
+        """Tries to validate the transaction corresponding to submission id on the smart contract,
+        and confirms if valid"""
+
+        transaction_id = submission_event.args.transactionId
+        data = self._submission_data(transaction_id)
+        with self.submissions_lock:
+            if self.catch_up_complete:
+                self._update_last_block_processed(submission_event.blockNumber)
+
+            if not self._is_confirmed(transaction_id, data) and self._is_valid(data):
+                self._confirm_transaction(transaction_id)
 
     def _submission_catch_up(self):
         """ Used to sync the signer with the chain after downtime, utilize local file to keep track of last processed
@@ -150,25 +162,11 @@ class EthrSigner:
             self._update_last_block_processed(event.blockNumber)
             Thread(target=self._validated_and_confirm, args=(event,)).start()
 
-        self.catch_up_complete.set()
+        self.catch_up_complete = True
 
-    # noinspection PyUnresolvedReferences
-    def _validated_and_confirm(self, submission_event: AttributeDict):
-        """Tries to validate the transaction corresponding to submission id on the smart contract,
-        and confirms if valid"""
-
-        transaction_id = submission_event.args.transactionId
-        data = self._submission_data(transaction_id)
-        with self.submissions_lock:
-            if self.catch_up_complete.isSet():
-                self._update_last_block_processed(submission_event.blockNumber)
-
-            if not self._is_confirmed(transaction_id, data) and self._is_valid(data):
-                self._confirm_transaction(transaction_id)
-
-    def _update_last_block_processed(self, number: int):
+    def _update_last_block_processed(self, block_num: int):
         self.file_db.seek(0)
-        self.file_db.write(str(number))
+        self.file_db.write(str(block_num))
         self.file_db.truncate()
         self.file_db.flush()
 

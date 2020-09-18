@@ -110,7 +110,7 @@ contract MultiSigSwapWallet {
     function swap(bytes memory recipient)
     public
     payable {
-        if (msg.value > 0)
+        if (msg.value > 0) // amount in wei
             emit Swap(msg.value, recipient);
     }
 

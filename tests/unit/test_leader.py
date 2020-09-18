@@ -7,7 +7,7 @@ from pytest import fixture
 from src.contracts.secret_contract import tx_args
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
-from src.leader import Leader
+from src.leader import SecretLeader
 from src.util.secretcli import create_unsigined_tx, sign_tx
 
 
@@ -20,7 +20,7 @@ def mock_tx():
 
 @fixture(scope="module")
 def leader(test_configuration, multisig_account, db):
-    leader = Leader(multisig_account, test_configuration)
+    leader = SecretLeader(multisig_account, test_configuration)
     yield leader
     leader.stop_event.set()
 

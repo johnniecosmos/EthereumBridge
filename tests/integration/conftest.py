@@ -12,7 +12,7 @@ import src.contracts as contracts_package
 import tests.integration as integration_package
 from src.contracts.contract import Contract
 from src.event_listener import EventListener
-from src.leader import Leader
+from src.leader import SecretLeader, EthrLeader
 from src.manager import Manager
 from src.signers import EthrSigner, SecretSigner
 from src.util.common import module_dir
@@ -48,7 +48,7 @@ def make_project(db, test_configuration):
 
 
 @fixture(scope="module")
-def ethr_signers(event_listener, web3_provider, contract, test_configuration, ether_accounts):
+def ethr_signers(event_listener, web3_provider, contract, test_configuration, ether_accounts) -> List[EthrSigner]:
     res = []
 
     # we will manually create the last signer in test_3
@@ -126,12 +126,17 @@ def manager(event_listener, contract, multisig_account, test_configuration):
 
 
 @fixture(scope="module")
-def leader(multisig_account, test_configuration, web3_provider, contract, ether_accounts):
+def ethr_leader(multisig_account, test_configuration, web3_provider, contract, ether_accounts):
     private_key = ether_accounts[0].privateKey
-    address = normalize_address(ether_accounts[0].address)
-    leader = Leader(web3_provider, multisig_account, contract, private_key, address, test_configuration)
+    # address = normalize_address(ether_accounts[0].address)
+    leader = EthrLeader(web3_provider, contract, private_key, multisig_account.multisig_acc_addr, test_configuration)
     yield leader
     leader.stop_event.set()
+
+
+@fixture(scope="module")
+def scrt_leader(multisig_account, test_configuration, web3_provider, contract, ether_accounts):
+    return SecretLeader(multisig_account, test_configuration)
 
 
 @fixture(scope="module")

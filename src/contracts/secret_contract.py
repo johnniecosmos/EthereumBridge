@@ -2,8 +2,8 @@ import json
 
 
 # TODO: talk about units(amount_seth)
-def unsigned_mint_tx(amount, eth_tx_hash, recipient_address) -> str:
-    return json.dumps({"mint": {"to": recipient_address, "amount_seth": amount, "eth_tx_hash": eth_tx_hash}})
+def mint_json(amount, eth_tx_hash, address) -> str:
+    return json.dumps({"mint": {"amount": str(amount), "address": address}})
 
 
 def scrt_swap_query(nonce: int, viewing_key: str) -> str:

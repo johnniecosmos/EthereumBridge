@@ -9,20 +9,26 @@ class Management(Document):
     src = IntField(required=True)
 
     @classmethod
-    def last_block(cls, src: int, logger: Logger):
+    def last_processed(cls, src: int, logger: Logger):
         """
         Returns last processed contract tx sequence number
         :param src: string describing src network (i.e: scrt, eth)
         """
         try:
-            doc = Management.objects.get(src=src)
+            doc = cls.objects.get(src=src)
         except DoesNotExist:
-            doc = Management(nonce=-1, src=src).save()
+            doc = cls(nonce=-1, src=src).save()
         except MultipleObjectsReturned as e:  # Corrupted DB
             logger.critical(msg=f"DB collection corrupter.\n{e}")
             raise e
 
         return doc.nonce
+
+    @classmethod
+    def update_last_processed(cls, src: int, update_val: int):
+        doc = cls.objects.get(src=src)
+        doc.nonce = update_val
+        doc.save()
 
 
 class Source(Enum):
