@@ -94,17 +94,17 @@ def test_2(scrt_leader, test_configuration, contract, web3_provider, scrt_signer
 # ethr_signers are here to respond for leader's submission
 def test_3(ethr_leader, test_configuration, ethr_signers):
     # Generate swap tx on secret network
-    last_nonce = Management.last_processed(Source.scrt.value, ethr_leader.logger)
     swap = {"swap": {"amount": str(TRANSFER_AMOUNT), "network": "Ethereum", "destination": ethr_leader.default_account}}
     # TODO: once multisig swap work, change the source of swap here
+
     tx_hash = run(f"secretcli tx compute execute {test_configuration.secret_contract_address} "
                   f"'{json.dumps(swap)}' --from t1 -y", shell=True, stdout=PIPE, stderr=PIPE)
     tx_hash = json.loads(tx_hash.stdout)['txhash']
     # TODO: verify tx_hash
 
     # Verify that leader recognized the burn tx
-    sleep(test_configuration.default_sleep_time_interval + 1)
-    assert last_nonce + 1 == Management.last_processed(Source.scrt.value, ethr_leader.logger)
+    sleep(test_configuration.default_sleep_time_interval + 4)
+    assert 0 == Management.last_processed(Source.scrt.value, ethr_leader.logger)
 
     # Give ethr signers time to handle the scrt swap tx (will be verified in test_4
     sleep(test_configuration.default_sleep_time_interval + 1)

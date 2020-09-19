@@ -48,7 +48,6 @@ class Manager:
 
         for event in self.event_listener.events_in_range('Swap', from_block, to_block):
             self._handle(event)
-            Management.update_last_processed(src=Source.eth.value, update_val=event.blockNumber)
 
     def _handle(self, transaction: AttributeDict):
         """Registers transaction to the db"""
@@ -62,5 +61,6 @@ class Manager:
                                               self.config.enclave_key, self.config.code_hash,
                                               self.multisig.multisig_acc_addr)
             ETHSwap.save_web3_tx(event, unsigned_tx)
+            Management.update_last_processed(src=Source.eth.value, update_val=event.blockNumber)
         except Exception as e:
             self.logger.error(msg=f"Failed on tx {event.transactionHash.hex()}, block {event.blockNumber}\n{e}")
