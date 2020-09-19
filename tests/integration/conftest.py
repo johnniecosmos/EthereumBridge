@@ -128,8 +128,8 @@ def manager(event_listener, contract, multisig_account, test_configuration):
 @fixture(scope="module")
 def ethr_leader(multisig_account, test_configuration, web3_provider, contract, ether_accounts):
     private_key = ether_accounts[0].privateKey
-    # address = normalize_address(ether_accounts[0].address)
-    leader = EthrLeader(web3_provider, contract, private_key, multisig_account.multisig_acc_addr, test_configuration)
+    address = normalize_address(ether_accounts[0].address)
+    leader = EthrLeader(web3_provider, contract, private_key, address, test_configuration)
     yield leader
     leader.stop_event.set()
 

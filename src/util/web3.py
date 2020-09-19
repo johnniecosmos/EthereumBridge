@@ -62,7 +62,7 @@ def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str
     if to_block == 'latest':
         to_block = provider.eth.getBlock('latest').number
 
-    for block_num in range(from_block, to_block):
+    for block_num in range(from_block, to_block + 1):
         try:
             block = provider.eth.getBlock(block_num, full_transactions=True)
             contract_transactions = extract_tx_by_address(contract.address, block)
@@ -85,7 +85,6 @@ def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str
 def send_contract_tx(logger: Logger, provider: Web3, contract, function_name: str, from_acc: str, private_key: str,
                      *args, gas: int = 0):
     """ Creates the contract tx and signes it with private_key to be transmitted as raw tx """
-
     submit_tx = getattr(contract.contract.functions, function_name)(*args). \
         buildTransaction(
         {

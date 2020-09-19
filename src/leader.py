@@ -4,6 +4,7 @@ from typing import List
 
 from mongoengine import signals
 from web3 import Web3
+from web3.exceptions import InvalidAddress
 
 from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
@@ -84,7 +85,7 @@ class EthrLeader:
     def _scan_swap(self):
         """ Scans secret network contract for swap events """
         current_nonce = Management.last_processed(Source.scrt.value, self.logger)
-        doc = Management(nonce=current_nonce, src=Source.scrt.value)
+        doc = Management.objects(nonce=current_nonce, src=Source.scrt.value).get()
         next_nonce = current_nonce + 1
 
         while not self.stop_event.is_set():
@@ -103,7 +104,11 @@ class EthrLeader:
     def _handle_swap(self, swap_data: str):
         # Note: This operation costs Ethr
         swap_data = json.loads(swap_data)['swap']['result']
-
-        send_contract_tx(self.logger, self.provider, self.contract, 'submitTransaction', self.default_account,
-                         self.private_key, swap_data['destination'], int(swap_data['amount']), int(swap_data['nonce']),
-                         b"")
+        try:
+            send_contract_tx(self.logger, self.provider, self.contract, 'submitTransaction', self.default_account,
+                             self.private_key, swap_data['destination'], int(swap_data['amount']), int(swap_data['nonce']),
+                             b"")
+        except InvalidAddress:
+            self.logger.info(msg=f"Secret to Ethr swap transaction invalid destination address. Tx data:\n{swap_data}")
+        except Exception as e:
+            self.logger.warning(msg=e)

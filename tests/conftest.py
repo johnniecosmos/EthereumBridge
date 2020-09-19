@@ -1,3 +1,4 @@
+import json
 from os import path
 from subprocess import run, PIPE
 from typing import List
@@ -16,8 +17,22 @@ utils_folder = module_dir(utils_package)
 tests_folder = module_dir(tests_package)
 
 
+def deploy_contract(test_configuration):
+    # TODO :Remove after multisig swap work
+    t1_addr = run("secretcli keys show t1 -a", shell=True, stdout=PIPE).stdout.decode()[:-1]
+    init_q = {"admin": test_configuration.a_address.decode(),
+              "name": "CoinName", "symbol": "SYMBL", "decimals": 6,
+              "initial_balances": [{"address": t1_addr, "amount": "100"}]}
+    print(run(f"docker exec secretdev secretcli tx compute instantiate 1 --label LABEL '{json.dumps(init_q)}'"
+              f" --from a -b block -y", shell=True, stdout=PIPE).stdout.decode())
+
+
 @fixture(scope="module")
 def test_configuration():
+    # get address of account 'a' on docker
+    a_address = run("docker exec secretdev secretcli keys show a | jq '.address'", shell=True, stdout=PIPE)
+    config.a_address = a_address.stdout.decode().strip()[1:-1].encode()
+    deploy_contract(config)  # TODO: remove
     config.multisig_acc_addr = get_key_multisig_addr(f"ms{config.signatures_threshold}")
     config.enclave_key = path.join(tests_folder, 'deployment', 'io-master-cert.der')
 
@@ -28,9 +43,7 @@ def test_configuration():
               shell=True, stdout=PIPE).stdout.decode().strip()[2:-1]
     config.code_hash = res
 
-    # get address of account 'a' on docker
-    a_address = run("docker exec secretdev secretcli keys show a | jq '.address'", shell=True, stdout=PIPE)
-    config.a_address = a_address.stdout.decode().strip()[1:-1].encode()
+
     # get view key
     json_q = '{"create_viewing_key": {"entropy": "random phrase"}}'
     view_key_tx_hash = run(f"docker exec secretdev secretcli tx compute execute {config.secret_contract_address} "

@@ -17,7 +17,7 @@ from src.util.web3 import event_log
 TRANSFER_AMOUNT = 100
 
 
-def test_0(swap_contract, ethr_signers):
+def test_0(swap_contract, ethr_signers, test_configuration):
     # validate owners of contract - sanity check
     contract_owners = swap_contract.getOwners()
     assert len(contract_owners) == len(ethr_signers) + 1
@@ -84,7 +84,7 @@ def test_2(scrt_leader, test_configuration, contract, web3_provider, scrt_signer
               f"| jq '.[3].value'", shell=True, stdout=PIPE).stdout.decode().strip()[1:-1]
     end_index = res.find(' ')
     # TODO: once swap is working, fix it
-    amount = Decimal(res[:end_index])
+    # amount = Decimal(res[:end_index])
 
     # assert abs(transfer_amount - amount) < 1
     # end of ethr to scrt validation
@@ -96,8 +96,10 @@ def test_3(ethr_leader, test_configuration, ethr_signers):
     # Generate swap tx on secret network
     last_nonce = Management.last_processed(Source.scrt.value, ethr_leader.logger)
     swap = {"swap": {"amount": str(TRANSFER_AMOUNT), "network": "Ethereum", "destination": ethr_leader.default_account}}
-    tx_hash = run(f"docker exec secretdev secretcli tx compute execute {test_configuration.secret_contract_address} "
-                  f"'{json.dumps(swap)}' --from a -y", shell=True)
+    # TODO: once multisig swap work, change the source of swap here
+    tx_hash = run(f"secretcli tx compute execute {test_configuration.secret_contract_address} "
+                  f"'{json.dumps(swap)}' --from t1 -y", shell=True, stdout=PIPE, stderr=PIPE)
+    tx_hash = json.loads(tx_hash.stdout)['txhash']
     # TODO: verify tx_hash
 
     # Verify that leader recognized the burn tx
@@ -121,7 +123,6 @@ def test_4(event_listener, contract, web3_provider, ether_accounts, test_configu
     sleep(test_configuration.default_sleep_time_interval)
     # Validate the tx is confirmed in the smart contract
     last_nonce = Management.last_processed(Source.scrt.value, eth_signer.logger)
-    # TODO: currently fails due to nonce not increasing
     assert eth_signer.contract.contract.functions.confirmations(last_nonce, eth_signer.default_account).call()
 
 

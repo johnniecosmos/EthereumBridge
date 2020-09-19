@@ -1,7 +1,7 @@
 import json
 from collections import namedtuple
 from pathlib import Path
-from threading import Thread, Lock, Event
+from threading import Thread, Lock
 from typing import Dict
 
 from mongoengine import signals
@@ -172,7 +172,7 @@ class EthrSigner:
 
     def _submission_data(self, transaction_id) -> Dict[str, any]:
         data = self.contract.contract.functions.transactions(transaction_id).call()
-        return {'dest': data[0], 'value': data[1], 'data': json.loads(data[2]), 'executed': data[3], 'nonce': data[4]}
+        return {'dest': data[0], 'value': data[1], 'data': data[2], 'executed': data[3], 'nonce': data[4]}
 
     def _is_valid(self, submission_data: Dict[str, any]) -> bool:
         # lookup the tx hash in scrt, and validate it.
@@ -186,9 +186,9 @@ class EthrSigner:
             except Exception as e:
                 self.logger.critical(msg=e)
                 return False
-
-            if swap_data['dest'].decode() == submission_data['dest'] \
-                    and swap_data['value'] == submission_data['amount']:
+            swap_data = swap_data['swap']['result']
+            if swap_data['destination'] == submission_data['dest'] \
+                    and float(swap_data['amount']) == float(submission_data['value']):
                 return True
 
         return False

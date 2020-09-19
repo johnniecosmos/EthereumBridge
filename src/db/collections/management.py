@@ -6,7 +6,7 @@ from mongoengine import Document, IntField, DoesNotExist, MultipleObjectsReturne
 
 class Management(Document):
     nonce = IntField(required=True)
-    src = IntField(required=True)
+    src = IntField(required=True, unique=True)
 
     @classmethod
     def last_processed(cls, src: int, logger: Logger):
