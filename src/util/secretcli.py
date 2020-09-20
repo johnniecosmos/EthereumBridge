@@ -2,7 +2,7 @@ from logging import Logger
 from subprocess import run, PIPE
 from typing import List, Tuple
 
-from src.contracts.secret_contract import scrt_swap_query
+from src.contracts.secret_contract import swap_json
 
 
 def sign_tx(unsigned_tx_path: str, multi_sig_account_addr: str, account_name: str):
@@ -37,7 +37,7 @@ def decrypt(data: str) -> str:
 
 
 def query_scrt_swap(logger: Logger, nonce: int, contract_addr: str, viewing_key: str) -> Tuple[str, bool]:
-    query_str = scrt_swap_query(nonce, viewing_key)
+    query_str = swap_json(nonce, viewing_key)
     cmd = ['secretcli', 'query', 'compute', 'query', contract_addr, query_str]
     p = run(cmd, stdout=PIPE, stderr=PIPE)
 

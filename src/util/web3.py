@@ -4,6 +4,7 @@ from typing import Union, List, Tuple, Optional
 from eth_typing import HexStr, Hash32
 from hexbytes import HexBytes
 from web3 import Web3
+from web3.contract import Contract as Web3Contract
 from web3.datastructures import AttributeDict
 from web3.types import BlockData
 
@@ -22,7 +23,7 @@ def extract_tx_by_address(address, block: BlockData) -> list:
     return [tx for tx in block.transactions if tx.to and address.lower() == tx.to.lower()]
 
 
-def event_log(tx_hash: Union[Hash32, HexBytes, HexStr], events: List[str], provider: Web3, contract) -> \
+def event_log(tx_hash: Union[Hash32, HexBytes, HexStr], events: List[str], provider: Web3, contract: Web3Contract) -> \
         Tuple[str, Optional[AttributeDict]]:
     """
     Extracts logs of @event from tx_hash if present
@@ -82,10 +83,10 @@ def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str
     raise StopIteration()
 
 
-def send_contract_tx(logger: Logger, provider: Web3, contract, function_name: str, from_acc: str, private_key: str,
+def send_contract_tx(provider: Web3, contract: Web3Contract, function_name: str, from_acc: str, private_key: bytes,
                      *args, gas: int = 0):
-    """ Creates the contract tx and signes it with private_key to be transmitted as raw tx """
-    submit_tx = getattr(contract.contract.functions, function_name)(*args). \
+    """ Creates the contract tx and signs it with private_key to be transmitted as raw tx """
+    submit_tx = getattr(contract.functions, function_name)(*args). \
         buildTransaction(
         {
             'from': from_acc,
@@ -94,7 +95,4 @@ def send_contract_tx(logger: Logger, provider: Web3, contract, function_name: st
             'nonce': provider.eth.getTransactionCount(from_acc),
         })
     signed_txn = provider.eth.account.sign_transaction(submit_tx, private_key)
-    try:
-        provider.eth.sendRawTransaction(signed_txn.rawTransaction)
-    except Exception as e:
-        logger.error(msg=e)
+    provider.eth.sendRawTransaction(signed_txn.rawTransaction)

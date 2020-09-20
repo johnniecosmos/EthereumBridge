@@ -8,7 +8,7 @@ from mongoengine import signals
 from web3 import Web3
 from web3.datastructures import AttributeDict
 
-from src.contracts.contract import Contract
+from src.contracts.contract import Contract, Confirm
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 from src.event_listener import EventListener
@@ -211,11 +211,8 @@ class EthrSigner:
         Sign the transaction with the signer's private key and then broadcast
         Note: This operation costs gas
         """
-        submission_tx = self.contract.contract.functions.confirmTransaction(submission_id).buildTransaction(
-            {'chainId': self.provider.eth.chainId,
-             'gasPrice': self.provider.eth.gasPrice,
-             'nonce': self.provider.eth.getTransactionCount(self.default_account),
-             'from': self.default_account
-             })
-        signed_txn = self.provider.eth.account.sign_transaction(submission_tx, private_key=self.private_key)
-        self.provider.eth.sendRawTransaction(signed_txn.rawTransaction)
+        try:
+            msg = Confirm(submission_id)
+            self.contract.confirm_transaction(self.default_account, self.private_key, msg)
+        except Exception as e:
+            self.logger.info(msg=f"Failed confirming submission: {submission_id}.\nError: {e}")

@@ -1,12 +1,11 @@
-import json
 from threading import Event, Thread
 from typing import List
 
 from mongoengine import signals
 from web3 import Web3
-from web3.exceptions import InvalidAddress
 
-from src.contracts.contract import Contract
+from src.contracts.contract import Contract, Submit
+from src.contracts.secret_contract import swap_query_res
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.management import Management, Source
 from src.db.collections.signatures import Signatures
@@ -15,7 +14,6 @@ from src.util.common import temp_file, temp_files
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
 from src.util.secretcli import broadcast, multisign_tx, query_scrt_swap
-from src.util.web3 import send_contract_tx
 
 
 class SecretLeader:
@@ -50,6 +48,7 @@ class SecretLeader:
         if len(signatures) < self.config.signatures_threshold:
             self.logger.error(msg=f"Tried to sign tx {tx.id}, without enough signatures"
                                   f" (required: {self.config.signatures_threshold}, have: {len(signatures)})")
+            return
 
         signed_tx, success = catch_and_log(self.logger, self._create_multisig, tx.unsigned_tx, signatures)
         if success and self._broadcast(signed_tx):
@@ -100,15 +99,13 @@ class EthrLeader:
 
             self.stop_event.wait(self.config.default_sleep_time_interval)
 
-    # TODO: test
     def _handle_swap(self, swap_data: str):
         # Note: This operation costs Ethr
-        swap_data = json.loads(swap_data)['swap']['result']
         try:
-            send_contract_tx(self.logger, self.provider, self.contract, 'submitTransaction', self.default_account,
-                             self.private_key, swap_data['destination'], int(swap_data['amount']), int(swap_data['nonce']),
-                             b"")
-        except InvalidAddress:
-            self.logger.info(msg=f"Secret to Ethr swap transaction invalid destination address. Tx data:\n{swap_data}")
+            swap_json = swap_query_res(swap_data)
+            msg = Submit(swap_json['destination'], int(swap_json['amount']), int(swap_json['nonce']))
+            self.contract.submit_transaction(self.default_account, self.private_key, msg)
+
         except Exception as e:
-            self.logger.warning(msg=e)
+            # TODO: i think there should be some alert mechanism around this \ db log tracking
+            self.logger.info(msg=f"Failed swap, transaction data:\n{swap_data}\nError: {e}")
