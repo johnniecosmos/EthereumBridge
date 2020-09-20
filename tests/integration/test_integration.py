@@ -1,5 +1,4 @@
 import json
-from decimal import Decimal
 from subprocess import run, PIPE
 from time import sleep
 

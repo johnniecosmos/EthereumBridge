@@ -43,7 +43,6 @@ def test_configuration():
               shell=True, stdout=PIPE).stdout.decode().strip()[2:-1]
     config.code_hash = res
 
-
     # get view key
     json_q = '{"create_viewing_key": {"entropy": "random phrase"}}'
     view_key_tx_hash = run(f"docker exec secretdev secretcli tx compute execute {config.secret_contract_address} "

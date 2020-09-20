@@ -316,7 +316,7 @@ contract MultiSigSwapWallet {
         value : value,
         data : data,
         executed : false,
-        nonce: nonce
+        nonce : nonce
         });
         transactionCount += 1;
         emit Submission(transactionId);

@@ -4,6 +4,8 @@ from mongoengine import connect
 
 from src.db.collections.log import Logs
 
+LOG_LEVEL = logging.INFO
+
 
 class CustomFormatter(logging.Formatter):
     """Logging Formatter to add colors and count warning / errors"""
@@ -50,13 +52,14 @@ class CustomFormatter(logging.Formatter):
 
 def get_logger(db_name: str, logger_name: str = 'enigma') -> logging.Logger:
     logger = logging.getLogger(logger_name)
+    logger.setLevel(LOG_LEVEL)
     logger.addHandler(DBLoggerHandler(db_name))
 
     return logger
 
 
 class DBLoggerHandler(logging.Handler):
-    def __init__(self, db_name, level: int = logging.INFO):
+    def __init__(self, db_name, level: int = LOG_LEVEL):
         super().__init__(level)
         self.connection = connect(db_name)
         self.formatter = CustomFormatter()

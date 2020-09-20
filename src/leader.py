@@ -70,6 +70,7 @@ class SecretLeader:
 
 class EthrLeader:
     """Broadcasts signed transactions Scrt -> Ethr"""
+
     def __init__(self, provider: Web3, contract: Contract, private_key, acc_addr, config):
         self.provider = provider
         self.config = config
