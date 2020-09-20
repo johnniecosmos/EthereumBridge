@@ -10,7 +10,7 @@ from src.db.collections.signatures import Signatures
 from src.event_listener import EventListener
 from src.signers import MultiSig
 from src.util.logger import get_logger
-from src.util.secretcli import create_unsigined_tx
+from src.util.secretcli import create_unsigned_tx
 
 
 class Manager:
@@ -57,9 +57,9 @@ class Manager:
         """Extracts tx of event 'swap' and saves to db"""
         mint = mint_json(event.args.value, event.transactionHash.hex(), event.args.recipient.decode())
         try:
-            unsigned_tx = create_unsigined_tx(self.config.secret_contract_address, mint, self.config.chain_id,
-                                              self.config.enclave_key, self.config.code_hash,
-                                              self.multisig.multisig_acc_addr)
+            unsigned_tx = create_unsigned_tx(self.config.secret_contract_address, mint, self.config.chain_id,
+                                             self.config.enclave_key, self.config.code_hash,
+                                             self.multisig.multisig_acc_addr)
             ETHSwap.save_web3_tx(event, unsigned_tx)
             Management.update_last_processed(src=Source.eth.value, update_val=event.blockNumber)
         except Exception as e:

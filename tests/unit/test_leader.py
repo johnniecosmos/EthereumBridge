@@ -8,7 +8,7 @@ from src.contracts.secret_contract import tx_args
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 from src.leader import SecretLeader
-from src.util.secretcli import create_unsigined_tx, sign_tx
+from src.util.secretcli import create_unsigned_tx, sign_tx
 
 
 @fixture(scope="module")
@@ -28,9 +28,9 @@ def leader(test_configuration, multisig_account, db):
 def test_run(leader, scrt_signer_accounts, multisig_account, mock_tx, test_configuration):
     # Create mock tx and save it to DB
     unsigned_tx_args = tx_args(1, mock_tx['transactionHash'], scrt_signer_accounts[0].multisig_acc_addr)
-    unsigned_tx = create_unsigined_tx(test_configuration.secret_contract_address, unsigned_tx_args,
-                                      test_configuration.chain_id, test_configuration.enclave_key,
-                                      test_configuration.code_hash, multisig_account.multisig_acc_addr)
+    unsigned_tx = create_unsigned_tx(test_configuration.secret_contract_address, unsigned_tx_args,
+                                     test_configuration.chain_id, test_configuration.enclave_key,
+                                     test_configuration.code_hash, multisig_account.multisig_acc_addr)
     eth_swap = ETHSwap(tx_hash=mock_tx['transactionHash'], status=Status.SWAP_STATUS_UNSIGNED.value,
                        unsigned_tx=unsigned_tx).save()
 

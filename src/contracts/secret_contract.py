@@ -2,7 +2,7 @@ import json
 
 
 # TODO: talk about units(amount_seth)
-def mint_json(amount, eth_tx_hash, address) -> str:
+def mint_json(amount, eth_tx_hash, address: str) -> str:
     return json.dumps({"mint": {"amount": str(amount), "address": address}})
 
 

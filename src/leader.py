@@ -13,7 +13,7 @@ from src.signers import MultiSig
 from src.util.common import temp_file, temp_files
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
-from src.util.secretcli import broadcast, multisign_tx, query_scrt_swap
+from src.util.secretcli import broadcast, multisig_tx, query_scrt_swap
 
 
 class SecretLeader:
@@ -58,7 +58,7 @@ class SecretLeader:
     def _create_multisig(self, unsigned_tx: str, signatures: List[str]) -> str:
         with temp_file(unsigned_tx) as unsigned_tx_path:
             with temp_files(signatures, self.logger) as signed_tx_paths:
-                return multisign_tx(unsigned_tx_path, self.multisig.signer_acc_name, *signed_tx_paths)
+                return multisig_tx(unsigned_tx_path, self.multisig.signer_acc_name, *signed_tx_paths)
 
     def _broadcast(self, signed_tx) -> bool:
         # Note: This operation costs Scrt
