@@ -1,4 +1,6 @@
 import json
+from decimal import Decimal
+from pathlib import Path
 from subprocess import run, PIPE
 from time import sleep
 
@@ -8,10 +10,12 @@ from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.management import Source, Management
 from src.db.collections.signatures import Signatures
 from src.signers import EthrSigner
+from src.util.common import project_base_path
 from src.util.web3 import event_log
 
 # Note: The tests are ordered and named test_0...N and should be executed in that order as they demonstrate the flow
 # Ethr -> Scrt and then Scrt -> Ethr
+from tests.utils.keys import get_key_signer
 
 TRANSFER_AMOUNT = 100
 
@@ -31,8 +35,9 @@ def test_0(swap_contract, ethr_signers, test_configuration):
 # 3. SecretSigners validation and signing.
 # 4. Smart Contract swap functionality.
 def test_1(manager, scrt_signers, web3_provider, test_configuration, contract):
+    t1_address = get_key_signer("t1", Path.joinpath(project_base_path(), 'tests', 'keys'))['address']
     # swap ethr for scrt token, deliver tokens to address of 'a'(we will use 'a' later to check it received the money)
-    tx_hash = contract.contract.functions.swap(test_configuration.a_address). \
+    tx_hash = contract.contract.functions.swap(t1_address.encode()). \
         transact({'from': web3_provider.eth.coinbase, 'value': TRANSFER_AMOUNT}).hex().lower()
     # TODO: validate ethr increase of the smart contract
     # add confirmation threshold -1 new tx after the above swap tx
@@ -73,17 +78,16 @@ def test_2(scrt_leader, test_configuration, contract, web3_provider, scrt_signer
 
     # validate swap tx on ethr delivers to the destination
     balance_query = '{"balance": {}}'
-    tx_hash = run(f"docker exec secretdev secretcli tx compute execute {test_configuration.secret_contract_address} "
+    tx_hash = run(f"secretcli tx compute execute {test_configuration.secret_contract_address} "
                   f"'{balance_query}' --from {dest} -b block -y | jq '.txhash'", shell=True, stdout=PIPE)
     tx_hash = tx_hash.stdout.decode().strip()[1:-1]
 
-    res = run(f"docker exec secretdev secretcli q compute tx {tx_hash} | jq '.output_log' | jq '.[0].attributes' "
+    res = run(f"secretcli q compute tx {tx_hash} | jq '.output_log' | jq '.[0].attributes' "
               f"| jq '.[3].value'", shell=True, stdout=PIPE).stdout.decode().strip()[1:-1]
     end_index = res.find(' ')
-    # TODO: once swap is working, fix it
-    # amount = Decimal(res[:end_index])
+    amount = Decimal(res[:end_index])
 
-    # assert abs(transfer_amount - amount) < 1
+    assert abs(transfer_amount - amount) < 1  # TODO: == 0 after specificity fixed
     # end of ethr to scrt validation
 
 
@@ -92,7 +96,6 @@ def test_2(scrt_leader, test_configuration, contract, web3_provider, scrt_signer
 def test_3(ethr_leader, test_configuration, ethr_signers):
     # Generate swap tx on secret network
     swap = {"swap": {"amount": str(TRANSFER_AMOUNT), "network": "Ethereum", "destination": ethr_leader.default_account}}
-    # TODO: once multisig swap work, change the source of swap here
 
     tx_hash = run(f"secretcli tx compute execute {test_configuration.secret_contract_address} "
                   f"'{json.dumps(swap)}' --from t1 -y", shell=True, stdout=PIPE, stderr=PIPE)
