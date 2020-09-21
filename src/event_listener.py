@@ -5,7 +5,7 @@ from typing import List, Callable, Dict
 from web3 import Web3
 from web3.exceptions import BlockNotFound
 
-from src.contracts.contract import Contract
+from src.contracts.ethereum.contract import Contract
 from src.util.logger import get_logger
 from src.util.web3 import extract_tx_by_address, event_log, contract_event_in_range
 

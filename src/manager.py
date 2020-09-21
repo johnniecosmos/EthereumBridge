@@ -2,8 +2,8 @@ from threading import Thread, Event
 
 from web3.datastructures import AttributeDict
 
-from src.contracts.contract import Contract
-from src.contracts.secret_contract import mint_json
+from src.contracts.ethereum.contract import Contract
+from src.contracts.secret.secret_contract import mint_json
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.management import Management, Source
 from src.db.collections.signatures import Signatures

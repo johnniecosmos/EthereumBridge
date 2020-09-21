@@ -4,8 +4,11 @@ from typing import List
 from mongoengine import signals
 from web3 import Web3
 
-from src.contracts.contract import Contract, Submit
-from src.contracts.secret_contract import swap_query_res
+# from src.contracts.contract import Contract, Submit
+# from src.contracts.secret_contract import swap_query_res
+from src.contracts.ethereum.contract import Contract
+from src.contracts.ethereum.multisig_wallet import Submit
+from src.contracts.secret.secret_contract import swap_query_res
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.management import Management, Source
 from src.db.collections.signatures import Signatures

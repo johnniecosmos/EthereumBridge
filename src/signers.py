@@ -8,7 +8,8 @@ from mongoengine import signals
 from web3 import Web3
 from web3.datastructures import AttributeDict
 
-from src.contracts.contract import Contract, Confirm
+from src.contracts.ethereum.contract import Contract
+from src.contracts.ethereum.multisig_wallet import Confirm
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 from src.event_listener import EventListener
