@@ -56,7 +56,7 @@ class Contract:
     def submit_transaction(self, from_: str, private_key: bytes, message: Submit):
         """
         Used for sending swap events from SecretNetwork to Ethereum
-        :param from_: they account from which gas payment will be taken
+        :param from_: the account from which gas payment will be taken
         :param private_key: private key matching the from_ account
         :param message:
         """
