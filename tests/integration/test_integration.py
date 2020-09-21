@@ -34,10 +34,10 @@ def test_0(swap_contract, ethr_signers, test_configuration):
 # 2. Manager status update and multisig creation.
 # 3. SecretSigners validation and signing.
 # 4. Smart Contract swap functionality.
-def test_1(manager, scrt_signers, web3_provider, test_configuration, contract):
+def test_1(manager, scrt_signers, web3_provider, test_configuration, multisig_wallet):
     t1_address = get_key_signer("t1", Path.joinpath(project_base_path(), 'tests', 'keys'))['address']
     # swap ethr for scrt token, deliver tokens to address of 'a'(we will use 'a' later to check it received the money)
-    tx_hash = contract.contract.functions.swap(t1_address.encode()). \
+    tx_hash = multisig_wallet.multisig_wallet.functions.swap(t1_address.encode()). \
         transact({'from': web3_provider.eth.coinbase, 'value': TRANSFER_AMOUNT}).hex().lower()
     # TODO: validate ethr increase of the smart contract
     # add confirmation threshold -1 new tx after the above swap tx
@@ -65,14 +65,14 @@ def test_1(manager, scrt_signers, web3_provider, test_configuration, contract):
 # Components tested:
 # 1. Leader broadcast to scrt multi-signed mint
 # 2. Secret Contract "mint"
-def test_2(scrt_leader, test_configuration, contract, web3_provider, scrt_signers):
+def test_2(scrt_leader, test_configuration, multisig_wallet, web3_provider, scrt_signers):
     # give scrt_leader time to multi-sign already existing signatures
     sleep(test_configuration.default_sleep_time_interval + 3)
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED.value
 
     # get tx details
     tx_hash = ETHSwap.objects().get().tx_hash
-    _, log = event_log(tx_hash, ['Swap'], web3_provider, contract.contract)
+    _, log = event_log(tx_hash, ['Swap'], web3_provider, multisig_wallet.multisig_wallet)
     transfer_amount = web3_provider.fromWei(log.args.value, 'ether')
     dest = log.args.recipient.decode()
 
@@ -114,11 +114,11 @@ def test_3(ethr_leader, test_configuration, ethr_signers):
 # Components tested:
 # 1. EthrSigner - confirmation and offline catchup
 # 2. SmartContract multisig functionality
-def test_4(event_listener, contract, web3_provider, ether_accounts, test_configuration, ethr_leader):
+def test_4(event_listener, multisig_wallet, web3_provider, ether_accounts, test_configuration, ethr_leader):
     # To allow the new EthrSigner to "catch up", we start it after the event submission event in Ethereum
     private_key = ether_accounts[-1].privateKey
     address = ether_accounts[-1].address
-    eth_signer = EthrSigner(event_listener, web3_provider, contract, private_key, address, test_configuration)
+    eth_signer = EthrSigner(event_listener, web3_provider, multisig_wallet, private_key, address, test_configuration)
 
     sleep(test_configuration.default_sleep_time_interval)
     # Validate the tx is confirmed in the smart contract
