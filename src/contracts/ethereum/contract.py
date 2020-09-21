@@ -35,9 +35,13 @@ class Contract:
 
     def contract_tx_as_bytes(self, fn_name: str, *args):
         """
-        In order to invoke functions in remote contracts, one would we required to generate the raw tx message and pass
+        In order to invoke functions in contracts, one would we required to generate the raw tx message and pass
         it as param to the call function. call signature: call(g, a, v, in, insize, out, outsize).
         This function helps to generate the 'in' param of the 'call' func.
         For more information, see: https://solidity.readthedocs.io/en/v0.5.3/assembly.html
+
+        Note:
+            - args order is important
+            - this might not be require for all contracts (it is required for gnosis MultiSigWallet)
         """
         self.contract.encodeABI(fn_name=fn_name, args=[*args])
