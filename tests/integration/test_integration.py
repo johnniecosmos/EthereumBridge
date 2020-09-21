@@ -61,8 +61,6 @@ def test_1(manager, scrt_signers, web3_provider, test_configuration, contract):
 # 1. Leader broadcast to scrt multi-signed mint
 # 2. Secret Contract "mint"
 def test_2(scrt_leader, test_configuration, contract, web3_provider, scrt_signers):
-    # Note: :param ethr_signers: is here only so it will be created before test_3
-
     # give scrt_leader time to multi-sign already existing signatures
     sleep(test_configuration.default_sleep_time_interval + 3)
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED.value

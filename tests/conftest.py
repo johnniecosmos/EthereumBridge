@@ -32,7 +32,7 @@ def test_configuration():
     # get address of account 'a' on docker
     a_address = run("docker exec secretdev secretcli keys show a | jq '.address'", shell=True, stdout=PIPE)
     config.a_address = a_address.stdout.decode().strip()[1:-1].encode()
-    deploy_contract(config)  # TODO: remove
+    # deploy_contract(config)  # TODO: remove
     config.multisig_acc_addr = get_key_multisig_addr(f"ms{config.signatures_threshold}")
     config.enclave_key = path.join(tests_folder, 'deployment', 'io-master-cert.der')
 
@@ -40,7 +40,7 @@ def test_configuration():
     config.secret_contract_address = res.stdout.decode().strip()[1:-1]
 
     res = run(f"secretcli q compute contract-hash {config.secret_contract_address}",
-              shell=True, stdout=PIPE).stdout.decode().strip()[2:-1]
+              shell=True, stdout=PIPE).stdout.decode().strip()[2:]
     config.code_hash = res
 
     # get view key
