@@ -8,8 +8,8 @@ from mongoengine import signals
 from web3 import Web3
 from web3.datastructures import AttributeDict
 
-from src.contracts.ethereum.contract import Contract
-from src.contracts.ethereum.multisig_wallet import Confirm
+from src.contracts.ethereum.multisig_wallet import Confirm, MultisigWallet
+from src.contracts.secret.secret_contract import swap_query_res
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 from src.event_listener import EventListener
@@ -25,7 +25,7 @@ MultiSig = namedtuple('MultiSig', ['multisig_acc_addr', 'signer_acc_name'])
 class SecretSigner:
     """Verifies Ethereum tx in SWAP_STATUS_UNSIGNED and adds it's signature"""
 
-    def __init__(self, provider: Web3, multisig_: MultiSig, contract: Contract, config):
+    def __init__(self, provider: Web3, multisig_: MultiSig, contract: MultisigWallet, config):
         self.provider = provider
         self.multisig = multisig_
         self.contract = contract
@@ -109,9 +109,9 @@ class SecretSigner:
 
 
 class EthrSigner:
-    """Verifies Secret burn tx and adds it's confirmation to the smart contract"""
+    """Verifies Secret swap tx and adds it's confirmation to the smart contract"""
 
-    def __init__(self, event_listener: EventListener, provider: Web3, contract: Contract, private_key: bytes,
+    def __init__(self, event_listener: EventListener, provider: Web3, contract: MultisigWallet, private_key: bytes,
                  acc_addr: str, config):
         self.provider = provider
         self.contract = contract
@@ -183,15 +183,14 @@ class EthrSigner:
 
         if success:
             try:
-                swap_data = json.loads(swap)
+                swap_data = swap_query_res(swap)
             except Exception as e:
                 self.logger.critical(msg=e)
                 return False
-            swap_data = swap_data['swap']['result']
             if swap_data['destination'] == submission_data['dest'] \
                     and float(swap_data['amount']) == float(submission_data['value']):
                 return True
-
+        self.logger.info(msg=f"Validation failed. Swap event:\n{swap}")
         return False
 
     def _is_confirmed(self, transaction_id: int, submission_data: Dict[str, any]) -> bool:

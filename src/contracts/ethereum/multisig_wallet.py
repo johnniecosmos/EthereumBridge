@@ -17,7 +17,7 @@ class Submit(Message):
         self.data = data
 
     def args(self) -> Tuple:
-        return self.dest, self.amount, self.nonce, self.dest
+        return self.dest, self.amount, self.nonce, self.data
 
 
 class Confirm(Message):

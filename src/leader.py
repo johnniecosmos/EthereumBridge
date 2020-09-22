@@ -4,10 +4,8 @@ from typing import List
 from mongoengine import signals
 from web3 import Web3
 
-# from src.contracts.contract import Contract, Submit
-# from src.contracts.secret_contract import swap_query_res
 from src.contracts.ethereum.contract import Contract
-from src.contracts.ethereum.multisig_wallet import Submit
+from src.contracts.ethereum.multisig_wallet import Submit, MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.management import Management, Source
@@ -74,7 +72,7 @@ class SecretLeader:
 class EthrLeader:
     """Broadcasts signed transactions Scrt -> Ethr"""
 
-    def __init__(self, provider: Web3, contract: Contract, private_key, acc_addr, config):
+    def __init__(self, provider: Web3, contract: MultisigWallet, private_key, acc_addr, config):
         self.provider = provider
         self.config = config
         self.contract = contract
@@ -82,6 +80,11 @@ class EthrLeader:
         self.default_account = acc_addr
         self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
         self.stop_event = Event()
+
+        # metadata that is used to allow withdraw from 3rd party erc20 contract
+        self.mint_token: bool = self.config.mint_token
+        if self.mint_token:
+            self.token_contract = Contract(provider, config.token_contract_addr, config.token_abi)
 
         Thread(target=self._scan_swap).start()
 
@@ -107,7 +110,12 @@ class EthrLeader:
         # Note: This operation costs Ethr
         try:
             swap_json = swap_query_res(swap_data)
-            msg = Submit(swap_json['destination'], int(swap_json['amount']), int(swap_json['nonce']))
+
+            data = b""
+            if self.mint_token:  # TODO: build it
+                data = self.token_contract.contract_tx_as_bytes('fn_name', ['args'])
+
+            msg = Submit(swap_json['destination'], int(swap_json['amount']), int(swap_json['nonce']), data)
             self.contract.submit_transaction(self.default_account, self.private_key, msg)
 
         except Exception as e:

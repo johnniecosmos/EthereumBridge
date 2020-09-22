@@ -47,7 +47,8 @@ def make_project(db, test_configuration):
 
 
 @fixture(scope="module")
-def ethr_signers(event_listener, web3_provider, multisig_wallet, test_configuration, ether_accounts) -> List[EthrSigner]:
+def ethr_signers(event_listener, web3_provider, multisig_wallet, test_configuration, ether_accounts)\
+        -> List[EthrSigner]:
     res = []
 
     # we will manually create the last signer in test_3

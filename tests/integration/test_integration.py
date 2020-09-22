@@ -61,7 +61,7 @@ def test_1(manager, scrt_signers, web3_provider, test_configuration, multisig_wa
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SIGNED.value
 
 
-# TL;DR: Covers from Leader broadcast of signed tx to scrt swap tx submission on smart contract (withdraw)
+# Covers from Leader broadcast of signed tx to scrt swap tx submission on smart contract (withdraw)
 # Components tested:
 # 1. Leader broadcast to scrt multi-signed mint
 # 2. Secret Contract "mint"
@@ -88,7 +88,6 @@ def test_2(scrt_leader, test_configuration, multisig_wallet, web3_provider, scrt
     amount = Decimal(res[:end_index])
 
     assert abs(transfer_amount - amount) < 1  # TODO: == 0 after specificity fixed
-    # end of ethr to scrt validation
 
 
 # covers EthrLeader tracking of swap events in scrt and creating submission event in Ethereum
@@ -110,7 +109,7 @@ def test_3(ethr_leader, test_configuration, ethr_signers):
     sleep(test_configuration.default_sleep_time_interval + 1)
 
 
-# TL;DR: EthrSigner event response and multisig logic
+# EthrSigner event response and multisig logic
 # Components tested:
 # 1. EthrSigner - confirmation and offline catchup
 # 2. SmartContract multisig functionality
