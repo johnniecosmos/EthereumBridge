@@ -66,8 +66,8 @@ class SecretLeader:
         success_index = 1
         # TODO: validate broadcast - problematic without update to the secret contract
         with temp_file(signed_tx) as signed_tx_path:
-            temp = catch_and_log(self.logger, broadcast, signed_tx_path)
-            return temp[success_index]
+            # TODO: remove -b block and later confirm
+            return catch_and_log(self.logger, broadcast, signed_tx_path)[success_index]
 
 
 class EthrLeader:

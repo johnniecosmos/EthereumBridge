@@ -4,7 +4,7 @@ app_data = ".bridge_test"
 logger_name = "test logger"
 
 # app settings
-signatures_threshold = 3
+signatures_threshold = 4
 blocks_confirmation_required = 12
 
 manager_sleep_time_seconds = 1.0
@@ -15,7 +15,7 @@ secret_contract_address = "dynamic update"
 code_hash = "dynamic update"
 
 # used for erc-20 swap
-mint_token = True
+mint_token = False
 token_contract_addr = "dynamic update"
 token_abi = "dynamic update"
 

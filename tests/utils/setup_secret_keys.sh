@@ -41,7 +41,7 @@ echo y | secretcli keys add "--multisig=$accounts" "--multisig-threshold=$thresh
 moneyAddr=$(docker exec secretdev secretcli keys show a -a)
 for ((i = 1; i <= threshold; i++)); do
   signerAddr=$(secretcli keys show "t$i" -a)
-  docker exec -it secretdev secretcli tx send -y "$moneyAddr" "$signerAddr" 1000000000uscrt -b block
+  docker exec -it secretdev secretcli tx send -y "$moneyAddr" "$signerAddr" 10000000000uscrt -b block
 done
 
 # Send money to multisig account

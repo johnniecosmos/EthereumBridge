@@ -92,10 +92,10 @@ def test_2(scrt_leader, test_configuration, multisig_wallet, web3_provider, scrt
 
 # covers EthrLeader tracking of swap events in scrt and creating submission event in Ethereum
 # ethr_signers are here to respond for leader's submission
-def test_3(ethr_leader, test_configuration, ethr_signers, erc20_contract):
+def test_3(ethr_leader, test_configuration, ethr_signers):  #, erc20_contract
     # Generate swap tx on secret network
     swap = {"swap": {"amount": str(TRANSFER_AMOUNT), "network": "Ethereum", "destination": ethr_leader.default_account}}
-
+    last_nonce = Management.last_processed(Source.scrt.value, ethr_leader.logger)
     tx_hash = run(f"secretcli tx compute execute {test_configuration.secret_contract_address} "
                   f"'{json.dumps(swap)}' --from t1 -y", shell=True, stdout=PIPE, stderr=PIPE)
     tx_hash = json.loads(tx_hash.stdout)['txhash']
@@ -103,7 +103,9 @@ def test_3(ethr_leader, test_configuration, ethr_signers, erc20_contract):
 
     # Verify that leader recognized the burn tx
     sleep(test_configuration.default_sleep_time_interval + 4)
-    assert 0 == Management.last_processed(Source.scrt.value, ethr_leader.logger)
+
+
+    assert last_nonce + 1 == Management.last_processed(Source.scrt.value, ethr_leader.logger)
 
     # Give ethr signers time to handle the scrt swap tx (will be verified in test_4
     sleep(test_configuration.default_sleep_time_interval + 1)
