@@ -2,7 +2,7 @@ from logging import Logger
 from subprocess import run, PIPE
 from typing import List, Tuple
 
-from src.contracts.secret_contract import swap_json
+from src.contracts.secret.secret_contract import swap_json
 
 
 def sign_tx(unsigned_tx_path: str, multi_sig_account_addr: str, account_name: str):

@@ -30,7 +30,7 @@ class Confirm(Message):
 
 class MultisigWallet(Contract):
     def __init__(self, provider: Web3, contract_address: str):
-        abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'multisig_wallet', 'MultiSigSwapWallet.json')
+        abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'ethereum', 'MultiSigSwapWallet.json')
         super().__init__(provider, contract_address, abi_path)
 
     def submit_transaction(self, from_: str, private_key: bytes, message: Submit):

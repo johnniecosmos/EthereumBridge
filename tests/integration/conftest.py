@@ -7,7 +7,7 @@ from typing import List
 from brownie import project, network, accounts
 from pytest import fixture
 
-import src.contracts as contracts_package
+import src.contracts.ethereum as contracts_package
 import tests.integration as integration_package
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.event_listener import EventListener
@@ -47,7 +47,7 @@ def make_project(db, test_configuration):
 
 
 @fixture(scope="module")
-def ethr_signers(event_listener, web3_provider, multisig_wallet, test_configuration, ether_accounts)\
+def ethr_signers(event_listener, web3_provider, multisig_wallet, test_configuration, ether_accounts) \
         -> List[EthrSigner]:
     res = []
 
@@ -85,6 +85,16 @@ def swap_contract(make_project, test_configuration, ether_accounts):
     normalize_accounts = [normalize_address(acc.address) for acc in ether_accounts]
     swap_contract = MultiSigSwapWallet.deploy(normalize_accounts, test_configuration.signatures_threshold,
                                               {'from': normalize_address(accounts[0])})
+    return swap_contract
+
+
+@fixture(scope="module")
+def erc20_contract(make_project, test_configuration, ether_accounts):
+    # TODO: update configuration
+    from brownie.project.IntegrationTests import SOMENAME
+    normalize_accounts = [normalize_address(acc.address) for acc in ether_accounts]
+    swap_contract = SOMENAME.deploy(normalize_accounts, test_configuration.signatures_threshold,
+                                    {'from': normalize_address(accounts[0])})
     return swap_contract
 
 
