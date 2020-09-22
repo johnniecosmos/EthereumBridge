@@ -20,9 +20,9 @@ from tests.utils.keys import get_key_signer
 TRANSFER_AMOUNT = 100
 
 
-def test_0(swap_contract, ethr_signers, test_configuration):
+def test_0(multisig_wallet, ethr_signers, test_configuration):
     # validate owners of contract - sanity check
-    contract_owners = swap_contract.getOwners()
+    contract_owners = multisig_wallet.contract.functions.getOwners().call()
     assert len(contract_owners) == len(ethr_signers) + 1
     for owner in ethr_signers:
         assert owner.default_account in contract_owners
@@ -37,7 +37,7 @@ def test_0(swap_contract, ethr_signers, test_configuration):
 def test_1(manager, scrt_signers, web3_provider, test_configuration, multisig_wallet):
     t1_address = get_key_signer("t1", Path.joinpath(project_base_path(), 'tests', 'keys'))['address']
     # swap ethr for scrt token, deliver tokens to address of 'a'(we will use 'a' later to check it received the money)
-    tx_hash = multisig_wallet.multisig_wallet.functions.swap(t1_address.encode()). \
+    tx_hash = multisig_wallet.contract.functions.swap(t1_address.encode()). \
         transact({'from': web3_provider.eth.coinbase, 'value': TRANSFER_AMOUNT}).hex().lower()
     # TODO: validate ethr increase of the smart contract
     # add confirmation threshold -1 new tx after the above swap tx
@@ -72,7 +72,7 @@ def test_2(scrt_leader, test_configuration, multisig_wallet, web3_provider, scrt
 
     # get tx details
     tx_hash = ETHSwap.objects().get().tx_hash
-    _, log = event_log(tx_hash, ['Swap'], web3_provider, multisig_wallet.multisig_wallet)
+    _, log = event_log(tx_hash, ['Swap'], web3_provider, multisig_wallet.contract)
     transfer_amount = web3_provider.fromWei(log.args.value, 'ether')
     dest = log.args.recipient.decode()
 
@@ -92,7 +92,7 @@ def test_2(scrt_leader, test_configuration, multisig_wallet, web3_provider, scrt
 
 # covers EthrLeader tracking of swap events in scrt and creating submission event in Ethereum
 # ethr_signers are here to respond for leader's submission
-def test_3(ethr_leader, test_configuration, ethr_signers):
+def test_3(ethr_leader, test_configuration, ethr_signers, erc20_contract):
     # Generate swap tx on secret network
     swap = {"swap": {"amount": str(TRANSFER_AMOUNT), "network": "Ethereum", "destination": ethr_leader.default_account}}
 

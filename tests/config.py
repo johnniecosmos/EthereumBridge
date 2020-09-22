@@ -15,9 +15,9 @@ secret_contract_address = "dynamic update"
 code_hash = "dynamic update"
 
 # used for erc-20 swap
-mint_token = False
-token_contract_addr = ""
-token_abi = ""
+mint_token = True
+token_contract_addr = "dynamic update"
+token_abi = "dynamic update"
 
 # user settings
 enclave_key = "dynamic update"

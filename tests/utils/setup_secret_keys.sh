@@ -49,7 +49,7 @@ multisigAddr=$(secretcli keys show "ms$threshold" -a)
 docker exec -it secretdev secretcli tx send -y "$moneyAddr" "$multisigAddr" 1000000000uscrt -b block
 
 # copy contract to docker container
-scrt_contract="$base_dir/../src/contracts/contract.wasm.gz"
+scrt_contract="$base_dir/../src/contracts/secret/contract.wasm.gz"
 docker cp "$scrt_contract" "$docker_name:/contract.wasm.gz"
 
 # store contract on the chain

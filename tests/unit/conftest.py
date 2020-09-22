@@ -1,11 +1,9 @@
 from hexbytes import HexBytes
 from pytest import fixture
-from src.moderator import Moderator
 from web3.datastructures import AttributeDict
 
-from src.contracts.contract import Contract
 from src.db.collections.eth_swap import ETHSwap, Status
-from src.util.web3 import web3_provider, generate_unsigned_tx
+from src.util.web3 import web3_provider
 
 swap_log = AttributeDict({
     'args': AttributeDict({'from': '0x53c22DBaFAFCcA28F6E2644b82eca5F8D66be96E', 'to': '0xabc123', 'amount': 5}),
