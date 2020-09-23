@@ -1,5 +1,5 @@
 from logging import Logger
-from typing import Union, List, Tuple, Optional
+from typing import Union, List, Tuple, Optional, Generator
 
 from eth_typing import HexStr, Hash32
 from hexbytes import HexBytes
@@ -44,23 +44,20 @@ def event_log(tx_hash: Union[Hash32, HexBytes, HexStr], events: List[str], provi
 
 def normalize_address(address: str):
     """Converts address to address acceptable by web3"""
-    try:
-        return Web3.toChecksumAddress(address.lower())
-    except:
-        return address
+    return Web3.toChecksumAddress(address.lower())
 
 
 def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str, from_block: int = 0,
-                            to_block: Union[int, str] = 'latest'):
+                            to_block: Optional[int] = None) -> Generator:
     """
     scans the blockchain, and yields blocks that has contract tx with the provided event
 
-    Note: Be cautions with the range provided, as the logic creates query for each block which could be a buttel neck.
+    Note: Be cautions with the range provided, as the logic creates query for each block which could be a bottleneck.
     :param from_block: starting block, defaults to 0
     :param to_block: end block, defaults to 'latest'
     :param event: name of the contract emit event you wish to be notified of
     """
-    if to_block == 'latest':
+    if to_block is None:
         to_block = provider.eth.getBlock('latest').number
 
     for block_num in range(from_block, to_block + 1):

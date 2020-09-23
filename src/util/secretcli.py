@@ -1,6 +1,7 @@
+import json
 from logging import Logger
-from subprocess import run, PIPE
-from typing import List, Tuple
+from subprocess import run, PIPE, CalledProcessError
+from typing import List, Tuple, Dict
 
 from src.contracts.secret.secret_contract import swap_json
 
@@ -18,9 +19,10 @@ def multisig_tx(unsigned_tx_path: str, multi_sig_account_name: str, *signed_tx):
     return run_secret_cli(cmd)
 
 
-def create_unsigned_tx(secret_contract_addr: str, encoded_args: str, chain_id: int, enclave_key: str,
+def create_unsigned_tx(secret_contract_addr: str, transaction_data: Dict, chain_id: str, enclave_key: str,
                        code_hash: str, multisig_acc_addr: str) -> str:
-    cmd = ['secretcli', 'tx', 'compute', 'execute', secret_contract_addr, f"{encoded_args}",
+
+    cmd = ['secretcli', 'tx', 'compute', 'execute', secret_contract_addr, f"{json.dumps(transaction_data)}",
            '--generate-only', '--chain-id', f"{chain_id}", '--enclave-key', enclave_key, '--code-hash',
            code_hash, '--from', multisig_acc_addr]
     return run_secret_cli(cmd)
@@ -39,13 +41,11 @@ def decrypt(data: str) -> str:
 def query_scrt_swap(logger: Logger, nonce: int, contract_addr: str, viewing_key: str) -> Tuple[str, bool]:
     query_str = swap_json(nonce, viewing_key)
     cmd = ['secretcli', 'query', 'compute', 'query', contract_addr, query_str]
-    p = run(cmd, stdout=PIPE, stderr=PIPE)
-
-    if p.stderr:
-        if 'ERROR: query result: encrypted: Tx does not exist' not in p.stderr.decode():
-            logger.error(msg=p.stderr.decode())
+    try:
+        p = run(cmd, stdout=PIPE, stderr=PIPE, check=True)
+    except CalledProcessError as e:
+        logger.error(msg=e)
         return '', False
-
     return p.stdout.decode(), True
 
 
