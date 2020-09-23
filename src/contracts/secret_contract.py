@@ -2,8 +2,11 @@ import json
 
 
 # TODO: talk about units(amount_seth)
-def mint_json(amount, eth_tx_hash, address: str) -> str:
-    return json.dumps({"mint": {"amount": str(amount), "address": address}})
+from typing import Dict
+
+
+def mint_json(amount, eth_tx_hash, address: str) -> Dict:
+    return {"mint": {"amount": str(amount), "address": address}}
 
 
 def swap_json(nonce: int, viewing_key: str) -> str:
