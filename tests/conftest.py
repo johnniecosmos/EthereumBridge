@@ -4,10 +4,10 @@ from typing import List
 
 from mongoengine import connect
 from pytest import fixture
+from src.signers import MultiSig
 
 import tests as tests_package
 import tests.utils as utils_package
-from src.signers import MultiSig
 from src.util.common import module_dir
 from tests import config
 from tests.utils.keys import get_key_multisig_addr

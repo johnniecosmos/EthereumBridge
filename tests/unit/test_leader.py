@@ -3,8 +3,8 @@ from tempfile import NamedTemporaryFile
 from time import sleep
 
 from pytest import fixture
-
 from src.contracts.secret_contract import tx_args
+
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 from src.leader import SecretLeader

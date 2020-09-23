@@ -2,11 +2,11 @@ from time import sleep
 from uuid import uuid4
 
 from pytest import fixture
+from src.signers import MultiSig
+from src.signers import Signer
 
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
-from src.signers import MultiSig
-from src.signers import Signer
 
 
 @fixture(scope="module")

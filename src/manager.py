@@ -1,5 +1,6 @@
 from threading import Thread, Event
 
+from src.signers import MultiSig
 from web3.datastructures import AttributeDict
 
 from src.contracts.ethereum.contract import Contract
@@ -8,7 +9,6 @@ from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.management import Management, Source
 from src.db.collections.signatures import Signatures
 from src.event_listener import EventListener
-from src.signers import MultiSig
 from src.util.logger import get_logger
 from src.util.secretcli import create_unsigned_tx
 

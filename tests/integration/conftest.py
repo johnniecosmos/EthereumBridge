@@ -7,6 +7,7 @@ from typing import List
 
 from brownie import project, network, accounts
 from pytest import fixture
+from src.signers import EthrSigner, SecretSigner
 
 import src.contracts.ethereum as contracts_package
 import tests.integration as integration_package
@@ -15,7 +16,6 @@ from src.contracts.secret.secret_contract import change_admin
 from src.event_listener import EventListener
 from src.leader import SecretLeader, EthrLeader
 from src.manager import Manager
-from src.signers import EthrSigner, SecretSigner
 from src.util.common import module_dir
 from src.util.web3 import normalize_address
 
@@ -150,8 +150,8 @@ def ethr_leader(multisig_account, test_configuration, web3_provider, multisig_wa
 @fixture(scope="module")
 def scrt_leader(multisig_account, test_configuration):
     change_admin_q = f"docker exec secretdev secretcli tx compute execute " \
-                   f"{test_configuration.secret_contract_address}" \
-                   f" '{change_admin(multisig_account.multisig_acc_addr)}' --from a -y"
+                     f"{test_configuration.secret_contract_address}" \
+                     f" '{change_admin(multisig_account.multisig_acc_addr)}' --from a -y"
     res = run(change_admin_q, shell=True, stdout=PIPE, stderr=PIPE)
     return SecretLeader(multisig_account, test_configuration)
 

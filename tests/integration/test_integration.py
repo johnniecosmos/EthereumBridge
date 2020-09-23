@@ -4,15 +4,14 @@ from pathlib import Path
 from subprocess import run, PIPE
 from time import sleep
 
+from src.signers import EthrSigner
 from web3 import Web3
 
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.management import Source, Management
 from src.db.collections.signatures import Signatures
-from src.signers import EthrSigner
 from src.util.common import project_base_path
 from src.util.web3 import event_log
-
 # Note: The tests are ordered and named test_0...N and should be executed in that order as they demonstrate the flow
 # Ethr -> Scrt and then Scrt -> Ethr
 from tests.utils.keys import get_key_signer

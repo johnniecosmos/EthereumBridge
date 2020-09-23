@@ -105,8 +105,7 @@ def decode_encodeAbi(data: bytes) -> Tuple[str, int]:
     :param data: an encodeAbi result
     """
     method_id, dest, amount = data[:10], data[34:74], data[74:]
-    return '0x'+dest.decode(), int(amount, 16)  # convert amount for hex to decimal
-
+    return '0x' + dest.decode(), int(amount, 16)  # convert amount for hex to decimal
 
 # b'0xa9059cbb000000000000000000000000e6ec7f8934f95e0ebbca62ad344e3892c96187eb0000000000000000000000000000000000000000000000000000000000000064'
 # @combomethod

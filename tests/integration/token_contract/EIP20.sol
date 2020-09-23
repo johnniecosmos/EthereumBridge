@@ -6,12 +6,11 @@ Implements EIP20 token standard: https://github.com/ethereum/EIPs/blob/master/EI
 pragma solidity ^0.4.21;
 
 
+contract EIP20 {
 
-contract EIP20{
-
-    uint256 constant private MAX_UINT256 = 2**256 - 1;
-    mapping (address => uint256) public balances;
-    mapping (address => mapping (address => uint256)) public allowed;
+    uint256 constant private MAX_UINT256 = 2 ** 256 - 1;
+    mapping(address => uint256) public balances;
+    mapping(address => mapping(address => uint256)) public allowed;
     /*
     NOTE:
     The following variables are OPTIONAL vanities. One does not have to include them.
@@ -30,11 +29,16 @@ contract EIP20{
         uint8 _decimalUnits,
         string _tokenSymbol
     ) public {
-        balances[msg.sender] = _initialAmount;               // Give the creator all initial tokens
-        totalSupply = _initialAmount;                        // Update total supply
-        name = _tokenName;                                   // Set the name for display purposes
-        decimals = _decimalUnits;                            // Amount of decimals for display purposes
-        symbol = _tokenSymbol;                               // Set the symbol for display purposes
+        balances[msg.sender] = _initialAmount;
+        // Give the creator all initial tokens
+        totalSupply = _initialAmount;
+        // Update total supply
+        name = _tokenName;
+        // Set the name for display purposes
+        decimals = _decimalUnits;
+        // Amount of decimals for display purposes
+        symbol = _tokenSymbol;
+        // Set the symbol for display purposes
     }
 
     function transfer(address _to, uint256 _value) public returns (bool success) {
@@ -63,7 +67,8 @@ contract EIP20{
 
     function approve(address _spender, uint256 _value) public returns (bool success) {
         allowed[msg.sender][_spender] = _value;
-        emit Approval(msg.sender, _spender, _value); //solhint-disable-line indent, no-unused-vars
+        emit Approval(msg.sender, _spender, _value);
+        //solhint-disable-line indent, no-unused-vars
         return true;
     }
 
