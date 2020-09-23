@@ -49,7 +49,7 @@ def test_1(manager, scrt_signers, web3_provider, test_configuration, multisig_wa
     assert increase_block_number(web3_provider, 1)  # add the 'missing' confirmation block
 
     # give event listener and manager time to process tx
-    sleep(test_configuration.default_sleep_time_interval)
+    sleep(test_configuration.default_sleep_time_interval + 2)
     assert ETHSwap.objects(tx_hash=tx_hash).count() == 1  # verify swap event recorded
 
     sleep(1)
@@ -92,7 +92,7 @@ def test_2(scrt_leader, test_configuration, multisig_wallet, web3_provider, scrt
 
 # covers EthrLeader tracking of swap events in scrt and creating submission event in Ethereum
 # ethr_signers are here to respond for leader's submission
-def test_3(ethr_leader, test_configuration, ethr_signers):  #, erc20_contract
+def test_3(ethr_leader, test_configuration, ethr_signers):
     # Generate swap tx on secret network
     swap = {"swap": {"amount": str(TRANSFER_AMOUNT), "network": "Ethereum", "destination": ethr_leader.default_account}}
     last_nonce = Management.last_processed(Source.scrt.value, ethr_leader.logger)
@@ -102,8 +102,7 @@ def test_3(ethr_leader, test_configuration, ethr_signers):  #, erc20_contract
     # TODO: verify tx_hash
 
     # Verify that leader recognized the burn tx
-    sleep(test_configuration.default_sleep_time_interval + 4)
-
+    sleep(test_configuration.default_sleep_time_interval + 6)
 
     assert last_nonce + 1 == Management.last_processed(Source.scrt.value, ethr_leader.logger)
 

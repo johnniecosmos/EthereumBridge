@@ -15,6 +15,7 @@ from src.util.common import temp_file, temp_files
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
 from src.util.secretcli import broadcast, multisig_tx, query_scrt_swap
+from src.util.web3 import normalize_address
 
 
 class SecretLeader:
@@ -113,10 +114,17 @@ class EthrLeader:
             swap_json = swap_query_res(swap_data)
 
             data = b""
-            if self.mint_token:  # TODO: build it
-                data = self.token_contract.contract_tx_as_bytes('fn_name', ['args'])
-
-            msg = Submit(swap_json['destination'], int(swap_json['amount']), int(swap_json['nonce']), data)
+            if self.mint_token:
+                # Note: if token is to-be-swapped, the destination function name HAS to have the following signature
+                # transfer(address to, uint256 value)
+                data = self.token_contract.contract_tx_as_bytes('transfer',
+                                                                swap_json['destination'],
+                                                                int(swap_json['amount']))
+                msg = Submit(self.token_contract.address,
+                             0,  # if we are swapping token, no ethr should be rewarded
+                             int(swap_json['nonce']), data)
+            else:
+                msg = Submit(swap_json['destination'], int(swap_json['amount']), int(swap_json['nonce']), data)
             self.contract.submit_transaction(self.default_account, self.private_key, msg)
 
         except Exception as e:

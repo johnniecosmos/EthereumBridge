@@ -58,7 +58,7 @@ def make_project(db, test_configuration):
 
 
 @fixture(scope="module")
-def ethr_signers(event_listener, web3_provider, multisig_wallet, test_configuration, ether_accounts) \
+def ethr_signers(event_listener, web3_provider, multisig_wallet, test_configuration, ether_accounts, erc20_contract) \
         -> List[EthrSigner]:
     res = []
 
@@ -109,6 +109,7 @@ def erc20_contract(make_project, test_configuration, ether_accounts):
     test_configuration.mint_token = True
     test_configuration.token_contract_addr = str(erc20.address)
     test_configuration.token_abi = '/home/guy/Workspace/dev/EthereumBridge/tests/integration/token_contract/EIP20.json'
+    # Note: we don't return here anything, as it's only created for leader's usage through config
 
 
 @fixture(scope="module")
@@ -138,7 +139,7 @@ def manager(event_listener, multisig_wallet, multisig_account, test_configuratio
 
 
 @fixture(scope="module")
-def ethr_leader(multisig_account, test_configuration, web3_provider, multisig_wallet, ether_accounts):
+def ethr_leader(multisig_account, test_configuration, web3_provider, multisig_wallet, ether_accounts, erc20_contract):
     private_key = ether_accounts[0].privateKey
     address = normalize_address(ether_accounts[0].address)
     leader = EthrLeader(web3_provider, multisig_wallet, private_key, address, test_configuration)

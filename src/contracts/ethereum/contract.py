@@ -44,4 +44,4 @@ class Contract:
             - args order is important
             - this might not be require for all contracts (it is required for gnosis MultiSigWallet)
         """
-        self.contract.encodeABI(fn_name=fn_name, args=[*args])
+        return self.contract.encodeABI(fn_name=fn_name, args=[*args]).encode()

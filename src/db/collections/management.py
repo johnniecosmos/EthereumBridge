@@ -1,5 +1,6 @@
 from enum import Enum
 from logging import Logger
+from threading import Lock
 
 from mongoengine import Document, IntField, DoesNotExist, MultipleObjectsReturned
 
@@ -8,19 +9,22 @@ class Management(Document):
     nonce = IntField(required=True)
     src = IntField(required=True, unique=True)
 
+    lock = Lock()  # TODO
+
     @classmethod
     def last_processed(cls, src: int, logger: Logger):
         """
         Returns last processed contract tx sequence number
         :param src: string describing src network (i.e: scrt, eth)
         """
-        try:
-            doc = cls.objects.get(src=src)
-        except DoesNotExist:
-            doc = cls(nonce=-1, src=src).save()
-        except MultipleObjectsReturned as e:  # Corrupted DB
-            logger.critical(msg=f"DB collection corrupter.\n{e}")
-            raise e
+        with cls.lock:
+            try:
+                doc = cls.objects.get(src=src)
+            except DoesNotExist:
+                doc = cls(nonce=-1, src=src).save()
+            except MultipleObjectsReturned as e:  # Corrupted DB
+                logger.critical(msg=f"DB collection corrupter.\n{e}")
+                raise e
 
         return doc.nonce
 

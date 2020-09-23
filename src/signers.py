@@ -8,6 +8,7 @@ from mongoengine import signals
 from web3 import Web3
 from web3.datastructures import AttributeDict
 
+from src.contracts.ethereum.contract import Contract
 from src.contracts.ethereum.multisig_wallet import Confirm, MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
 from src.db.collections.eth_swap import ETHSwap, Status
@@ -17,7 +18,7 @@ from src.util.common import temp_file
 from src.util.exceptions import catch_and_log
 from src.util.logger import get_logger
 from src.util.secretcli import sign_tx as secretcli_sign, decrypt, query_scrt_swap
-from src.util.web3 import event_log, contract_event_in_range
+from src.util.web3 import event_log, contract_event_in_range, decode_encodeAbi
 
 MultiSig = namedtuple('MultiSig', ['multisig_acc_addr', 'signer_acc_name'])
 
@@ -124,6 +125,10 @@ class EthrSigner:
         self.catch_up_complete = False
         self.file_db = self._create_file_db()
 
+        self.mint_token: bool = self.config.mint_token
+        if self.mint_token:
+            self.token_contract = Contract(provider, config.token_contract_addr, config.token_abi)
+
         event_listener.register(self.handle_submission, ['Submission'])
         Thread(target=self._submission_catch_up).start()
 
@@ -173,7 +178,8 @@ class EthrSigner:
 
     def _submission_data(self, transaction_id) -> Dict[str, any]:
         data = self.contract.contract.functions.transactions(transaction_id).call()
-        return {'dest': data[0], 'value': data[1], 'data': data[2], 'executed': data[3], 'nonce': data[4]}
+        return {'dest': data[0], 'value': data[1], 'data': data[2], 'executed': data[3], 'nonce': data[4],
+                'ethr_tx_hash': transaction_id}
 
     def _is_valid(self, submission_data: Dict[str, any]) -> bool:
         # lookup the tx hash in scrt, and validate it.
@@ -187,11 +193,27 @@ class EthrSigner:
             except Exception as e:
                 self.logger.critical(msg=e)
                 return False
-            if swap_data['destination'] == submission_data['dest'] \
-                    and float(swap_data['amount']) == float(submission_data['value']):
+            if self._check_tx_data(swap_data, submission_data):
                 return True
         self.logger.info(msg=f"Validation failed. Swap event:\n{swap}")
         return False
+
+    def _check_tx_data(self, swap_data: dict, submission_data: dict) -> bool:
+        """
+        This used to verify both uScrt <-> ether and uScrt <-> erc20 tx data
+        :param swap_data: the data from scrt contract query
+        :param submission_data: the data from the proposed tx on the smart contract
+        """
+        if not self.mint_token:  # swapping scrt for ethr
+            return int(swap_data['amount']) == int(submission_data['value'])
+
+        if int(submission_data['value']) != 0:  # sanity check
+            self.logger.critical(msg=f"Trying to swap ethr while swap_token flag is true. "
+                                     f"Tx: {swap_data['ethr_tx_hash']}")
+            return False
+
+        addr, amount = decode_encodeAbi(submission_data['data'])
+        return addr.lower() == swap_data['destination'].lower() and amount == int(swap_data['amount'])
 
     def _is_confirmed(self, transaction_id: int, submission_data: Dict[str, any]) -> bool:
         """Checks with the data on the contract if signer already added confirmation or if threshold already reached"""
