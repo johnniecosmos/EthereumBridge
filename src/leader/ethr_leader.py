@@ -54,16 +54,17 @@ class EthrLeader:
             swap_json = swap_query_res(swap_data)
 
             data = b""
-            if self.mint_token:
+            if self.mint_token:  # dealing with token to token transfer
                 # Note: if token is to-be-swapped, the destination function name HAS to have the following signature
                 # transfer(address to, uint256 value)
                 data = self.token_contract.contract_tx_as_bytes('transfer',
                                                                 swap_json['destination'],
-                                                                int(swap_json['amount']))
+                                                                int(swap_json['amount']),
+                                                                b"")
                 msg = message.Submit(self.token_contract.address,
                                      0,  # if we are swapping token, no ethr should be rewarded
                                      int(swap_json['nonce']), data)
-            else:
+            else:  # dealing with token to ethr transfer
                 msg = message.Submit(swap_json['destination'], int(swap_json['amount']), int(swap_json['nonce']), data)
             self.contract.submit_transaction(self.default_account, self.private_key, msg)
 

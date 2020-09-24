@@ -69,7 +69,7 @@ def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str
                 continue
 
             for tx in contract_transactions:
-                _, log = event_log(tx_hash=tx.hash, events=[event], provider=provider, contract=contract.contract)
+                _, log = event_log(tx_hash=tx.hash, events=[event], provider=provider, contract=contract.multisig_wallet)
 
                 if log is None:
                     continue
@@ -93,29 +93,3 @@ def send_contract_tx(provider: Web3, contract: Web3Contract, function_name: str,
         })
     signed_txn = provider.eth.account.sign_transaction(submit_tx, private_key)
     provider.eth.sendRawTransaction(signed_txn.rawTransaction)
-
-
-# noinspection PyPep8Naming
-def decode_encodeAbi(data: bytes) -> Tuple[str, int]:
-    """
-    This functions takes a chunk of data encoded by web3 contract encodeAbi func and extracts the params from it.
-    :param data: an encodeAbi result
-    """
-    method_id, dest, amount = data[:10], data[34:74], data[74:]
-    return '0x' + dest.decode(), int(amount, 16)  # convert amount for hex to decimal
-
-# b'0xa9059cbb000000000000000000000000e6ec7f8934f95e0ebbca62ad344e3892c96187eb0000000000000000000000000000000000000000000000000000000000000064'
-# @combomethod
-# def decode_function_input(self, data: HexStr) -> Tuple['ContractFunction', Dict[str, Any]]:
-#     # type ignored b/c expects data arg to be HexBytes
-#     data = HexBytes(data)  # type: ignore
-#     selector, params = data[:4], data[4:]
-#     func = self.get_function_by_selector(selector)
-#
-#     names = get_abi_input_names(func.abi)
-#     types = get_abi_input_types(func.abi)
-#
-#     decoded = self.web3.codec.decode_abi(types, cast(HexBytes, params))
-#     normalized = map_abi_data(BASE_RETURN_NORMALIZERS, types, decoded)
-#
-#     return func, dict(zip(names, normalized))

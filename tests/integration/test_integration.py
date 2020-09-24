@@ -21,7 +21,7 @@ TRANSFER_AMOUNT = 100
 
 def test_0(multisig_wallet, ethr_signers):
     # validate owners of contract - sanity check
-    contract_owners = multisig_wallet.contract.functions.getOwners().call()
+    contract_owners = multisig_wallet.multisig_wallet.functions.getOwners().call()
     assert len(contract_owners) == len(ethr_signers) + 1
     for owner in ethr_signers:
         assert owner.default_account in contract_owners
@@ -36,7 +36,7 @@ def test_0(multisig_wallet, ethr_signers):
 def test_1(manager, scrt_signers, web3_provider, test_configuration, multisig_wallet):
     t1_address = get_key_signer("t1", Path.joinpath(project_base_path(), 'tests', 'keys'))['address']
     # swap ethr for scrt token, deliver tokens to address of 'a'(we will use 'a' later to check it received the money)
-    tx_hash = multisig_wallet.contract.functions.swap(t1_address.encode()). \
+    tx_hash = multisig_wallet.multisig_wallet.functions.swap(t1_address.encode()). \
         transact({'from': web3_provider.eth.coinbase, 'value': TRANSFER_AMOUNT}).hex().lower()
     # TODO: validate ethr increase of the smart contract
     # add confirmation threshold -1 new tx after the above swap tx
@@ -71,7 +71,7 @@ def test_2(scrt_leader, test_configuration, multisig_wallet, web3_provider, scrt
 
     # get tx details
     tx_hash = ETHSwap.objects().get().tx_hash
-    _, log = event_log(tx_hash, ['Swap'], web3_provider, multisig_wallet.contract)
+    _, log = event_log(tx_hash, ['Swap'], web3_provider, multisig_wallet.multisig_wallet)
     transfer_amount = web3_provider.fromWei(log.args.value, 'ether')
     dest = log.args.recipient.decode()
 
@@ -124,7 +124,7 @@ def test_4(event_listener, multisig_wallet, web3_provider, ether_accounts, test_
     sleep(test_configuration.default_sleep_time_interval)
     # Validate the tx is confirmed in the smart contract
     last_nonce = Management.last_processed(Source.scrt.value, eth_signer.logger)
-    assert eth_signer.contract.contract.functions.confirmations(last_nonce, eth_signer.default_account).call()
+    assert eth_signer.multisig_wallet.contract.functions.confirmations(last_nonce, eth_signer.default_account).call()
 
 
 def increase_block_number(web3_provider: Web3, increment: int) -> True:

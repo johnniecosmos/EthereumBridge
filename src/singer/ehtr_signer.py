@@ -5,24 +5,23 @@ from typing import Dict
 from web3 import Web3
 from web3.datastructures import AttributeDict
 
-from src.contracts.ethereum.ethr_contract import EthereumContract
-from src.contracts.ethereum.multisig_wallet import MultisigWallet
 import src.contracts.ethereum.message as message
+from src.contracts.ethereum.erc20 import Erc20
+from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
 from src.event_listener import EventListener
 from src.util.logger import get_logger
 from src.util.secretcli import query_scrt_swap
 from src.util.web3 import contract_event_in_range
-from src.util.web3 import decode_encodeAbi
 
 
 class EthrSigner:
     """Verifies Secret swap tx and adds it's confirmation to the smart contract"""
 
-    def __init__(self, event_listener: EventListener, provider: Web3, contract: MultisigWallet, private_key: bytes,
-                 acc_addr: str, config):
+    def __init__(self, event_listener: EventListener, provider: Web3, multisig_wallet: MultisigWallet,
+                 private_key: bytes, acc_addr: str, config):
         self.provider = provider
-        self.contract = contract
+        self.multisig_wallet = multisig_wallet
         self.private_key = private_key
         self.default_account = acc_addr
         self.config = config
@@ -34,7 +33,7 @@ class EthrSigner:
 
         self.mint_token: bool = self.config.mint_token
         if self.mint_token:
-            self.token_contract = EthereumContract(provider, config.token_contract_addr, config.token_abi)
+            self.token_contract = Erc20(provider, config.token_contract_addr, config.token_abi)
 
         event_listener.register(self.handle_submission, ['Submission'])
         Thread(target=self._submission_catch_up).start()
@@ -70,7 +69,7 @@ class EthrSigner:
         from_block = int(from_block) if from_block else 0
         to_block = self.provider.eth.getBlock('latest').number - 1  # handle_submission starts from 'latest'
 
-        for event in contract_event_in_range(self.logger, self.provider, self.contract, 'Submission', from_block,
+        for event in contract_event_in_range(self.logger, self.provider, self.multisig_wallet, 'Submission', from_block,
                                              to_block):
             self._update_last_block_processed(event.blockNumber)
             Thread(target=self._validated_and_confirm, args=(event,)).start()
@@ -84,7 +83,7 @@ class EthrSigner:
         self.file_db.flush()
 
     def _submission_data(self, transaction_id) -> Dict[str, any]:
-        data = self.contract.contract.functions.transactions(transaction_id).call()
+        data = self.multisig_wallet.contract.functions.transactions(transaction_id).call()
         return {'dest': data[0], 'value': data[1], 'data': data[2], 'executed': data[3], 'nonce': data[4],
                 'ethr_tx_hash': transaction_id}
 
@@ -119,7 +118,7 @@ class EthrSigner:
                                      f"Tx: {swap_data['ethr_tx_hash']}")
             return False
 
-        addr, amount = decode_encodeAbi(submission_data['data'])
+        addr, amount = self.token_contract.decode_encodeAbi(submission_data['data'])
         return addr.lower() == swap_data['destination'].lower() and amount == int(swap_data['amount'])
 
     def _is_confirmed(self, transaction_id: int, submission_data: Dict[str, any]) -> bool:
@@ -130,7 +129,7 @@ class EthrSigner:
             return True
 
         # check if signer already signed the tx
-        if self.contract.contract.functions.confirmations(transaction_id, self.default_account).call():
+        if self.multisig_wallet.contract.functions.confirmations(transaction_id, self.default_account).call():
             return True
 
         return False
@@ -142,6 +141,6 @@ class EthrSigner:
         """
         try:
             msg = message.Confirm(submission_id)
-            self.contract.confirm_transaction(self.default_account, self.private_key, msg)
+            self.multisig_wallet.confirm_transaction(self.default_account, self.private_key, msg)
         except Exception as e:
             self.logger.info(msg=f"Failed confirming submission: {submission_id}. Error: {e}")

@@ -51,6 +51,9 @@ class Manager:
 
     def _handle(self, event: AttributeDict):
         """Extracts tx data from @event and add unsigned_tx to db"""
+        if not self.contract.verify_destination(event):
+            return
+
         amount, dest = self.contract.extract_amount(event), self.contract.extract_addr(event)
         mint = mint_json(amount, event.transactionHash.hex(), event.args.recipient.decode())
         try:

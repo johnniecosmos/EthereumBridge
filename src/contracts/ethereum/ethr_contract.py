@@ -53,6 +53,10 @@ class EthereumContract:
     def extract_amount(self, tx_log: AttributeDict) -> int:
         raise NotImplementedError
 
+    @abstractmethod
+    def verify_destination(self, tx_log: AttributeDict) -> bool:
+        raise NotImplementedError
+
     @classmethod
     @abstractmethod
     def tracked_event(cls) -> str:

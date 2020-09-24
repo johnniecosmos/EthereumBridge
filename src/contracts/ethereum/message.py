@@ -25,4 +25,4 @@ class Confirm(Message):
         self.submission_id = submission_id
 
     def args(self):
-        return (self.submission_id,)
+        return self.submission_id,

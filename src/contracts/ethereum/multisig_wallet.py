@@ -9,7 +9,8 @@ from src.util.common import project_base_path
 
 class MultisigWallet(EthereumContract):
     def __init__(self, provider: Web3, contract_address: str):
-        abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'ethereum', 'MultiSigSwapWallet.json')
+        # TODO: update path
+        abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'ethereum', 'abi', 'MultiSigSwapWallet.json')
         super().__init__(provider, contract_address, abi_path)
 
     def submit_transaction(self, from_: str, private_key: bytes, message: Submit):
@@ -19,10 +20,16 @@ class MultisigWallet(EthereumContract):
         self.contract_tx('confirmTransaction', from_, private_key, message)
 
     def extract_addr(self, tx_log) -> str:
-        raise NotImplementedError
+        return tx_log.args.recipient.decode()
 
     def extract_amount(self, tx_log) -> int:
-        raise NotImplementedError
+        return tx_log.args.value
+
+    def verify_destination(self, tx_log) -> bool:
+        # returns true if the Ethr was sent to the MultiSigWallet
+        # noinspection PyProtectedMember
+        # TODO: test
+        return tx_log.address.decode().lower() == self.address.lower()
 
     @classmethod
     def tracked_event(cls) -> str:
