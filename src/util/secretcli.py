@@ -1,6 +1,6 @@
 import json
 from logging import Logger
-from subprocess import run, PIPE, CalledProcessError
+from subprocess import PIPE, CalledProcessError, run as subprocess_run
 from typing import List, Tuple, Dict
 
 from src.contracts.secret.secret_contract import swap_json
@@ -39,10 +39,10 @@ def decrypt(data: str) -> str:
 
 
 def query_scrt_swap(logger: Logger, nonce: int, contract_addr: str, viewing_key: str) -> Tuple[str, bool]:
-    query_str = swap_json(nonce, viewing_key)
+    query_str = swap_json(nonce, viewing_key)  # TODO: we try each time, we can't catch the error.
     cmd = ['secretcli', 'query', 'compute', 'query', contract_addr, query_str]
     try:
-        p = run(cmd, stdout=PIPE, stderr=PIPE, check=True)
+        p = subprocess_run(cmd, stdout=PIPE, stderr=PIPE, check=True)
     except CalledProcessError as e:
         logger.error(msg=e)
         return '', False
@@ -50,7 +50,7 @@ def query_scrt_swap(logger: Logger, nonce: int, contract_addr: str, viewing_key:
 
 
 def run_secret_cli(cmd: List[str]) -> str:
-    p = run(cmd, stdout=PIPE, stderr=PIPE)
+    p = subprocess_run(cmd, stdout=PIPE, stderr=PIPE)
 
     err = p.stderr
     if err:

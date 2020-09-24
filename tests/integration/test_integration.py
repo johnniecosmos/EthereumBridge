@@ -4,12 +4,12 @@ from pathlib import Path
 from subprocess import run, PIPE
 from time import sleep
 
-from src.signers import EthrSigner
 from web3 import Web3
 
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.management import Source, Management
 from src.db.collections.signatures import Signatures
+from src.singer.ehtr_signer import EthrSigner
 from src.util.common import project_base_path
 from src.util.web3 import event_log
 # Note: The tests are ordered and named test_0...N and should be executed in that order as they demonstrate the flow
@@ -19,7 +19,7 @@ from tests.utils.keys import get_key_signer
 TRANSFER_AMOUNT = 100
 
 
-def test_0(multisig_wallet, ethr_signers, test_configuration):
+def test_0(multisig_wallet, ethr_signers):
     # validate owners of contract - sanity check
     contract_owners = multisig_wallet.contract.functions.getOwners().call()
     assert len(contract_owners) == len(ethr_signers) + 1

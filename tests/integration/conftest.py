@@ -7,15 +7,17 @@ from typing import List
 
 from brownie import project, network, accounts
 from pytest import fixture
-from src.signers import EthrSigner, SecretSigner
 
 import src.contracts.ethereum as contracts_package
 import tests.integration as integration_package
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import change_admin
 from src.event_listener import EventListener
-from src.leader import SecretLeader, EthrLeader
+from src.leader.ethr_leader import EthrLeader
+from src.leader.secret_leader import SecretLeader
 from src.manager import Manager
+from src.singer.ehtr_signer import EthrSigner
+from src.singer.secret_signer import SecretSigner
 from src.util.common import module_dir
 from src.util.web3 import normalize_address
 
@@ -88,9 +90,10 @@ def scrt_signers(event_listener, scrt_signer_keys, web3_provider, multisig_walle
 def multisig_wallet(web3_provider, test_configuration, ether_accounts):
     # erc20_contract is here only to deploy and update configuration, can be remove if not working with ERC20
     from brownie.project.IntegrationTests import MultiSigSwapWallet
-    normalize_accounts = [normalize_address(acc.address) for acc in ether_accounts]
-    swap_contract = MultiSigSwapWallet.deploy(normalize_accounts, test_configuration.signatures_threshold,
-                                              {'from': normalize_address(accounts[0])})
+    # normalize_accounts = [normalize_address(acc.address) for acc in ether_accounts]
+    swap_contract = MultiSigSwapWallet.deploy([acc.address for acc in ether_accounts],
+                                              test_configuration.signatures_threshold,
+                                              {'from': accounts[0]})
     contract_address = str(swap_contract.address)
     return MultisigWallet(web3_provider, contract_address)
 
@@ -105,7 +108,7 @@ def erc20_contract(make_project, test_configuration, ether_accounts):
     _tokenSymbol = 'TS'
 
     erc20 = EIP20.deploy(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol,
-                         {'from': normalize_address(accounts[0])})
+                         {'from': accounts[0]})
     test_configuration.mint_token = True
     test_configuration.token_contract_addr = str(erc20.address)
     test_configuration.token_abi = '/home/guy/Workspace/dev/EthereumBridge/tests/integration/token_contract/EIP20.json'

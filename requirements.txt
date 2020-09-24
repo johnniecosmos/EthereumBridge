@@ -1,4 +1,4 @@
-web3~=5.12.0
+web3~=5.12.1
 mongoengine~=0.20.0
 blinker
 hexbytes~=0.2.1
