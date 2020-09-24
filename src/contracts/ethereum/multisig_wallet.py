@@ -1,33 +1,13 @@
 import os
-from typing import Tuple
 
 from web3 import Web3
 
-from src.contracts.ethereum.contract import Contract
-from src.contracts.ethereum.message import Message
+from src.contracts.ethereum.ethr_contract import EthereumContract
+from src.contracts.ethereum.message import Submit, Confirm
 from src.util.common import project_base_path
 
 
-class Submit(Message):
-    def __init__(self, dest: str, amount: int, nonce: int, data=b""):
-        self.dest = dest
-        self.amount = amount
-        self.nonce = nonce
-        self.data = data
-
-    def args(self) -> Tuple:
-        return self.dest, self.amount, self.nonce, self.data
-
-
-class Confirm(Message):
-    def __init__(self, submission_id: int):
-        self.submission_id = submission_id
-
-    def args(self):
-        return (self.submission_id,)
-
-
-class MultisigWallet(Contract):
+class MultisigWallet(EthereumContract):
     def __init__(self, provider: Web3, contract_address: str):
         abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'ethereum', 'MultiSigSwapWallet.json')
         super().__init__(provider, contract_address, abi_path)

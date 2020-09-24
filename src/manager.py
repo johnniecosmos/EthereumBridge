@@ -1,14 +1,14 @@
 from threading import Thread, Event
 
-from src.signers import MultiSig
 from web3.datastructures import AttributeDict
 
-from src.contracts.ethereum.contract import Contract
+from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.contracts.secret.secret_contract import mint_json
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.management import Management, Source
 from src.db.collections.signatures import Signatures
 from src.event_listener import EventListener
+from src.singer.secret_signer import MultiSig
 from src.util.logger import get_logger
 from src.util.secretcli import create_unsigned_tx
 
@@ -16,7 +16,7 @@ from src.util.secretcli import create_unsigned_tx
 class Manager:
     """Accepts new swap events and manages the tx status in db"""
 
-    def __init__(self, event_listener: EventListener, contract: Contract, multisig: MultiSig, config):
+    def __init__(self, event_listener: EventListener, contract: EthereumContract, multisig: MultiSig, config):
         self.contract = contract
         self.config = config
         self.multisig = multisig

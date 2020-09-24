@@ -15,7 +15,7 @@ class Management(Document):
     def last_processed(cls, src: int, logger: Logger):
         """
         Returns last processed contract tx sequence number
-        :param src: string describing src network (i.e: scrt, eth)
+        :param src: int enum describing src network (i.e: scrt, eth)
         """
         with cls.lock:
             try:

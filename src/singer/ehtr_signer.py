@@ -5,7 +5,7 @@ from typing import Dict
 from web3 import Web3
 from web3.datastructures import AttributeDict
 
-from src.contracts.ethereum.contract import Contract
+from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.contracts.ethereum.multisig_wallet import Confirm, MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
 from src.event_listener import EventListener
@@ -32,7 +32,7 @@ class EthrSigner:
 
         self.mint_token: bool = self.config.mint_token
         if self.mint_token:
-            self.token_contract = Contract(provider, config.token_contract_addr, config.token_abi)
+            self.token_contract = EthereumContract(provider, config.token_contract_addr, config.token_abi)
 
         event_listener.register(self.handle_submission, ['Submission'])
         Thread(target=self._submission_catch_up).start()

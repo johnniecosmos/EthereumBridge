@@ -6,7 +6,7 @@ from src.contracts.ethereum.message import Message
 from src.util.web3 import normalize_address, send_contract_tx
 
 
-class Contract:
+class EthereumContract:
     """Container for contract relevant data"""
 
     def __init__(self, provider: Web3, contract_address: str, abi_path: str):
@@ -25,7 +25,7 @@ class Contract:
 
     def contract_tx(self, func_name: str, from_: str, private_key: bytes, message: Message):
         """
-        Used for sending contract transactions
+        Used for sending contract transactions (executing @func_name  on a ethr contract)
         :param func_name: name of the function to invoke in the contract
         :param from_: the account from which gas payment will be taken
         :param private_key: private key matching the from_ account

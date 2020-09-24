@@ -2,8 +2,9 @@ from threading import Event, Thread
 
 from web3 import Web3
 
-from src.contracts.ethereum.contract import Contract
-from src.contracts.ethereum.multisig_wallet import Submit, MultisigWallet
+import src.contracts.ethereum.message as message
+from src.contracts.ethereum.ethr_contract import EthereumContract
+from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
 from src.db.collections.management import Management, Source
 from src.util.logger import get_logger
@@ -25,7 +26,7 @@ class EthrLeader:
         # metadata that is used to allow withdraw from 3rd party erc20 contract
         self.mint_token: bool = self.config.mint_token
         if self.mint_token:
-            self.token_contract = Contract(provider, config.token_contract_addr, config.token_abi)
+            self.token_contract = EthereumContract(provider, config.token_contract_addr, config.token_abi)
 
         Thread(target=self._scan_swap).start()
 
@@ -59,11 +60,11 @@ class EthrLeader:
                 data = self.token_contract.contract_tx_as_bytes('transfer',
                                                                 swap_json['destination'],
                                                                 int(swap_json['amount']))
-                msg = Submit(self.token_contract.address,
-                             0,  # if we are swapping token, no ethr should be rewarded
-                             int(swap_json['nonce']), data)
+                msg = message.Submit(self.token_contract.address,
+                                     0,  # if we are swapping token, no ethr should be rewarded
+                                     int(swap_json['nonce']), data)
             else:
-                msg = Submit(swap_json['destination'], int(swap_json['amount']), int(swap_json['nonce']), data)
+                msg = message.Submit(swap_json['destination'], int(swap_json['amount']), int(swap_json['nonce']), data)
             self.contract.submit_transaction(self.default_account, self.private_key, msg)
 
         except Exception as e:
