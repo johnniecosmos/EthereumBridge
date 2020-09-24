@@ -6,12 +6,14 @@ from web3 import Web3
 from web3.datastructures import AttributeDict
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
-from src.contracts.ethereum.multisig_wallet import Confirm, MultisigWallet
+from src.contracts.ethereum.multisig_wallet import MultisigWallet
+import src.contracts.ethereum.message as message
 from src.contracts.secret.secret_contract import swap_query_res
 from src.event_listener import EventListener
 from src.util.logger import get_logger
 from src.util.secretcli import query_scrt_swap
-from src.util.web3 import contract_event_in_range, decode_encodeAbi
+from src.util.web3 import contract_event_in_range
+from src.util.web3 import decode_encodeAbi
 
 
 class EthrSigner:
@@ -139,7 +141,7 @@ class EthrSigner:
         Note: This operation costs gas
         """
         try:
-            msg = Confirm(submission_id)
+            msg = message.Confirm(submission_id)
             self.contract.confirm_transaction(self.default_account, self.private_key, msg)
         except Exception as e:
-            self.logger.info(msg=f"Failed confirming submission: {submission_id}.\nError: {e}")
+            self.logger.info(msg=f"Failed confirming submission: {submission_id}. Error: {e}")

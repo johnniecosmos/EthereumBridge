@@ -63,4 +63,4 @@ class Manager:
             ETHSwap.save_web3_tx(event, unsigned_tx)
             Management.update_last_processed(src=Source.eth.value, update_val=event.blockNumber)
         except Exception as e:
-            self.logger.error(msg=f"Failed on tx {event.transactionHash.hex()}, block {event.blockNumber}\n{e}")
+            self.logger.error(msg=f"Failed on tx {event.transactionHash.hex()}, block {event.blockNumber}. Error: {e}")
