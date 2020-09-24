@@ -12,14 +12,14 @@ class Management(Document):
     def last_processed(cls, src: int, logger: Logger):
         """
         Returns last processed contract tx sequence number
-        :param src: string describing src network (i.e: scrt, eth)
+        :param src: int enum describing src network (i.e: scrt, eth)
         """
         try:
             doc = cls.objects.get(src=src)
         except DoesNotExist:
             doc = cls(nonce=-1, src=src).save()
         except MultipleObjectsReturned as e:  # Corrupted DB
-            logger.critical(msg=f"DB collection corrupter.\n{e}")
+            logger.critical(msg=f"DB collection corrupter. Error: {e}")
             raise e
 
         return doc.nonce

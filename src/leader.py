@@ -109,4 +109,4 @@ class EthrLeader:
 
         except Exception as e:
             # TODO: i think there should be some alert mechanism around this \ db log tracking
-            self.logger.info(msg=f"Failed swap, transaction data:\n{swap_data}\nError: {e}")
+            self.logger.info(msg=f"Failed swap, transaction data: {swap_data}. Error: {e}")

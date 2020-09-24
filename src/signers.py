@@ -57,12 +57,14 @@ class SecretSigner:
     def _sign_tx(self, tx: ETHSwap):
         """Makes sure that the tx is valid and signs it"""
         if self._is_signed(tx):
-            self.logger.error(f"Tried to sign an already signed tx. Signer:\n"
-                              f" {self.multisig.signer_acc_name}.\ntx id:{tx.id}.")
+            self.logger.error(f"Tried to sign an already signed tx. Signer: "
+                              f"{self.multisig.signer_acc_name}. "
+                              f"Tx id:{tx.id}.")
             return
 
         if not self._is_valid(tx):
-            self.logger.error(f"Validation failed. Signer:\n {self.multisig.signer_acc_name}.\ntx id:{tx.id}.")
+            self.logger.error(f"Validation failed. Signer: {self.multisig.signer_acc_name}. "
+                              f"Tx id: {tx.id}.")
             return
 
         # noinspection PyBroadException
@@ -215,4 +217,4 @@ class EthrSigner:
             msg = Confirm(submission_id)
             self.contract.confirm_transaction(self.default_account, self.private_key, msg)
         except Exception as e:
-            self.logger.info(msg=f"Failed confirming submission: {submission_id}.\nError: {e}")
+            self.logger.info(msg=f"Failed confirming submission: {submission_id}. Error: {e}")
