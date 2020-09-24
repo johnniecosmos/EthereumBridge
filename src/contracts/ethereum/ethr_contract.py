@@ -1,6 +1,8 @@
 import json
+from abc import abstractmethod
 
 from web3 import Web3
+from web3.datastructures import AttributeDict
 
 from src.contracts.ethereum.message import Message
 from src.util.web3 import normalize_address, send_contract_tx
@@ -12,11 +14,8 @@ class EthereumContract:
     def __init__(self, provider: Web3, contract_address: str, abi_path: str):
         self.abi = self.load_abi(abi_path)
         self.address = contract_address
-        self.contract = provider.eth.contract(address=self.normalized_address(), abi=self.abi)
+        self.contract = provider.eth.contract(address=normalize_address(self.address), abi=self.abi)
         self.provider = provider
-
-    def normalized_address(self):
-        return normalize_address(self.address)
 
     @staticmethod
     def load_abi(abi_path_: str) -> str:
@@ -45,3 +44,16 @@ class EthereumContract:
             - this might not be require for all contracts (it is required for gnosis MultiSigWallet)
         """
         return self.contract.encodeABI(fn_name=fn_name, args=[*args]).encode()
+
+    @abstractmethod
+    def extract_addr(self, tx_log: AttributeDict) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
+    def extract_amount(self, tx_log: AttributeDict) -> int:
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def tracked_event(cls) -> str:
+        raise NotImplementedError

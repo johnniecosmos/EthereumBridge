@@ -14,7 +14,7 @@ from src.util.secretcli import create_unsigned_tx
 
 
 class Manager:
-    """Accepts new swap events and manages the tx status in db"""
+    """Registers to contract event and manages tx state in DB"""
 
     def __init__(self, event_listener: EventListener, contract: EthereumContract, multisig: MultiSig, config):
         self.contract = contract
@@ -25,7 +25,7 @@ class Manager:
         self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
         self.stop_signal = Event()
 
-        event_listener.register(self._handle, ['Swap'], self.config.blocks_confirmation_required)
+        event_listener.register(self._handle, [contract.tracked_event()], self.config.blocks_confirmation_required)
         self.catch_up()
         Thread(target=self.run).start()
 
@@ -46,16 +46,13 @@ class Manager:
         if to_block <= 0:
             return
 
-        for event in self.event_listener.events_in_range('Swap', from_block, to_block):
+        for event in self.event_listener.events_in_range(self.contract.tracked_event(), from_block, to_block):
             self._handle(event)
 
-    def _handle(self, transaction: AttributeDict):
-        """Registers transaction to the db"""
-        self._handle_swap_events(transaction)
-
-    def _handle_swap_events(self, event: AttributeDict):
-        """Extracts tx of event 'swap' and saves to db"""
-        mint = mint_json(event.args.value, event.transactionHash.hex(), event.args.recipient.decode())
+    def _handle(self, event: AttributeDict):
+        """Extracts tx data from @event and add unsigned_tx to db"""
+        amount, dest = self.contract.extract_amount(event), self.contract.extract_addr(event)
+        mint = mint_json(amount, event.transactionHash.hex(), event.args.recipient.decode())
         try:
             unsigned_tx = create_unsigned_tx(self.config.secret_contract_address, mint, self.config.chain_id,
                                              self.config.enclave_key, self.config.code_hash,

@@ -92,6 +92,8 @@ def test_2(scrt_leader, test_configuration, multisig_wallet, web3_provider, scrt
 # covers EthrLeader tracking of swap events in scrt and creating submission event in Ethereum
 # ethr_signers are here to respond for leader's submission
 def test_3(ethr_leader, test_configuration, ethr_signers):
+    # TODO: - this is temp, giving funds
+
     # Generate swap tx on secret network
     swap = {"swap": {"amount": str(TRANSFER_AMOUNT), "network": "Ethereum", "destination": ethr_leader.default_account}}
     last_nonce = Management.last_processed(Source.scrt.value, ethr_leader.logger)
@@ -115,9 +117,9 @@ def test_3(ethr_leader, test_configuration, ethr_signers):
 # 2. SmartContract multisig functionality
 def test_4(event_listener, multisig_wallet, web3_provider, ether_accounts, test_configuration, ethr_leader):
     # To allow the new EthrSigner to "catch up", we start it after the event submission event in Ethereum
-    private_key = ether_accounts[-1].privateKey
+    key = ether_accounts[-1].privateKey
     address = ether_accounts[-1].address
-    eth_signer = EthrSigner(event_listener, web3_provider, multisig_wallet, private_key, address, test_configuration)
+    eth_signer = EthrSigner(event_listener, web3_provider, multisig_wallet, key, address, test_configuration)
 
     sleep(test_configuration.default_sleep_time_interval)
     # Validate the tx is confirmed in the smart contract
