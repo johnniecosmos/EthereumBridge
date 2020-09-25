@@ -17,7 +17,7 @@ tests_folder = module_dir(tests_package)
 
 
 @fixture(scope="module")
-def test_configuration():
+def configuration():
     # get address of account 'a' on docker
     a_address = run("docker exec secretdev secretcli keys show a | jq '.address'", shell=True, stdout=PIPE)
     config.a_address = a_address.stdout.decode().strip()[1:-1].encode()
@@ -31,41 +31,31 @@ def test_configuration():
               shell=True, stdout=PIPE).stdout.decode().strip()[2:]
     config.code_hash = res
 
-    # get view key
-    json_q = '{"create_viewing_key": {"entropy": "random phrase"}}'
-    view_key_tx_hash = run(f"docker exec secretdev secretcli tx compute execute {config.secret_contract_address} "
-                           f"'{json_q}' --from {config.a_address.decode()} --gas 3000000 -b block -y | jq '.txhash'",
-                           shell=True, stdout=PIPE)
-    view_key_tx_hash = view_key_tx_hash.stdout.decode().strip()[1:-1]
-    view_key = run(f"docker exec secretdev secretcli q compute tx {view_key_tx_hash} | jq '.output_log' | "
-                   f"jq '.[0].attributes[1].value'", shell=True, stdout=PIPE).stdout.decode().strip()[1:-1]
-    config.viewing_key = view_key
-
     return config
 
 
 @fixture(scope="module")
-def db(test_configuration):
+def db(configuration):
     # init connection to db
-    connection = connect(db=test_configuration.db_name)
+    connection = connect(db=configuration.db_name)
 
     # handle cleanup, fresh db
-    db = connection.get_database(test_configuration.db_name)
+    db = connection.get_database(configuration.db_name)
     for collection in db.list_collection_names():
         db.drop_collection(collection)
 
 
 @fixture(scope="module")
-def multisig_account(test_configuration):
-    threshold = test_configuration.signatures_threshold
+def multisig_account(configuration):
+    threshold = configuration.signatures_threshold
     multisig_addr = get_key_multisig_addr(f"ms{threshold}")
     return MultiSig(multisig_acc_addr=multisig_addr, signer_acc_name=f"ms{config.signatures_threshold}")
 
 
 @fixture(scope="module")
-def scrt_signer_keys(test_configuration) -> List[MultiSig]:
+def scrt_signer_keys(configuration) -> List[MultiSig]:
     """multisig accounts for signers"""
-    threshold = test_configuration.signatures_threshold
+    threshold = configuration.signatures_threshold
     multisig_acc_addr = get_key_multisig_addr(f"ms{threshold}")
 
     res = []

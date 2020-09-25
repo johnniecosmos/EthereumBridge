@@ -31,9 +31,9 @@ contract_tx = AttributeDict({
     'value': 0})
 
 
-@fixture(scope="module")
-def web3_provider():
-    return web3_provider("wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74")
+# @fixture(scope="module")
+# def web3_provider():
+#     return web3_provider("wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74")
 
 
 @fixture(scope="module")

@@ -28,8 +28,7 @@ class MultisigWallet(EthereumContract):
     def verify_destination(self, tx_log) -> bool:
         # returns true if the Ethr was sent to the MultiSigWallet
         # noinspection PyProtectedMember
-        # TODO: test
-        return tx_log.address.decode().lower() == self.address.lower()
+        return tx_log.address.lower() == self.address.lower()
 
     @classmethod
     def tracked_event(cls) -> str:

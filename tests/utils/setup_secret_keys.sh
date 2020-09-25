@@ -55,10 +55,12 @@ docker cp "$scrt_contract" "$docker_name:/contract.wasm.gz"
 # store contract on the chain
 docker exec -it secretdev secretcli tx compute store "/contract.wasm.gz" --from a --gas 2000000 -b block -y
 
-# get the admin address
-a_addr=$(docker exec -it secretdev secretcli keys show a | jq '.address')
+secretcli query compute list-code
 
-# init contract as 'a' account admin
-docker exec -it secretdev secretcli tx compute instantiate 1 --label LABEL '{"admin": '$a_addr', "name": "CoinName", "symbol": "SYMBL", "decimals": 6, "initial_balances": []}' --from a -b block -y
-contract_addr=$(secretcli query compute list-contract-by-code 1 | jq '.[0].address')
-echo "contract address: $contract_addr"
+## get the admin address
+#a_addr=$(docker exec -it secretdev secretcli keys show a | jq '.address')
+#
+## init contract as 'a' account admin
+#docker exec -it secretdev secretcli tx compute instantiate 1 --label LABEL '{"admin": '$a_addr', "name": "CoinName", "symbol": "SYMBL", "decimals": 6, "initial_balances": []}' --from a -b block -y
+#contract_addr=$(secretcli query compute list-contract-by-code 1 | jq '.[0].address')
+#echo "contract address: $contract_addr"

@@ -14,10 +14,10 @@ from src.util.secretcli import query_scrt_swap
 class EthrLeader:
     """Broadcasts signed transactions Scrt -> Ethr"""
 
-    def __init__(self, provider: Web3, contract: MultisigWallet, private_key, acc_addr, config):
+    def __init__(self, provider: Web3, multisig_wallet: MultisigWallet, private_key, acc_addr, config):
         self.provider = provider
         self.config = config
-        self.contract = contract
+        self.multisig_wallet = multisig_wallet
         self.private_key = private_key
         self.default_account = acc_addr
         self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
@@ -66,7 +66,7 @@ class EthrLeader:
                                      int(swap_json['nonce']), data)
             else:  # dealing with token to ethr transfer
                 msg = message.Submit(swap_json['destination'], int(swap_json['amount']), int(swap_json['nonce']), data)
-            self.contract.submit_transaction(self.default_account, self.private_key, msg)
+            self.multisig_wallet.submit_transaction(self.default_account, self.private_key, msg)
 
         except Exception as e:
             # TODO: i think there should be some alert mechanism around this \ db log tracking

@@ -67,7 +67,7 @@ class EthrSigner:
         """
         from_block = self.file_db.read()
         from_block = int(from_block) if from_block else 0
-        to_block = self.provider.eth.getBlock('latest').number - 1  # handle_submission starts from 'latest'
+        to_block = self.provider.eth.getBlock('latest').number
 
         for event in contract_event_in_range(self.logger, self.provider, self.multisig_wallet, 'Submission', from_block,
                                              to_block):
