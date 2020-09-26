@@ -1,7 +1,7 @@
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Thread, Lock
 from typing import Dict
-from concurrent.futures import ThreadPoolExecutor
 
 from web3 import Web3
 from web3.datastructures import AttributeDict

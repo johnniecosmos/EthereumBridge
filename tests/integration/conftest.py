@@ -31,7 +31,7 @@ def ethr_signers(event_listener, web3_provider, multisig_wallet, configuration, 
 
     # we will manually create the last signer in test_3
     for acc in ether_accounts[:-1]:
-        private_key = acc.privateKey
+        private_key = acc.key
         address = acc.address
 
         res.append(EthrSigner(event_listener, web3_provider, multisig_wallet, private_key, address, configuration))
@@ -91,7 +91,7 @@ def manager(event_listener, multisig_wallet, multisig_account, configuration):
 
 @fixture(scope="module")
 def ethr_leader(multisig_account, configuration, web3_provider, multisig_wallet, ether_accounts):
-    private_key = ether_accounts[0].privateKey
+    private_key = ether_accounts[0].key
     address = normalize_address(ether_accounts[0].address)
     leader = EthrLeader(web3_provider, multisig_wallet, private_key, address, configuration)
     yield leader

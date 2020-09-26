@@ -109,7 +109,7 @@ def test_3(ethr_leader, configuration, ethr_signers):
 # 2. SmartContract multisig functionality
 def test_4(event_listener, multisig_wallet, web3_provider, ether_accounts, configuration, ethr_leader):
     # To allow the new EthrSigner to "catch up", we start it after the event submission event in Ethereum
-    key = ether_accounts[-1].privateKey
+    key = ether_accounts[-1].key
     address = ether_accounts[-1].address
     eth_signer = EthrSigner(event_listener, web3_provider, multisig_wallet, key, address, configuration)
 

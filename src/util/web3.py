@@ -6,6 +6,7 @@ from hexbytes import HexBytes
 from web3 import Web3
 from web3.contract import Contract as Web3Contract
 from web3.datastructures import AttributeDict
+from web3.logs import DISCARD
 from web3.types import BlockData
 
 
@@ -35,7 +36,9 @@ def event_log(tx_hash: Union[Hash32, HexBytes, HexStr], events: List[str], provi
     """
     receipt = provider.eth.getTransactionReceipt(tx_hash)
     for event in events:
-        log = getattr(contract.events, event)().processReceipt(receipt)
+        # we discard warning as we do best effort to find wanted event, not always there
+        # as we listen to the entire contract tx, might
+        log = getattr(contract.events, event)().processReceipt(receipt, DISCARD)
         if log:
             data_index = 0
             return event, log[data_index]
@@ -77,7 +80,7 @@ def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str
                 yield log
         except Exception as e:
             logger.error(msg=e)
-    raise StopIteration()
+    # raise StopIteration()
 
 
 def send_contract_tx(provider: Web3, contract: Web3Contract, function_name: str, from_acc: str, private_key: bytes,

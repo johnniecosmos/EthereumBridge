@@ -1,7 +1,6 @@
 import json
-from logging import Logger
-from subprocess import PIPE, CalledProcessError, run as subprocess_run
-from typing import List, Tuple, Dict
+from subprocess import PIPE, run as subprocess_run
+from typing import List, Dict
 
 from src.contracts.secret.secret_contract import swap_json
 
