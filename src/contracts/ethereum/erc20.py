@@ -33,7 +33,7 @@ class Erc20(EthereumContract):
         This functions takes a chunk of data encoded by web3 contract encodeAbi func and extracts the params from it.
         :param data: an encodeAbi result
         """
-        method_id, dest, amount = data[:10], data[34:74], data[74:]
+        method_id, dest, amount = data[:10], data[34:74], data[74:138]
         return '0x' + dest.decode(), int(amount, 16)  # convert amount for hex to decimal
 
     @classmethod

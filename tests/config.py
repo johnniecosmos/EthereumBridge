@@ -4,7 +4,7 @@ app_data = ".bridge_test"
 logger_name = "test logger"
 
 # app settings
-signatures_threshold = 4
+signatures_threshold = 3
 blocks_confirmation_required = 12
 
 manager_sleep_time_seconds = 1.0

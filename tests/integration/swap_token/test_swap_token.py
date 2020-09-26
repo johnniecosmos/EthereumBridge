@@ -118,7 +118,7 @@ def test_4(event_listener, multisig_wallet, web3_provider, ether_accounts, confi
     address = ether_accounts[-1].address
     eth_signer = EthrSigner(event_listener, web3_provider, multisig_wallet, key, address, configuration)
 
-    sleep(configuration.default_sleep_time_interval)
+    sleep(configuration.default_sleep_time_interval + 3)
     # Validate the tx is confirmed in the smart contract
     last_nonce = Management.last_processed(Source.scrt.value, eth_signer.logger)
     assert eth_signer.multisig_wallet.contract.functions.confirmations(last_nonce, eth_signer.default_account).call()

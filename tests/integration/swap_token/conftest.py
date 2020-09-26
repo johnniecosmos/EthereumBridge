@@ -61,6 +61,10 @@ def setup(make_project, configuration, erc20_address):
     configuration.secret_contract_address = res.stdout.decode().strip()[1:-1]
     configuration.viewing_key = get_viewing_key(configuration.a_address.decode(), configuration.secret_contract_address)
 
+    res = subprocess.run(f"secretcli q compute contract-hash {configuration.secret_contract_address}",
+                         shell=True, stdout=subprocess.PIPE).stdout.decode().strip()[2:]
+    configuration.code_hash = res
+
 
 @fixture(scope="module")
 def erc20_address(make_project):
