@@ -19,17 +19,13 @@ from tests.utils.keys import get_key_signer
 TRANSFER_AMOUNT = 100
 
 
-def test_0(setup):
-    pass
-
-
 # TL;DR: Covers from swap tx to multisig in db(tx ready to be sent to scrt)
 # Components tested:
 # 1. Event listener registration recognize contract events
 # 2. Manager status update and multisig creation.
 # 3. SecretSigners validation and signing.
 # 4. Smart Contract swap functionality.
-def test_1(manager, scrt_signers, web3_provider, configuration, erc20_contract, multisig_wallet):
+def test_1(setup, manager, scrt_signers, web3_provider, configuration, erc20_contract, multisig_wallet):
     t1_address = get_key_signer("t1", Path.joinpath(project_base_path(), 'tests', 'keys'))['address']
     # swap ethr for scrt token, deliver tokens to address of 'a'(we will use 'a' later to check it received the money)
     tx_hash = erc20_contract.contract.functions.transfer(multisig_wallet.address,
@@ -98,7 +94,6 @@ def test_3(ethr_leader, configuration, ethr_signers):
     tx_hash = run(f"secretcli tx compute execute {configuration.secret_contract_address} "
                   f"'{json.dumps(swap)}' --from t1 -y", shell=True, stdout=PIPE, stderr=PIPE)
     tx_hash = json.loads(tx_hash.stdout)['txhash']
-    # TODO: verify tx_hash
 
     # Verify that leader recognized the burn tx
     sleep(configuration.default_sleep_time_interval + 6)

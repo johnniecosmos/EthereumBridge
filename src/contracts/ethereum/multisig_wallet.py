@@ -9,7 +9,6 @@ from src.util.common import project_base_path
 
 class MultisigWallet(EthereumContract):
     def __init__(self, provider: Web3, contract_address: str):
-        # TODO: update path
         abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'ethereum', 'abi', 'MultiSigSwapWallet.json')
         super().__init__(provider, contract_address, abi_path)
 

@@ -1,6 +1,5 @@
 import json
 
-# TODO: talk about units(amount_seth)
 from typing import Dict
 
 

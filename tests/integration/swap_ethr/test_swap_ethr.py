@@ -92,7 +92,6 @@ def test_3(ethr_leader, configuration, ethr_signers):
     tx_hash = run(f"secretcli tx compute execute {configuration.secret_contract_address} "
                   f"'{json.dumps(swap)}' --from t1 -y", shell=True, stdout=PIPE, stderr=PIPE)
     tx_hash = json.loads(tx_hash.stdout)['txhash']
-    # TODO: verify tx_hash
 
     # Verify that leader recognized the burn tx
     sleep(configuration.default_sleep_time_interval + 6)
