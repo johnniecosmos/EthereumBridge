@@ -27,8 +27,6 @@ def configuration():
     res = run("secretcli query compute list-contract-by-code 1 | jq '.[0].address'", shell=True, stdout=PIPE)
     config.secret_contract_address = res.stdout.decode().strip()[1:-1]
 
-
-
     return config
 
 

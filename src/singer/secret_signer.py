@@ -7,7 +7,6 @@ from mongoengine import signals
 from web3 import Web3
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
-from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
 from src.util.common import temp_file

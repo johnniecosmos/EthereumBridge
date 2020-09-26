@@ -34,7 +34,7 @@ def test_1(manager, scrt_signers, web3_provider, configuration, erc20_contract, 
     # swap ethr for scrt token, deliver tokens to address of 'a'(we will use 'a' later to check it received the money)
     tx_hash = erc20_contract.contract.functions.transfer(multisig_wallet.address,
                                                          TRANSFER_AMOUNT,
-                                                         t1_address.encode()).\
+                                                         t1_address.encode()). \
         transact({'from': web3_provider.eth.coinbase}).hex().lower()
     assert TRANSFER_AMOUNT == erc20_contract.contract.functions.balanceOf(multisig_wallet.address).call()
 

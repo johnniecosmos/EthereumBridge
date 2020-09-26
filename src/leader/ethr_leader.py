@@ -4,7 +4,6 @@ from web3 import Web3
 
 import src.contracts.ethereum.message as message
 from src.contracts.ethereum.erc20 import Erc20
-from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
 from src.db.collections.management import Management, Source

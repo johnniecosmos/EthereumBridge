@@ -40,7 +40,6 @@ class Erc20(EthereumContract):
     def tracked_event(cls) -> str:
         return 'Transfer'
 
-
 # b'0xa9059cbb000000000000000000000000e6ec7f8934f95e0ebbca62ad344e3892c96187eb0000000000000000000000000000000000000000000000000000000000000064'
 # @combomethod
 # def decode_function_input(self -> this is contract, data: HexStr) -> Tuple['ContractFunction', Dict[str, Any]]:
