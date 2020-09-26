@@ -1,6 +1,7 @@
 from pathlib import Path
 from threading import Thread, Lock
 from typing import Dict
+from concurrent.futures import ThreadPoolExecutor
 
 from web3 import Web3
 from web3.datastructures import AttributeDict
@@ -35,12 +36,16 @@ class EthrSigner:
         if self.mint_token:
             self.token_contract = Erc20(provider, config.token_contract_addr, self.multisig_wallet.address)
 
+        self.thread_pool = ThreadPoolExecutor()
         event_listener.register(self.handle_submission, ['Submission'])
         Thread(target=self._submission_catch_up).start()
 
     def handle_submission(self, submission_event: AttributeDict):
         """ Validates submission event with scrt network and sends confirmation if valid """
-        self._validated_and_confirm(submission_event)
+        try:
+            self._validated_and_confirm(submission_event)
+        except Exception as e:
+            self.logger.error(msg=f"{e}")
 
     def _create_file_db(self):
         file_path = Path.joinpath(Path.home(), self.config.app_data, 'submission_events')
@@ -69,10 +74,11 @@ class EthrSigner:
         from_block = int(from_block) if from_block else 0
         to_block = self.provider.eth.getBlock('latest').number
 
-        for event in contract_event_in_range(self.logger, self.provider, self.multisig_wallet, 'Submission', from_block,
-                                             to_block):
-            self._update_last_block_processed(event.blockNumber)
-            Thread(target=self._validated_and_confirm, args=(event,)).start()
+        with self.thread_pool as pool:
+            for event in contract_event_in_range(self.logger, self.provider, self.multisig_wallet, 'Submission',
+                                                 from_block, to_block):
+                self._update_last_block_processed(event.blockNumber)
+                pool.submit(self._validated_and_confirm, event)
 
         self.catch_up_complete = True
 
@@ -90,18 +96,16 @@ class EthrSigner:
     def _is_valid(self, submission_data: Dict[str, any]) -> bool:
         # lookup the tx hash in scrt, and validate it.
         nonce = submission_data['nonce']
-        swap, success = query_scrt_swap(self.logger, nonce, self.config.secret_contract_address,
-                                        self.config.viewing_key)
+        swap = query_scrt_swap(nonce, self.config.secret_contract_address, self.config.viewing_key)
 
-        if success:
-            try:
-                swap_data = swap_query_res(swap)
-            except Exception as e:
-                self.logger.critical(msg=e)
-                return False
-            if self._check_tx_data(swap_data, submission_data):
-                return True
-        self.logger.info(msg=f"Validation failed. Swap event:\n{swap}")
+        try:
+            swap_data = swap_query_res(swap)
+        except Exception as e:
+            self.logger.critical(msg=f"Validation failed. Swap event:{swap}, Error: {e}")
+            return False
+        if self._check_tx_data(swap_data, submission_data):
+            return True
+        self.logger.info(msg=f"Validation failed. Swap event:{swap}")
         return False
 
     def _check_tx_data(self, swap_data: dict, submission_data: dict) -> bool:
@@ -134,13 +138,10 @@ class EthrSigner:
 
         return False
 
-    def _confirm_transaction(self, submission_id: int) -> None:
+    def _confirm_transaction(self, submission_id: int):
         """
         Sign the transaction with the signer's private key and then broadcast
         Note: This operation costs gas
         """
-        try:
-            msg = message.Confirm(submission_id)
-            self.multisig_wallet.confirm_transaction(self.default_account, self.private_key, msg)
-        except Exception as e:
-            self.logger.info(msg=f"Failed confirming submission: {submission_id}. Error: {e}")
+        msg = message.Confirm(submission_id)
+        self.multisig_wallet.confirm_transaction(self.default_account, self.private_key, msg)

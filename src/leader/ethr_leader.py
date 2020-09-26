@@ -1,3 +1,4 @@
+from subprocess import CalledProcessError
 from threading import Event, Thread
 
 from web3 import Web3
@@ -37,14 +38,18 @@ class EthrLeader:
         next_nonce = current_nonce + 1
 
         while not self.stop_event.is_set():
-            swap_data, success = query_scrt_swap(self.logger, next_nonce, self.config.secret_contract_address,
-                                                 self.config.viewing_key)
-            if success:
+            try:
+                swap_data = query_scrt_swap(next_nonce, self.config.secret_contract_address,
+                                            self.config.viewing_key)
                 self._handle_swap(swap_data)
                 doc.nonce = next_nonce
                 doc.save()
                 next_nonce += 1
                 continue
+
+            except CalledProcessError as e:
+                if e.stderr != b'ERROR: query result: encrypted: Tx does not exist\n':
+                    self.logger.error(msg=e)
 
             self.stop_event.wait(self.config.default_sleep_time_interval)
 
@@ -69,5 +74,4 @@ class EthrLeader:
             self.multisig_wallet.submit_transaction(self.default_account, self.private_key, msg)
 
         except Exception as e:
-            # TODO: i think there should be some alert mechanism around this \ db log tracking
-            self.logger.info(msg=f"Failed swap, transaction data:\n{swap_data}\nError: {e}")
+            self.logger.info(msg=f"Failed swap, transaction data: {swap_data}. Error: {e}")

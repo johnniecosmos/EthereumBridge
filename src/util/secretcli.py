@@ -37,16 +37,11 @@ def decrypt(data: str) -> str:
     return run_secret_cli(cmd)
 
 
-def query_scrt_swap(logger: Logger, nonce: int, contract_addr: str, viewing_key: str) -> Tuple[str, bool]:
+def query_scrt_swap(nonce: int, contract_addr: str, viewing_key: str) -> str:
     query_str = swap_json(nonce, viewing_key)
     cmd = ['secretcli', 'query', 'compute', 'query', contract_addr, query_str]
-    try:
-        p = subprocess_run(cmd, stdout=PIPE, stderr=PIPE, check=True)
-    except CalledProcessError as e:
-        if e.stderr != b'ERROR: query result: encrypted: Tx does not exist\n':
-            logger.error(msg=e)
-        return '', False
-    return p.stdout.decode(), True
+    p = subprocess_run(cmd, stdout=PIPE, stderr=PIPE, check=True)
+    return p.stdout.decode()
 
 
 def query_tx(tx_hash: str):
