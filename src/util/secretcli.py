@@ -28,7 +28,7 @@ def create_unsigned_tx(secret_contract_addr: str, transaction_data: Dict, chain_
 
 
 def broadcast(signed_tx_path: str) -> str:
-    cmd = ['secretcli', 'tx', 'broadcast', signed_tx_path, '-b', 'block']
+    cmd = ['secretcli', 'tx', 'broadcast', signed_tx_path]
     return run_secret_cli(cmd)
 
 
@@ -47,6 +47,11 @@ def query_scrt_swap(logger: Logger, nonce: int, contract_addr: str, viewing_key:
             logger.error(msg=e)
         return '', False
     return p.stdout.decode(), True
+
+
+def query_tx(tx_hash: str):
+    cmd = ['secretcli', 'query', 'tx', tx_hash]
+    return run_secret_cli(cmd)
 
 
 def run_secret_cli(cmd: List[str]) -> str:

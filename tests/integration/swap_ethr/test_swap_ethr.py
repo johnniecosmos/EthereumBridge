@@ -19,21 +19,13 @@ from tests.utils.keys import get_key_signer
 TRANSFER_AMOUNT = 100
 
 
-def test_0(setup, multisig_wallet, ethr_signers):
-    # validate owners of contract - sanity check
-    contract_owners = multisig_wallet.contract.functions.getOwners().call()
-    assert len(contract_owners) == len(ethr_signers) + 1
-    for owner in ethr_signers:
-        assert owner.default_account in contract_owners
-
-
 # TL;DR: Covers from swap tx to multisig in db(tx ready to be sent to scrt)
 # Components tested:
 # 1. Event listener registration recognize contract events
 # 2. Manager status update and multisig creation.
 # 3. SecretSigners validation and signing.
 # 4. Smart Contract swap functionality.
-def test_1(manager, scrt_signers, web3_provider, configuration, multisig_wallet):
+def test_1(setup, manager, scrt_signers, web3_provider, configuration, multisig_wallet):
     t1_address = get_key_signer("t1", Path.joinpath(project_base_path(), 'tests', 'keys'))['address']
     # swap ethr for scrt token, deliver tokens to address of 'a'(we will use 'a' later to check it received the money)
     tx_hash = multisig_wallet.contract.functions.swap(t1_address.encode()). \
@@ -121,10 +113,11 @@ def test_4(event_listener, multisig_wallet, web3_provider, ether_accounts, confi
     address = ether_accounts[-1].address
     eth_signer = EthrSigner(event_listener, web3_provider, multisig_wallet, key, address, configuration)
 
-    sleep(configuration.default_sleep_time_interval)
+    sleep(configuration.default_sleep_time_interval + 3)
     # Validate the tx is confirmed in the smart contract
     last_nonce = Management.last_processed(Source.scrt.value, eth_signer.logger)
     assert eth_signer.multisig_wallet.contract.functions.confirmations(last_nonce, eth_signer.default_account).call()
+    sleep(5)
 
 
 def increase_block_number(web3_provider: Web3, increment: int) -> True:

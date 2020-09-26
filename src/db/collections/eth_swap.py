@@ -17,6 +17,7 @@ class ETHSwap(Document):
     status = IntField(required=True)
     unsigned_tx = StringField(required=True)
     creation = DateTimeField(default=datetime.now, required=True)
+    scrt_tx_hash = StringField(required=True, default='')
 
     @staticmethod
     def save_web3_tx(tx, unsigned_tx=str):

@@ -48,7 +48,6 @@ def normalize_address(address: str):
     return Web3.toChecksumAddress(address.lower())
 
 
-# @contextmanager
 def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str, from_block: int = 0,
                             to_block: Optional[int] = None) -> Generator:
     """
