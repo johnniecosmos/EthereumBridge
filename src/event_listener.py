@@ -13,8 +13,8 @@ from src.util.web3 import extract_tx_by_address, event_log, contract_event_in_ra
 class EventListener:
     """Tracks the block-chain for new transactions on a given address"""
 
-    #
     def __init__(self, contract: EthereumContract, provider: Web3, config):
+        # Note: each event listener can listen to one contract at a time
         self.provider = provider
         self.contract = contract
         self.config = config

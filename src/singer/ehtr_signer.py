@@ -33,7 +33,7 @@ class EthrSigner:
 
         self.mint_token: bool = self.config.mint_token
         if self.mint_token:
-            self.token_contract = Erc20(provider, config.token_contract_addr, config.token_abi)
+            self.token_contract = Erc20(provider, config.token_contract_addr, self.multisig_wallet.address)
 
         event_listener.register(self.handle_submission, ['Submission'])
         Thread(target=self._submission_catch_up).start()

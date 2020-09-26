@@ -24,7 +24,7 @@ class Erc20(EthereumContract):
     def verify_destination(self, tx_log) -> bool:
         # returns true if the ERC20 was sent to the MultiSigWallet (that's how token transfer is preformed)
         # noinspection PyProtectedMember
-        return tx_log.args._to.decode().lower() == self.multisig_wallet_addr.lower()
+        return tx_log.args._to.lower() == self.multisig_wallet_addr.lower()
 
     # noinspection PyPep8Naming
     @staticmethod

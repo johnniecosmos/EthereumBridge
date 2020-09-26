@@ -3,6 +3,7 @@ from threading import Event, Thread
 from web3 import Web3
 
 import src.contracts.ethereum.message as message
+from src.contracts.ethereum.erc20 import Erc20
 from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
@@ -26,7 +27,7 @@ class EthrLeader:
         # metadata that is used to allow withdraw from 3rd party erc20 contract
         self.mint_token: bool = self.config.mint_token
         if self.mint_token:
-            self.token_contract = EthereumContract(provider, config.token_contract_addr, config.token_abi)
+            self.token_contract = Erc20(provider, config.token_contract_addr, self.multisig_wallet.address)
 
         Thread(target=self._scan_swap).start()
 

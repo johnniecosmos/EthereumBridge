@@ -41,8 +41,7 @@ def ethr_signers(event_listener, web3_provider, multisig_wallet, configuration, 
 
 
 @fixture(scope="module")
-def scrt_signers(event_listener, scrt_signer_keys, web3_provider, multisig_wallet, configuration, ethr_signers) -> \
-        List[SecretSigner]:
+def scrt_signers(scrt_signer_keys, web3_provider, multisig_wallet, configuration) -> List[SecretSigner]:
     signers: List[SecretSigner] = []
     for index, key in enumerate(scrt_signer_keys):
         s = SecretSigner(web3_provider, key, multisig_wallet, configuration)

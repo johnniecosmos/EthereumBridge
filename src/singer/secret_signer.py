@@ -6,6 +6,7 @@ from typing import Dict
 from mongoengine import signals
 from web3 import Web3
 
+from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
@@ -21,7 +22,7 @@ MultiSig = namedtuple('MultiSig', ['multisig_acc_addr', 'signer_acc_name'])
 class SecretSigner:
     """Verifies Ethereum tx in SWAP_STATUS_UNSIGNED and adds it's signature"""
 
-    def __init__(self, provider: Web3, multisig_: MultiSig, contract: MultisigWallet, config):
+    def __init__(self, provider: Web3, multisig_: MultiSig, contract: EthereumContract, config):
         self.provider = provider
         self.multisig = multisig_
         self.contract = contract
@@ -74,7 +75,7 @@ class SecretSigner:
 
     def _is_valid(self, tx: ETHSwap) -> bool:
         """Assert that the data in the unsigned_tx matches the tx on the chain"""
-        _, log = event_log(tx.tx_hash, ['Swap'], self.provider, self.contract.contract)
+        _, log = event_log(tx.tx_hash, [self.contract.tracked_event()], self.provider, self.contract.contract)
         unsigned_tx = json.loads(tx.unsigned_tx)
         try:
             res, success = catch_and_log(self.logger, self._decrypt, unsigned_tx)
@@ -84,8 +85,8 @@ class SecretSigner:
             json_end_index = res.rfind('}') + 1
             decrypted_data = json.loads(res[json_start_index:json_end_index])
             # assert decrypted_data['mint']['eth_tx_hash'] == log.transactionHash.hex()
-            assert int(decrypted_data['mint']['amount']) == log.args.value
-            assert decrypted_data['mint']['address'] == log.args.recipient.decode()
+            assert int(decrypted_data['mint']['amount']) == self.contract.extract_amount(log)
+            assert decrypted_data['mint']['address'] == self.contract.extract_addr(log)
         except AssertionError as e:
             self.logger.error(e)
             return False

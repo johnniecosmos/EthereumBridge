@@ -39,7 +39,7 @@ def test_1(manager, scrt_signers, web3_provider, configuration, multisig_wallet)
     tx_hash = multisig_wallet.contract.functions.swap(t1_address.encode()). \
         transact({'from': web3_provider.eth.coinbase, 'value': TRANSFER_AMOUNT}).hex().lower()
     # TODO: validate ethr increase of the smart contract
-    # add confirmation threshold -1 new tx after the above swap tx
+    # increase number of blocks to reach the confirmation threshold
     assert increase_block_number(web3_provider, configuration.blocks_confirmation_required - 1)
 
     sleep(configuration.default_sleep_time_interval + 2)
