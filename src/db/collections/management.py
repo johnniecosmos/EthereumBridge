@@ -1,6 +1,5 @@
 from enum import Enum
 from logging import Logger
-from threading import Lock
 
 from mongoengine import Document, IntField, DoesNotExist, MultipleObjectsReturned
 
@@ -8,8 +7,6 @@ from mongoengine import Document, IntField, DoesNotExist, MultipleObjectsReturne
 class Management(Document):
     nonce = IntField(required=True)
     src = IntField(required=True, unique=True)
-
-    lock = Lock()  # TODO
 
     @classmethod
     def last_processed(cls, src: int, logger: Logger):

@@ -93,6 +93,7 @@ def test_2(scrt_leader, configuration, erc20_contract, web3_provider, scrt_signe
 def test_3(ethr_leader, configuration, ethr_signers):
     # Generate swap tx on secret network
     swap = {"swap": {"amount": str(TRANSFER_AMOUNT), "network": "Ethereum", "destination": ethr_leader.default_account}}
+    sleep(configuration.default_sleep_time_interval)
     last_nonce = Management.last_processed(Source.scrt.value, ethr_leader.logger)
     tx_hash = run(f"secretcli tx compute execute {configuration.secret_contract_address} "
                   f"'{json.dumps(swap)}' --from t1 -y", shell=True, stdout=PIPE, stderr=PIPE)
