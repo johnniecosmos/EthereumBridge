@@ -3,6 +3,7 @@ from typing import Tuple
 
 
 class Message:
+    """Base class for all EthereumContract's messages"""
     @abstractmethod
     def args(self) -> Tuple:
         """converts msg attributes into args tuple"""
@@ -10,6 +11,7 @@ class Message:
 
 
 class Submit(Message):
+    """MultisigWallet submitTransaction message"""
     def __init__(self, dest: str, amount: int, nonce: int, data=b""):
         self.dest = dest
         self.amount = amount
@@ -21,6 +23,7 @@ class Submit(Message):
 
 
 class Confirm(Message):
+    """MultisigWallet confirmTransaction message"""
     def __init__(self, submission_id: int):
         self.submission_id = submission_id
 
