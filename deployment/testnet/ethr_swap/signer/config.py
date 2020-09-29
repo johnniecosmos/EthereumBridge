@@ -7,8 +7,8 @@ logger_name = "test logger"
 signatures_threshold = 1
 blocks_confirmation_required = 2
 
-manager_sleep_time_seconds = 1.0
-default_sleep_time_interval = 2.0
+manager_sleep_time_seconds = 5.0
+default_sleep_time_interval = 5.0
 chain_id = "holodeck"
 multisig_wallet_address = "0xef06222f18a008cd3635a8325208fc0ff934d830"
 secret_contract_address = "secret1k48x38gdrunurennpemt4ns45cphlvuvg9kfzs"
@@ -22,7 +22,8 @@ token_contract_addr = "0x1f26d6b5d5224b8500c69e97abe69782005e77fd"
 # ethr signer:
 signer_acc_addr = "0xE54b62C7c0103465316D49a2620ba32C703c60cE"
 signer_key = "6e9b1de69b263184bae321e8022453b478fab91fca0d7621d558f477336570e8"
-provider_address = "https://ropsten.infura.io/v3/e5314917699a499c8f3171828fac0b74"
+provider_address = "https://ropsten.infura.io/v3/c1b139e430f14107b851487a6e96b363"
+# provider_address = "wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74"
 
 # scrt:
 enclave_key = "/home/guy/Workspace/dev/EthereumBridge/deployment/testnet/io-master-cert.der"

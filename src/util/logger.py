@@ -1,6 +1,4 @@
-import inspect
 import logging
-import traceback
 
 from mongoengine import connect
 
@@ -54,8 +52,9 @@ class CustomFormatter(logging.Formatter):
 
 def get_logger(db_name: str, logger_name: str = 'enigma') -> logging.Logger:
     logger = logging.getLogger(logger_name)
-    logger.setLevel(LOG_LEVEL)
-    logger.addHandler(DBLoggerHandler(db_name))
+    if not logger.hasHandlers():
+        logger.setLevel(LOG_LEVEL)
+        logger.addHandler(DBLoggerHandler(db_name))
 
     return logger
 
@@ -69,11 +68,6 @@ class DBLoggerHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         try:
             msg = self.format(record)
-            # if record.levelno > logging.INFO:
-            #     frame = inspect.currentframe()
-            #     stack_trace = traceback.format_stack(frame)
-            #     msg += '\n'.join(stack_trace)
-
             Logs(log=msg).save()
         except Exception:
             self.handleError(record)

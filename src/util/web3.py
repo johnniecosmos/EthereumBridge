@@ -84,8 +84,11 @@ def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str
 
 
 def send_contract_tx(provider: Web3, contract: Web3Contract, function_name: str, from_acc: str, private_key: bytes,
-                     *args, gas: int = 0):
-    """ Creates the contract tx and signs it with private_key to be transmitted as raw tx """
+                     *args, gas: int = 0, value: int = 0):
+    """
+    Creates the contract tx and signs it with private_key to be transmitted as raw tx
+    :param value: amount of ethr to transfer
+    """
     submit_tx = getattr(contract.functions, function_name)(*args). \
         buildTransaction(
         {
@@ -93,6 +96,7 @@ def send_contract_tx(provider: Web3, contract: Web3Contract, function_name: str,
             'chainId': provider.eth.chainId,
             'gasPrice': provider.eth.gasPrice if not gas else gas,
             'nonce': provider.eth.getTransactionCount(from_acc),
+            'value': value
         })
     signed_txn = provider.eth.account.sign_transaction(submit_tx, private_key)
     return provider.eth.sendRawTransaction(signed_txn.rawTransaction)
