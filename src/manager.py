@@ -41,6 +41,10 @@ class Manager:
 
     def catch_up(self):
         from_block = Management.last_processed(Source.eth.value, self.logger) + 1
+        if self.config.ethr_start_block > from_block:
+            from_block = self.config.ethr_start_block
+            Management.update_last_processed(Source.eth.value, from_block)
+
         to_block = self.event_listener.provider.eth.getBlock('latest').number - self.config.blocks_confirmation_required
 
         if to_block <= 0:

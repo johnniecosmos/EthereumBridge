@@ -13,10 +13,10 @@ class MultisigWallet(EthereumContract):
         super().__init__(provider, contract_address, abi_path)
 
     def submit_transaction(self, from_: str, private_key: bytes, message: Submit):
-        self.contract_tx('submitTransaction', from_, private_key, message)
+        return self.contract_tx('submitTransaction', from_, private_key, message)
 
     def confirm_transaction(self, from_: str, private_key: bytes, message: Confirm):
-        self.contract_tx('confirmTransaction', from_, private_key, message)
+        return self.contract_tx('confirmTransaction', from_, private_key, message)
 
     def extract_addr(self, tx_log) -> str:
         return tx_log.args.recipient.decode()

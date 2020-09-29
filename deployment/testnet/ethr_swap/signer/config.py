@@ -22,7 +22,7 @@ token_contract_addr = "0x1f26d6b5d5224b8500c69e97abe69782005e77fd"
 # ethr signer:
 signer_acc_addr = "0xE54b62C7c0103465316D49a2620ba32C703c60cE"
 signer_key = "6e9b1de69b263184bae321e8022453b478fab91fca0d7621d558f477336570e8"
-provider_address = "https://mainnet.infura.io/v3/e5314917699a499c8f3171828fac0b74"
+provider_address = "https://ropsten.infura.io/v3/e5314917699a499c8f3171828fac0b74"
 
 # scrt:
 enclave_key = "/home/guy/Workspace/dev/EthereumBridge/deployment/testnet/io-master-cert.der"

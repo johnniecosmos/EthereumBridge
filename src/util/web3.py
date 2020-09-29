@@ -95,4 +95,4 @@ def send_contract_tx(provider: Web3, contract: Web3Contract, function_name: str,
             'nonce': provider.eth.getTransactionCount(from_acc),
         })
     signed_txn = provider.eth.account.sign_transaction(submit_tx, private_key)
-    provider.eth.sendRawTransaction(signed_txn.rawTransaction)
+    return provider.eth.sendRawTransaction(signed_txn.rawTransaction)

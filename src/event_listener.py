@@ -43,11 +43,10 @@ class EventListener:
         while not self.stop_event.is_set():
             try:
                 block = self.provider.eth.getBlock(current_block_num, full_transactions=True)
+                self.callbacks.call(self.provider, self.contract, block.number)
             except BlockNotFound:
                 sleep(self.config.default_sleep_time_interval)
                 continue
-
-            self.callbacks.call(self.provider, self.contract, block.number)
 
             current_block_num += 1
 

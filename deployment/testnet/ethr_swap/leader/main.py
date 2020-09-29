@@ -22,3 +22,4 @@ if __name__ == "__main__":
     ethr_leader = EthrLeader(web3_provider, multisig_wallet, config.leader_key, config.leader_acc_addr, config)
     scrt_leader = SecretLeader(multi_sig_acc, config)
     manager = Manager(event_listener, multisig_wallet, multi_sig_acc, config)
+    pass

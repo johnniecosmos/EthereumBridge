@@ -1,4 +1,6 @@
+import inspect
 import logging
+import traceback
 
 from mongoengine import connect
 
@@ -67,6 +69,11 @@ class DBLoggerHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         try:
             msg = self.format(record)
+            # if record.levelno > logging.INFO:
+            #     frame = inspect.currentframe()
+            #     stack_trace = traceback.format_stack(frame)
+            #     msg += '\n'.join(stack_trace)
+
             Logs(log=msg).save()
         except Exception:
             self.handleError(record)

@@ -9,6 +9,9 @@ class Message:
         """converts msg attributes into args tuple"""
         pass
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}: Args: {self.args()}"
+
 
 class Submit(Message):
     """MultisigWallet submitTransaction message"""
@@ -20,6 +23,7 @@ class Submit(Message):
 
     def args(self) -> Tuple:
         return self.dest, self.amount, self.nonce, self.data
+
 
 
 class Confirm(Message):

@@ -38,7 +38,7 @@ def decrypt(data: str) -> str:
 
 def query_scrt_swap(nonce: int, contract_addr: str, viewing_key: str) -> str:
     query_str = swap_json(nonce, viewing_key)
-    cmd = ['secretcli', 'query', 'compute', 'query', contract_addr, query_str]
+    cmd = ['secretcli', 'query', 'compute', 'query', contract_addr, f"{query_str}"]
     p = subprocess_run(cmd, stdout=PIPE, stderr=PIPE, check=True)
     return p.stdout.decode()
 

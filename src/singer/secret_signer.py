@@ -24,7 +24,6 @@ class SecretSigner:
         self.provider = provider
         self.multisig = multisig_
         self.contract = contract
-        self.config = config
 
         self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
 

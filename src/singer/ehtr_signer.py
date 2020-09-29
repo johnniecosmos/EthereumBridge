@@ -37,7 +37,7 @@ class EthrSigner:
             self.token_contract = Erc20(provider, config.token_contract_addr, self.multisig_wallet.address)
 
         self.thread_pool = ThreadPoolExecutor()
-        event_listener.register(self.handle_submission, ['Submission'])
+        event_listener.register(self.handle_submission, ['Submission'], 0)
         Thread(target=self._submission_catch_up).start()
 
     def handle_submission(self, submission_event: AttributeDict):
@@ -144,4 +144,5 @@ class EthrSigner:
         Note: This operation costs gas
         """
         msg = message.Confirm(submission_id)
-        self.multisig_wallet.confirm_transaction(self.default_account, self.private_key, msg)
+        tx_hash = self.multisig_wallet.confirm_transaction(self.default_account, self.private_key, msg)
+        self.logger.info(msg=f"Signer: {self.default_account}, signed msg: {msg}, tx hash: {tx_hash}")
