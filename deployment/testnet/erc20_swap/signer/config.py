@@ -6,6 +6,7 @@ logger_name = "test logger"
 # app settings
 signatures_threshold = 2
 blocks_confirmation_required = 2
+ethr_signer_start_block = 8781958
 
 default_sleep_time_interval = 5.0
 chain_id = "holodeck"

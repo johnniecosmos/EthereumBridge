@@ -7,6 +7,7 @@ logger_name = "test logger"
 signatures_threshold = 1
 blocks_confirmation_required = 2
 ethr_start_block = 8781958
+ethr_signer_start_block = 8781958
 
 default_sleep_time_interval = 5.0
 chain_id = "holodeck"

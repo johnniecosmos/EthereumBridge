@@ -30,7 +30,9 @@ signatures_threshold - how many signers are required in order to sign a tx (vali
 blocks_confirmation_required - how many blocks on ethereum to wait, before treating it as "confirmed".    
 default_sleep_time_interval - how long to wait while between chain sampling.  
 provider_address - web3 endpoint that will be used to query Ethereum.  
-
+ethr_start_block - the block from which the manager starts scanning for missed tx (in catch_up mode), optional
+ethr_signer_start_block - the block from which the signer starts scanning for missed tx (in submission_catch_up),
+optional
 
 ###Secret network settings
 \* more  on how to generate these params bellow, in the how to install section.    
