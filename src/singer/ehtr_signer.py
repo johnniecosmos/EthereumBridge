@@ -145,4 +145,4 @@ class EthrSigner:
         """
         msg = message.Confirm(submission_id)
         tx_hash = self.multisig_wallet.confirm_transaction(self.default_account, self.private_key, msg)
-        self.logger.info(msg=f"Signer: {self.default_account}, signed msg: {msg}, tx hash: {tx_hash}")
+        self.logger.info(msg=f"Signer: {self.default_account}, signed msg: {msg}, tx hash: {tx_hash.hex()}")

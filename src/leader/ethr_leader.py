@@ -75,4 +75,4 @@ class EthrLeader:
             self.logger.info(msg=f"Submitted tx, tx hash: {tx_hash.hex()}, msg: {msg}")
 
         except Exception as e:
-            self.logger.info(msg=f"Failed swap, transaction data: {swap_data}. Error: {e}")
+            self.logger.error(msg=f"Failed swap, transaction data: {swap_data}. Error: {e}")

@@ -69,7 +69,6 @@ class Manager:
             # if ETHSwap.objects(tx_hash=tx_hash).count() == 0:  # TODO: exception becaose of force_insert?
             tx = ETHSwap(tx_hash=tx_hash, status=Status.SWAP_STATUS_UNSIGNED.value, unsigned_tx=unsigned_tx)
             tx.save(force_insert=True)
-            print(tx)
 
             Management.update_last_processed(src=Source.eth.value, update_val=event.blockNumber)
         except Exception as e:
