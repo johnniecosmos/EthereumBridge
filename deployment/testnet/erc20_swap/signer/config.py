@@ -7,7 +7,6 @@ logger_name = "test logger"
 signatures_threshold = 2
 blocks_confirmation_required = 2
 
-manager_sleep_time_seconds = 5.0
 default_sleep_time_interval = 5.0
 chain_id = "holodeck"
 multisig_wallet_address = "0xCA4666D11bFc85300fd4cE98fD970Bdc98dCcc8B"

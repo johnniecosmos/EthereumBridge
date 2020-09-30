@@ -37,7 +37,7 @@ class Manager:
                 if Signatures.objects(tx_id=transaction.id).count() >= self.config.signatures_threshold:
                     transaction.status = Status.SWAP_STATUS_SIGNED.value
                     transaction.save()
-            self.stop_signal.wait(self.config.manager_sleep_time_seconds)
+            self.stop_signal.wait(self.config.default_sleep_time_interval)
 
     def catch_up(self):
         from_block = Management.last_processed(Source.eth.value, self.logger) + 1

@@ -8,7 +8,6 @@ signatures_threshold = 1
 blocks_confirmation_required = 2
 ethr_start_block = 8781958
 
-manager_sleep_time_seconds = 5.0
 default_sleep_time_interval = 5.0
 chain_id = "holodeck"
 multisig_wallet_address = "0xef06222f18a008cd3635a8325208fc0ff934d830"

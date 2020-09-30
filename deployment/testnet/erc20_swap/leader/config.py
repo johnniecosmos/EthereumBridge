@@ -9,7 +9,6 @@ blocks_confirmation_required = 2
 ethr_start_block = 8784485
 provider_address = "https://ropsten.infura.io/v3/c1b139e430f14107b851487a6e96b363"
 
-manager_sleep_time_seconds = 5.0
 default_sleep_time_interval = 5.0
 chain_id = "holodeck"
 multisig_wallet_address = "0xCA4666D11bFc85300fd4cE98fD970Bdc98dCcc8B"
