@@ -2,6 +2,7 @@
 This is a quick guide that explains how to setup a bridge between Secret and Ethereum.
 In the deployment folder you will find suggested deployment configuration and setup for bot the ethr and erc20 options.
 
+
 ## Leader Setup
 Components that will be deployed: Manager, EthrLeader, SecretLeader.
 Find an example on how to generate in deployment\\*_swap\leader\main.py
@@ -13,6 +14,8 @@ Find an example on how to generate in deployment\\*_swap\leader\main.py
 
 
 ##Settings:  
+
+
 ###Management settings:  
 host - ip\dns of the destination DB  
 port - port to which the DB listens  
@@ -43,7 +46,8 @@ multisig_wallet_address - the address of the leader which multisig the tx.
 ###Erc20 swap contract settings:  
 mint_token - bool flag (True/False) that indicates if we transfer ethr or erc20 tokens.  
 token_contract_addr - if the above is True, should contain the address of the deployed erc20 token contract.  
- 
+
+
 ###EthrSigner/EthrLeader settings:  
 signer_acc_addr - the ethereum wallet address that will be use bt the EthrSigner.  
 signer_key - the private key corresponding to the above signer_acc_addr.  
