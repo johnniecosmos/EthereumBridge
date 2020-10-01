@@ -40,7 +40,7 @@ contract EIP20 {
         symbol = _tokenSymbol;
         // Set the symbol for display purposes
     }
-    // TODO: check bytes memory recipient
+
     function transfer(address _to, uint256 _value, bytes memory recipient) public returns (bool success) {
         // 'recipient' is only used to emit event that includes to whom in scrt the token is sent
         require(balances[msg.sender] >= _value);

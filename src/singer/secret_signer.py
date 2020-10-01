@@ -27,10 +27,10 @@ class SecretSigner:
         self.config = config
 
         self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
-        Thread(target=self._catch_up).start()
-        # signals.post_init.connect(self._tx_signal, sender=ETHSwap)
+        Thread(target=self.run).start()
+        # signals.post_init.connect(self._tx_signal, sender=ETHSwap)  # TODO: test this with deployed db on machine
 
-    def _catch_up(self):
+    def run(self):
         """Scans the db for unsigned swap tx and signs them"""
         while True:
             for tx in ETHSwap.objects(status=Status.SWAP_STATUS_UNSIGNED.value):
@@ -38,16 +38,16 @@ class SecretSigner:
                     self._sign_tx(tx)
                 except Exception as e:
                     self.logger.error(msg=e)
-            sleep(self.config.default_sleep_time_interval)  # TODO: remove if signals work
+            sleep(self.config.default_sleep_time_interval)
 
-    def _tx_signal(self, sender, document: ETHSwap, **kwargs):
-        """Callback function to handle db signals"""
-        if not document.status == Status.SWAP_STATUS_UNSIGNED.value:
-            return
-        try:
-            self._sign_tx(document)
-        except Exception as e:
-            self.logger.error(msg=e)
+    # def _tx_signal(self, sender, document: ETHSwap, **kwargs):
+    #     """Callback function to handle db signals"""
+    #     if not document.status == Status.SWAP_STATUS_UNSIGNED.value:
+    #         return
+    #     try:
+    #         self._sign_tx(document)
+    #     except Exception as e:
+    #         self.logger.error(msg=e)
 
     def _sign_tx(self, tx: ETHSwap):
         """Makes sure that the tx is valid and signs it"""

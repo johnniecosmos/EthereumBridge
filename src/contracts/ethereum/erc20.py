@@ -33,7 +33,7 @@ class Erc20(EthereumContract):
         :param data: an encodeAbi result
         """
         method_id, dest, amount = data[:10], data[34:74], data[74:138]
-        return '0x' + dest.decode(), int(amount, 16)  # convert amount for hex to decimal
+        return '0x' + dest.decode(), int(amount, 16)  # convert amount from hex to decimal
 
     @classmethod
     def tracked_event(cls) -> str:
