@@ -1,9 +1,8 @@
 import json
-from logging import Logger
-from subprocess import run, PIPE, CalledProcessError
-from typing import List, Tuple, Dict
+from subprocess import PIPE, run as subprocess_run
+from typing import List, Dict
 
-from src.contracts.secret_contract import swap_json
+from src.contracts.secret.secret_contract import swap_json
 
 
 def sign_tx(unsigned_tx_path: str, multi_sig_account_addr: str, account_name: str):
@@ -21,7 +20,6 @@ def multisig_tx(unsigned_tx_path: str, multi_sig_account_name: str, *signed_tx):
 
 def create_unsigned_tx(secret_contract_addr: str, transaction_data: Dict, chain_id: str, enclave_key: str,
                        code_hash: str, multisig_acc_addr: str) -> str:
-
     cmd = ['secretcli', 'tx', 'compute', 'execute', secret_contract_addr, f"{json.dumps(transaction_data)}",
            '--generate-only', '--chain-id', f"{chain_id}", '--enclave-key', enclave_key, '--code-hash',
            code_hash, '--from', multisig_acc_addr]
@@ -29,7 +27,7 @@ def create_unsigned_tx(secret_contract_addr: str, transaction_data: Dict, chain_
 
 
 def broadcast(signed_tx_path: str) -> str:
-    cmd = ['secretcli', 'tx', 'broadcast', signed_tx_path, '-b', 'block']
+    cmd = ['secretcli', 'tx', 'broadcast', signed_tx_path]
     return run_secret_cli(cmd)
 
 
@@ -38,19 +36,20 @@ def decrypt(data: str) -> str:
     return run_secret_cli(cmd)
 
 
-def query_scrt_swap(logger: Logger, nonce: int, contract_addr: str, viewing_key: str) -> Tuple[str, bool]:
+def query_scrt_swap(nonce: int, contract_addr: str, viewing_key: str) -> str:
     query_str = swap_json(nonce, viewing_key)
     cmd = ['secretcli', 'query', 'compute', 'query', contract_addr, query_str]
-    try:
-        p = run(cmd, stdout=PIPE, stderr=PIPE, check=True)
-    except CalledProcessError as e:
-        logger.error(msg=e)
-        return '', False
-    return p.stdout.decode(), True
+    p = subprocess_run(cmd, stdout=PIPE, stderr=PIPE, check=True)
+    return p.stdout.decode()
+
+
+def query_tx(tx_hash: str):
+    cmd = ['secretcli', 'query', 'tx', tx_hash]
+    return run_secret_cli(cmd)
 
 
 def run_secret_cli(cmd: List[str]) -> str:
-    p = run(cmd, stdout=PIPE, stderr=PIPE)
+    p = subprocess_run(cmd, stdout=PIPE, stderr=PIPE)
 
     err = p.stderr
     if err:

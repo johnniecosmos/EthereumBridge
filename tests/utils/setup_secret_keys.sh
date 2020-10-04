@@ -41,7 +41,7 @@ echo y | secretcli keys add "--multisig=$accounts" "--multisig-threshold=$thresh
 moneyAddr=$(docker exec secretdev secretcli keys show a -a)
 for ((i = 1; i <= threshold; i++)); do
   signerAddr=$(secretcli keys show "t$i" -a)
-  docker exec -it secretdev secretcli tx send -y "$moneyAddr" "$signerAddr" 1000000000uscrt -b block
+  docker exec -it secretdev secretcli tx send -y "$moneyAddr" "$signerAddr" 10000000000uscrt -b block
 done
 
 # Send money to multisig account
@@ -49,26 +49,18 @@ multisigAddr=$(secretcli keys show "ms$threshold" -a)
 docker exec -it secretdev secretcli tx send -y "$moneyAddr" "$multisigAddr" 1000000000uscrt -b block
 
 # copy contract to docker container
-scrt_contract="$base_dir/../src/contracts/contract.wasm.gz"
+scrt_contract="$base_dir/../src/contracts/secret/contract.wasm.gz"
 docker cp "$scrt_contract" "$docker_name:/contract.wasm.gz"
 
 # store contract on the chain
 docker exec -it secretdev secretcli tx compute store "/contract.wasm.gz" --from a --gas 2000000 -b block -y
+
+secretcli query compute list-code
 
 ## get the admin address
 #a_addr=$(docker exec -it secretdev secretcli keys show a | jq '.address')
 #
 ## init contract as 'a' account admin
 #docker exec -it secretdev secretcli tx compute instantiate 1 --label LABEL '{"admin": '$a_addr', "name": "CoinName", "symbol": "SYMBL", "decimals": 6, "initial_balances": []}' --from a -b block -y
-#
-### swap admin to multisig acc
-##change_admin_json=$( jq -n \
-##                  --arg ms "$multisigAddr" \
-##                  '{change_admin: {address: $ms}}' )
-##echo ''$change_admin_json''
 #contract_addr=$(secretcli query compute list-contract-by-code 1 | jq '.[0].address')
-##
-### change admin to multisig account
-##docker exec -it secretdev secretcli tx compute execute "$contract_addr" ''$change_admin_json'' --from a -y
-#
 #echo "contract address: $contract_addr"

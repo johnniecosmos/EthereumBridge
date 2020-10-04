@@ -14,6 +14,7 @@ class Management(Document):
         Returns last processed contract tx sequence number
         :param src: int enum describing src network (i.e: scrt, eth)
         """
+
         try:
             doc = cls.objects.get(src=src)
         except DoesNotExist:

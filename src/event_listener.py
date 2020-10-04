@@ -5,7 +5,7 @@ from typing import List, Callable, Dict
 from web3 import Web3
 from web3.exceptions import BlockNotFound
 
-from src.contracts.contract import Contract
+from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.util.logger import get_logger
 from src.util.web3 import extract_tx_by_address, event_log, contract_event_in_range
 
@@ -13,7 +13,8 @@ from src.util.web3 import extract_tx_by_address, event_log, contract_event_in_ra
 class EventListener:
     """Tracks the block-chain for new transactions on a given address"""
 
-    def __init__(self, contract: Contract, provider: Web3, config):
+    def __init__(self, contract: EthereumContract, provider: Web3, config):
+        # Note: each event listener can listen to one contract at a time
         self.provider = provider
         self.contract = contract
         self.config = config
@@ -69,7 +70,7 @@ class Callbacks:
             callbacks = callbacks.setdefault(event_name, list())
             callbacks.append(callback)
 
-    def call(self, provider: Web3, contract: Contract, block_number: int):
+    def call(self, provider: Web3, contract: EthereumContract, block_number: int):
         """ call all the callbacks whose confirmation threshold reached """
 
         for threshold, callbacks in self.callbacks_by_confirmations.items():
@@ -78,7 +79,6 @@ class Callbacks:
 
             block = provider.eth.getBlock(block_number - threshold, full_transactions=True)
             contract_transactions = extract_tx_by_address(contract.address, block)
-            # TODO: can add info log of contract tx - up to them
 
             if not contract_transactions:
                 continue
