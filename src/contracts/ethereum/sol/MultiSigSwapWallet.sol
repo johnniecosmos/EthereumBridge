@@ -106,7 +106,6 @@ contract MultiSigSwapWallet {
         throw;
     }
 
-    // TODO: check memory  - why required
     function swap(bytes memory recipient)
     public
     payable {

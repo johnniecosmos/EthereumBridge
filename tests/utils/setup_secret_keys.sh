@@ -23,6 +23,7 @@ secretcli config chain-id enigma-testnet
 secretcli config output json
 secretcli config indent true
 secretcli config trust-node true
+secretcli config node tcp://localhost:26657
 
 # query register creates cert files in the path of execution
 (cd "$deployment_directory" && secretcli query register secret-network-params)

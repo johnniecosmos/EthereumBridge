@@ -7,7 +7,6 @@ logger_name = "test logger"
 signatures_threshold = 3
 blocks_confirmation_required = 12
 
-manager_sleep_time_seconds = 1.0
 default_sleep_time_interval = 2.0
 chain_id = "enigma-testnet"
 multisig_acc_addr = "dynamic update"

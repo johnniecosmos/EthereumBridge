@@ -30,7 +30,7 @@ class EthereumContract:
         :param private_key: private key matching the from_ account
         :param message: see 'send_contract_tx' for more details
         """
-        send_contract_tx(self.provider, self.contract, func_name, from_, private_key, *message.args())
+        return send_contract_tx(self.provider, self.contract, func_name, from_, private_key, *message.args())
 
     def contract_tx_as_bytes(self, fn_name: str, *args):
         """

@@ -37,7 +37,7 @@ class EthrSigner:
             self.token_contract = Erc20(provider, config.token_contract_addr, self.multisig_wallet.address)
 
         self.thread_pool = ThreadPoolExecutor()
-        event_listener.register(self.handle_submission, ['Submission'])
+        event_listener.register(self.handle_submission, ['Submission'], 0)
         Thread(target=self._submission_catch_up).start()
 
     def handle_submission(self, submission_event: AttributeDict):
@@ -70,8 +70,7 @@ class EthrSigner:
         """ Used to sync the signer with the chain after downtime, utilize local file to keep track of last processed
          block number.
         """
-        from_block = self.file_db.read()
-        from_block = int(from_block) if from_block else 0
+        from_block = self._choose_starting_block()
         to_block = self.provider.eth.getBlock('latest').number
 
         with self.thread_pool as pool:
@@ -81,6 +80,15 @@ class EthrSigner:
                 pool.submit(self._validated_and_confirm, event)
 
         self.catch_up_complete = True
+
+    def _choose_starting_block(self):
+        """Returns the block from which we start scanning Ethereum for new tx"""
+        from_block = self.file_db.read()
+        if from_block:  # if we have a record, use it
+            return int(from_block)
+        if 'ethr_signer_start_block' in dir(self.config):
+            return int(self.config.ethr_signer_start_block)
+        return 0
 
     def _update_last_block_processed(self, block_num: int):
         self.file_db.seek(0)
@@ -144,4 +152,5 @@ class EthrSigner:
         Note: This operation costs gas
         """
         msg = message.Confirm(submission_id)
-        self.multisig_wallet.confirm_transaction(self.default_account, self.private_key, msg)
+        tx_hash = self.multisig_wallet.confirm_transaction(self.default_account, self.private_key, msg)
+        self.logger.info(msg=f"Signer: {self.default_account}, signed msg: {msg}, tx hash: {tx_hash.hex()}")

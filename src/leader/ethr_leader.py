@@ -49,7 +49,7 @@ class EthrLeader:
 
             except CalledProcessError as e:
                 if e.stderr != b'ERROR: query result: encrypted: Tx does not exist\n':
-                    self.logger.error(msg=e)
+                    self.logger.error(msg=e.stdout + e.stderr)
 
             self.stop_event.wait(self.config.default_sleep_time_interval)
 
@@ -71,7 +71,8 @@ class EthrLeader:
                                      int(swap_json['nonce']), data)
             else:  # dealing with token to ethr transfer
                 msg = message.Submit(swap_json['destination'], int(swap_json['amount']), int(swap_json['nonce']), data)
-            self.multisig_wallet.submit_transaction(self.default_account, self.private_key, msg)
+            tx_hash = self.multisig_wallet.submit_transaction(self.default_account, self.private_key, msg)
+            self.logger.info(msg=f"Submitted tx, tx hash: {tx_hash.hex()}, msg: {msg}")
 
         except Exception as e:
-            self.logger.info(msg=f"Failed swap, transaction data: {swap_data}. Error: {e}")
+            self.logger.error(msg=f"Failed swap, transaction data: {swap_data}. Error: {e}")

@@ -84,7 +84,6 @@ def test_2(scrt_leader, configuration, multisig_wallet, web3_provider, scrt_sign
 # covers EthrLeader tracking of swap events in scrt and creating submission event in Ethereum
 # ethr_signers are here to respond for leader's submission
 def test_3(ethr_leader, configuration, ethr_signers):
-    # TODO: - this is temp, giving funds
     # Generate swap tx on secret network
     swap = {"swap": {"amount": str(TRANSFER_AMOUNT), "network": "Ethereum", "destination": ethr_leader.default_account}}
     sleep(configuration.default_sleep_time_interval)

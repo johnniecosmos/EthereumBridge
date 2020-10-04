@@ -5,3 +5,4 @@
 /tests/integration/brownie_project/
 /tests/deployment/
 /tests/keys/
+*.der

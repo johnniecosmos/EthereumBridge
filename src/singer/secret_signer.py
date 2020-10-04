@@ -1,9 +1,9 @@
 import json
 from collections import namedtuple
 from threading import Thread
+from time import sleep
 from typing import Dict
 
-from mongoengine import signals
 from web3 import Web3
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
@@ -27,28 +27,27 @@ class SecretSigner:
         self.config = config
 
         self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
+        Thread(target=self.run).start()
+        # signals.post_init.connect(self._tx_signal, sender=ETHSwap)  # TODO: test this with deployed db on machine
 
-        signals.post_save.connect(self._tx_signal, sender=ETHSwap)
-
-        Thread(target=self._catch_up).start()
-
-    def _catch_up(self):
+    def run(self):
         """Scans the db for unsigned swap tx and signs them"""
-        for tx in ETHSwap.objects(status=Status.SWAP_STATUS_UNSIGNED.value):
-            try:
-                self._sign_tx(tx)
-            except Exception as e:
-                self.logger.error(msg=e)
+        while True:
+            for tx in ETHSwap.objects(status=Status.SWAP_STATUS_UNSIGNED.value):
+                try:
+                    self._sign_tx(tx)
+                except Exception as e:
+                    self.logger.error(msg=e)
+            sleep(self.config.default_sleep_time_interval)
 
-    # noinspection PyUnusedLocal
-    def _tx_signal(self, sender, document, **kwargs):
-        """Callback function to handle db signals"""
-        if not document.status == Status.SWAP_STATUS_UNSIGNED.value:
-            return
-        try:
-            self._sign_tx(document)
-        except Exception as e:
-            self.logger.error(msg=e)
+    # def _tx_signal(self, sender, document: ETHSwap, **kwargs):
+    #     """Callback function to handle db signals"""
+    #     if not document.status == Status.SWAP_STATUS_UNSIGNED.value:
+    #         return
+    #     try:
+    #         self._sign_tx(document)
+    #     except Exception as e:
+    #         self.logger.error(msg=e)
 
     def _sign_tx(self, tx: ETHSwap):
         """Makes sure that the tx is valid and signs it"""

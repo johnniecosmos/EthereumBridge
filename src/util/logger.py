@@ -52,8 +52,9 @@ class CustomFormatter(logging.Formatter):
 
 def get_logger(db_name: str, logger_name: str = 'enigma') -> logging.Logger:
     logger = logging.getLogger(logger_name)
-    logger.setLevel(LOG_LEVEL)
-    logger.addHandler(DBLoggerHandler(db_name))
+    if not logger.hasHandlers():
+        logger.setLevel(LOG_LEVEL)
+        logger.addHandler(DBLoggerHandler(db_name))
 
     return logger
 

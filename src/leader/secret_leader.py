@@ -31,7 +31,6 @@ class SecretLeader:
         for tx in ETHSwap.objects(status=Status.SWAP_STATUS_SIGNED.value):
             self._handle_swap(tx)
 
-    # noinspection PyUnusedLocal
     def _swap_signal(self, sender, document, **kwargs):
         """Callback function to handle db signals"""
         if not document.status == Status.SWAP_STATUS_SIGNED.value:
