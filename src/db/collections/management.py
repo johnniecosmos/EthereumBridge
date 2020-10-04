@@ -1,5 +1,4 @@
 from enum import Enum
-from logging import Logger
 
 from mongoengine import Document, IntField, DoesNotExist, MultipleObjectsReturned
 
@@ -9,7 +8,7 @@ class Management(Document):
     src = IntField(required=True, unique=True)
 
     @classmethod
-    def last_processed(cls, src: int, logger: Logger):
+    def last_processed(cls, src: int):
         """
         Returns last processed contract tx sequence number
         :param src: int enum describing src network (i.e: scrt, eth)
@@ -20,7 +19,6 @@ class Management(Document):
         except DoesNotExist:
             doc = cls(nonce=-1, src=src).save()
         except MultipleObjectsReturned as e:  # Corrupted DB
-            logger.critical(msg=f"DB collection corrupter. Error: {e}")
             raise e
 
         return doc.nonce

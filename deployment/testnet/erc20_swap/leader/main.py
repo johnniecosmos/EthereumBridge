@@ -6,10 +6,10 @@ from src.contracts.ethereum.erc20 import Erc20
 from src.contracts.ethereum.message import Message
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.event_listener import EventListener
-from src.leader.ethr_leader import EthrLeader
+from src.leader.ether_leader import EtherLeader
 from src.leader.secret_leader import SecretLeader
 from src.manager import Manager
-from src.singer.secret_signer import MultiSig
+from src.signer.secret_signer import MultiSig
 from src.util.web3 import send_contract_tx
 
 web3_provider = Web3(Web3.HTTPProvider(config.provider_address))
@@ -28,7 +28,7 @@ class Transfer(Message):
 
 if __name__ == "__main__":
     connection = connect(db=config.db_name)
-    ethr_leader = EthrLeader(web3_provider, multisig_wallet, config.leader_key, config.leader_acc_addr, config)
+    ethr_leader = EtherLeader(web3_provider, multisig_wallet, config)
     scrt_leader = SecretLeader(multi_sig_acc, config)
     # Notice that here, we track erc20_contract
     manager = Manager(event_listener, erc20_contract, multi_sig_acc, config)

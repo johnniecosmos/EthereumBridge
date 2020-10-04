@@ -1,6 +1,6 @@
 Method of testing:
 
-1. Setup GanacheTruffel local ether-chain - V
+1. Setup GanacheTruffle local ether-chain - V
 2. Publish smart contract - V
 3. Start docker image - 
 4. Setup secret accounts - V

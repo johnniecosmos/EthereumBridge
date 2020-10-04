@@ -8,10 +8,10 @@ class Message:
     @abstractmethod
     def args(self) -> Tuple:
         """converts msg attributes into args tuple"""
-        pass
+        raise NotImplementedError
 
     def __repr__(self):
-        return f"{self.__class__.__name__}: Args: {self.args()}"
+        return f"<EthereumMessage {self.__class__.__name__}, args: {self.args()}>"
 
 
 class Submit(Message):
@@ -33,5 +33,6 @@ class Confirm(Message):
     def __init__(self, submission_id: int):
         self.submission_id = submission_id
 
-    def args(self):
-        return self.submission_id,
+    def args(self) -> Tuple:
+        # noinspection PyRedundantParentheses
+        return (self.submission_id, )

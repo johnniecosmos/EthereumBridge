@@ -9,8 +9,9 @@ from web3 import Web3
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.management import Source, Management
 from src.db.collections.signatures import Signatures
-from src.singer.ehtr_signer import EthrSigner
+from src.signer.ether_signer import EtherSigner
 from src.util.common import project_base_path
+from src.util.config import Config
 from src.util.web3 import event_log
 # Note: The tests are ordered and named test_0...N and should be executed in that order as they demonstrate the flow
 # Ethr -> Scrt and then Scrt -> Ethr
@@ -25,8 +26,8 @@ TRANSFER_AMOUNT = 100
 # 2. Manager status update and multisig creation.
 # 3. SecretSigners validation and signing.
 # 4. Smart Contract swap functionality.
-def test_1(setup, manager, scrt_signers, web3_provider, configuration, erc20_contract, multisig_wallet):
-    t1_address = get_key_signer("t1", Path.joinpath(project_base_path(), 'tests', 'keys'))['address']
+def test_1(setup, manager, scrt_signers, web3_provider, configuration: Config, erc20_contract, multisig_wallet):
+    t1_address = get_key_signer("t1", Path.joinpath(project_base_path(), configuration['path_to_keys']))['address']
     # swap ethr for scrt token, deliver tokens to address of 'a'(we will use 'a' later to check it received the money)
     tx_hash = erc20_contract.contract.functions.transfer(multisig_wallet.address,
                                                          TRANSFER_AMOUNT,
@@ -35,15 +36,15 @@ def test_1(setup, manager, scrt_signers, web3_provider, configuration, erc20_con
     assert TRANSFER_AMOUNT == erc20_contract.contract.functions.balanceOf(multisig_wallet.address).call()
 
     # increase number of blocks to reach the confirmation threshold
-    assert increase_block_number(web3_provider, configuration.blocks_confirmation_required - 1)
+    assert increase_block_number(web3_provider, configuration['eth_confirmations'] - 1)
 
-    sleep(configuration.default_sleep_time_interval + 2)
+    sleep(configuration['sleep_interval'] + 2)
 
     assert ETHSwap.objects(tx_hash=tx_hash).count() == 0  # verify blocks confirmation threshold wasn't meet
     assert increase_block_number(web3_provider, 1)  # add the 'missing' confirmation block
 
     # give event listener and manager time to process tx
-    sleep(configuration.default_sleep_time_interval + 2)
+    sleep(configuration['sleep_interval'] + 2)
     assert ETHSwap.objects(tx_hash=tx_hash).count() == 1  # verify swap event recorded
 
     sleep(1)
@@ -51,7 +52,7 @@ def test_1(setup, manager, scrt_signers, web3_provider, configuration, erc20_con
     assert Signatures.objects().count() == len(scrt_signers)
 
     # give time for manager to process the signatures
-    sleep(configuration.default_sleep_time_interval + 2)
+    sleep(configuration['sleep_interval'] + 2)
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SIGNED.value
 
 
@@ -59,9 +60,9 @@ def test_1(setup, manager, scrt_signers, web3_provider, configuration, erc20_con
 # Components tested:
 # 1. Leader broadcast to scrt multi-signed mint
 # 2. Secret Contract "mint"
-def test_2(scrt_leader, configuration, erc20_contract, web3_provider, scrt_signers):
+def test_2(scrt_leader, configuration: Config, erc20_contract, web3_provider, scrt_signers):
     # give scrt_leader time to multi-sign already existing signatures
-    sleep(configuration.default_sleep_time_interval + 3)
+    sleep(configuration['sleep_interval'] + 3)
     assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED.value
 
     # get tx details
@@ -72,7 +73,7 @@ def test_2(scrt_leader, configuration, erc20_contract, web3_provider, scrt_signe
 
     # validate swap tx on ethr delivers to the destination
     balance_query = '{"balance": {}}'
-    tx_hash = run(f"secretcli tx compute execute {configuration.secret_contract_address} "
+    tx_hash = run(f"secretcli tx compute execute {configuration['secret_contract_address']} "
                   f"'{balance_query}' --from {dest} -b block -y | jq '.txhash'", shell=True, stdout=PIPE)
     tx_hash = tx_hash.stdout.decode().strip()[1:-1]
 
@@ -86,37 +87,37 @@ def test_2(scrt_leader, configuration, erc20_contract, web3_provider, scrt_signe
 
 # covers EthrLeader tracking of swap events in scrt and creating submission event in Ethereum
 # ethr_signers are here to respond for leader's submission
-def test_3(ethr_leader, configuration, ethr_signers):
+def test_3(ethr_leader, configuration: Config, ethr_signers):
     # Generate swap tx on secret network
     swap = {"swap": {"amount": str(TRANSFER_AMOUNT), "network": "Ethereum", "destination": ethr_leader.default_account}}
-    sleep(configuration.default_sleep_time_interval)
-    last_nonce = Management.last_processed(Source.scrt.value, ethr_leader.logger)
-    tx_hash = run(f"secretcli tx compute execute {configuration.secret_contract_address} "
+    sleep(configuration['sleep_interval'])
+    last_nonce = Management.last_processed(Source.scrt.value)
+    tx_hash = run(f"secretcli tx compute execute {configuration['secret_contract_address']} "
                   f"'{json.dumps(swap)}' --from t1 -y", shell=True, stdout=PIPE, stderr=PIPE)
     tx_hash = json.loads(tx_hash.stdout)['txhash']
 
     # Verify that leader recognized the burn tx
-    sleep(configuration.default_sleep_time_interval + 6)
+    sleep(configuration['sleep_interval'] + 6)
 
-    assert last_nonce + 1 == Management.last_processed(Source.scrt.value, ethr_leader.logger)
+    assert last_nonce + 1 == Management.last_processed(Source.scrt.value)
 
     # Give ethr signers time to handle the scrt swap tx (will be verified in test_4
-    sleep(configuration.default_sleep_time_interval + 1)
+    sleep(configuration['sleep_interval'] + 1)
 
 
 # EthrSigner event response and multisig logic
 # Components tested:
 # 1. EthrSigner - confirmation and offline catchup
 # 2. SmartContract multisig functionality
-def test_4(event_listener, multisig_wallet, web3_provider, ether_accounts, configuration, ethr_leader):
+def test_4(event_listener, multisig_wallet, web3_provider, ether_accounts, configuration: Config, ethr_leader):
     # To allow the new EthrSigner to "catch up", we start it after the event submission event in Ethereum
     key = ether_accounts[-1].key
     address = ether_accounts[-1].address
-    eth_signer = EthrSigner(event_listener, web3_provider, multisig_wallet, key, address, configuration)
+    eth_signer = EtherSigner(event_listener, web3_provider, multisig_wallet, key, address, configuration)
 
-    sleep(configuration.default_sleep_time_interval + 3)
+    sleep(configuration['sleep_interval'] + 3)
     # Validate the tx is confirmed in the smart contract
-    last_nonce = Management.last_processed(Source.scrt.value, eth_signer.logger)
+    last_nonce = Management.last_processed(Source.scrt.value)
     assert eth_signer.multisig_wallet.contract.functions.confirmations(last_nonce, eth_signer.default_account).call()
 
 

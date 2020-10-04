@@ -1,4 +1,5 @@
 import json
+import subprocess
 from subprocess import PIPE, run as subprocess_run
 from typing import List, Dict
 
@@ -49,10 +50,12 @@ def query_tx(tx_hash: str):
 
 
 def run_secret_cli(cmd: List[str]) -> str:
-    p = subprocess_run(cmd, stdout=PIPE, stderr=PIPE)
+    """
 
-    err = p.stderr
-    if err:
-        raise RuntimeError(err)
+    """
+    try:
+        p = subprocess.run(cmd, stdout=PIPE, stderr=PIPE, check=True)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError from e
 
     return p.stdout.decode()

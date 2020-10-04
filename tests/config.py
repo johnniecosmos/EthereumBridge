@@ -5,9 +5,9 @@ logger_name = "test logger"
 
 # app settings
 signatures_threshold = 3
-blocks_confirmation_required = 12
+eth_confirmations = 12
 
-default_sleep_time_interval = 2.0
+sleep_interval = 2.0
 chain_id = "enigma-testnet"
 multisig_acc_addr = "dynamic update"
 secret_contract_address = "dynamic update"

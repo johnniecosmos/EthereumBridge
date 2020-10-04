@@ -1,10 +1,13 @@
 import logging
+# from mongoengine import connect
+import os
+import sys
 
-from mongoengine import connect
+import mongoengine
 
 from src.db.collections.log import Logs
 
-LOG_LEVEL = logging.INFO
+LOG_LEVEL = logging.DEBUG
 
 
 class CustomFormatter(logging.Formatter):
@@ -50,11 +53,22 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def get_logger(db_name: str, logger_name: str = 'enigma') -> logging.Logger:
+def get_logger(logger_name: str = 'enigma', db_name: str = '') -> logging.Logger:
     logger = logging.getLogger(logger_name)
-    if not logger.hasHandlers():
-        logger.setLevel(LOG_LEVEL)
-        logger.addHandler(DBLoggerHandler(db_name))
+    loglevel = getattr(logging, os.getenv('LOG_LEVEL', '').upper(), logging.DEBUG)
+    if not isinstance(loglevel, int):
+        raise ValueError('Invalid log level: %s' % loglevel)
+    logger.setLevel(level=loglevel)
+
+    # stdout handler
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(CustomFormatter())
+    logger.addHandler(handler)
+
+    if db_name:
+        db_handler = DBLoggerHandler(db_name, LOG_LEVEL)
+        logger.addHandler(db_handler)
 
     return logger
 
@@ -62,12 +76,12 @@ def get_logger(db_name: str, logger_name: str = 'enigma') -> logging.Logger:
 class DBLoggerHandler(logging.Handler):
     def __init__(self, db_name, level: int = LOG_LEVEL):
         super().__init__(level)
-        self.connection = connect(db_name)
+        self.connection = mongoengine.connect(db_name)
         self.formatter = CustomFormatter()
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
             msg = self.format(record)
             Logs(log=msg).save()
-        except Exception:
+        except (mongoengine.OperationError, mongoengine.NotUniqueError):
             self.handleError(record)

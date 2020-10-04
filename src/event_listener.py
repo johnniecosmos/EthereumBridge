@@ -6,6 +6,7 @@ from web3 import Web3
 from web3.exceptions import BlockNotFound
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
+from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.web3 import extract_tx_by_address, event_log, contract_event_in_range
 
@@ -13,13 +14,14 @@ from src.util.web3 import extract_tx_by_address, event_log, contract_event_in_ra
 class EventListener:
     """Tracks the block-chain for new transactions on a given address"""
 
-    def __init__(self, contract: EthereumContract, provider: Web3, config):
+    def __init__(self, contract: EthereumContract, provider: Web3, config: Config):
         # Note: each event listener can listen to one contract at a time
         self.provider = provider
         self.contract = contract
         self.config = config
         self.callbacks = Callbacks()
-        self.logger = get_logger(db_name=config.db_name, logger_name=config.db_name)
+        self.logger = get_logger(db_name=config['db_name'],
+                                 logger_name=config.get('logger_name', self.__class__.__name__))
 
         self.stop_event = Event()
         Thread(target=self.run).start()
@@ -45,14 +47,14 @@ class EventListener:
                 block = self.provider.eth.getBlock(current_block_num, full_transactions=True)
                 self.callbacks.call(self.provider, self.contract, block.number)
             except BlockNotFound:
-                sleep(self.config.default_sleep_time_interval)
+                sleep(self.config['sleep_interval'])
                 continue
 
             current_block_num += 1
 
     def events_in_range(self, event: str, from_block: int, to_block: int = None):
         """ Returns a generator that yields all contract events in range"""
-        return contract_event_in_range(self.logger, self.provider, self.contract, event, from_block=from_block,
+        return contract_event_in_range(self.provider, self.contract, event, from_block=from_block,
                                        to_block=to_block)
 
 

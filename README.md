@@ -27,11 +27,11 @@ password - password to access the DB
 ### App settings
 logger_name - project logger name (arbitrary)  
 signatures_threshold - how many signers are required in order to sign a tx (validators)  
-blocks_confirmation_required - how many blocks on ethereum to wait, before treating it as "confirmed".    
-default_sleep_time_interval - how long to wait while between chain sampling.  
+eth_confirmations - how many blocks on ethereum to wait, before treating it as "confirmed".    
+sleep_interval - how long to wait while between chain sampling.  
 provider_address - web3 endpoint that will be used to query Ethereum.  
-ethr_start_block - the block from which the manager starts scanning for missed tx (in catch_up mode), optional
-ethr_signer_start_block - the block from which the signer starts scanning for missed tx (in submission_catch_up),
+eth_start_block - the block from which the manager starts scanning for missed tx (in catch_up mode), optional
+eth_signer_start_block - the block from which the signer starts scanning for missed tx (in submission_catch_up),
 optional
 
 ### Secret network settings
@@ -78,3 +78,10 @@ setup.sh under deployment will contain the basic configuration, update the relev
 
 If you run a leader, you will have to import the remote signers keys:
 secretcli keys add --pubkey [the multisig public key in bech32 format] [mutisig_account_name]
+
+## Dependencies - to run tests
+
+* jq
+* secretcli 
+* ganache-cli running locally on port 8545
+* mongodb on port 27017

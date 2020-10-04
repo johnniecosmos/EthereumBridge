@@ -3,7 +3,7 @@ import json
 from typing import Dict
 
 
-def mint_json(amount, eth_tx_hash, address: str) -> Dict:
+def mint_json(amount, _, address: str) -> Dict:
     return {"mint": {"amount": str(amount), "address": address}}
 
 

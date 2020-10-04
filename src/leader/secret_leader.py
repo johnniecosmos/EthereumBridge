@@ -3,23 +3,25 @@ from threading import Thread
 from time import sleep
 from typing import List
 
-from mongoengine import signals
+from mongoengine import signals, OperationError
 
 from src.db.collections.eth_swap import ETHSwap, Status
 from src.db.collections.signatures import Signatures
-from src.singer.secret_signer import MultiSig
+from src.signer.secret_signer import SecretAccount
 from src.util.common import temp_file, temp_files
 from src.util.logger import get_logger
 from src.util.secretcli import broadcast, multisig_tx, query_tx
+from src.util.config import Config
 
 
 class SecretLeader:
     """Broadcasts signed transactions Ethr -> Scrt"""
 
-    def __init__(self, multisig_: MultiSig, config):
-        self.multisig = multisig_
+    def __init__(self, multisig: SecretAccount, config: Config):
+        self.multisig_name = multisig.name
         self.config = config
-        self.logger = get_logger(db_name=self.config.db_name, logger_name=self.config.logger_name)
+        self.logger = get_logger(db_name=self.config['db_name'],
+                                 logger_name=config.get('logger_name', self.__class__.__name__))
 
         Thread(target=self._catch_up).start()
         signals.post_save.connect(self._swap_signal, sender=ETHSwap)
@@ -31,21 +33,25 @@ class SecretLeader:
         for tx in ETHSwap.objects(status=Status.SWAP_STATUS_SIGNED.value):
             self._handle_swap(tx)
 
-    def _swap_signal(self, sender, document, **kwargs):
-        """Callback function to handle db signals"""
+    def _swap_signal(self, _, document, **kwargs):  # pylint: disable=unused-argument
+        """Callback function to handle db signals
+
+        **kwargs needs to be here even if unused, because this function gets passed arguments from mongo internals
+        """
         if not document.status == Status.SWAP_STATUS_SIGNED.value:
             return
-        try:
-            self._handle_swap(document)
-        except Exception as e:
-            self.logger.error(msg=e)
+        # pretty sure this can't actually fail, so this is unnecessary
+        # try:
+        self._handle_swap(document)
+        # except Exception as e:
+        #     self.logger.error(msg=e)
 
     def _handle_swap(self, tx: ETHSwap):
         # reacts to signed tx in the DB that are ready to be sent to scrt
         signatures = [signature.signed_tx for signature in Signatures.objects(tx_id=tx.id)]
-        if len(signatures) < self.config.signatures_threshold:  # sanity check
+        if len(signatures) < self.config['signatures_threshold']:  # sanity check
             self.logger.error(msg=f"Tried to sign tx {tx.id}, without enough signatures"
-                                  f" (required: {self.config.signatures_threshold}, have: {len(signatures)})")
+                                  f" (required: {self.config['signatures_threshold']}, have: {len(signatures)})")
             return
 
         try:
@@ -54,7 +60,7 @@ class SecretLeader:
             tx.status = Status.SWAP_STATUS_SUBMITTED.value
             tx.scrt_tx_hash = scrt_tx_hash
             tx.save()
-        except RuntimeError as e:
+        except (RuntimeError, OperationError) as e:
             self.logger.error(msg=f"Failed to create multisig and broadcast, error: {e}")
 
     def _create_multisig(self, unsigned_tx: str, signatures: List[str]) -> str:
@@ -63,7 +69,7 @@ class SecretLeader:
         # creates temp-files containing the signatures, as the 'multisign' command requires files as input
         with temp_file(unsigned_tx) as unsigned_tx_path:
             with temp_files(signatures, self.logger) as signed_tx_paths:
-                return multisig_tx(unsigned_tx_path, self.multisig.signer_acc_name, *signed_tx_paths)
+                return multisig_tx(unsigned_tx_path, self.multisig_name, *signed_tx_paths)
 
     @staticmethod
     def _broadcast(signed_tx) -> str:
@@ -71,12 +77,15 @@ class SecretLeader:
         with temp_file(signed_tx) as signed_tx_path:
             return json.loads(broadcast(signed_tx_path))['txhash']
 
-    def _broadcast_validation(self, sender, document: ETHSwap, **kwargs):
-        """validation of submitted broadcast signed tx """
+    def _broadcast_validation(self, _, document: ETHSwap, **kwargs):  # pylint: disable=unused-argument
+        """validation of submitted broadcast signed tx
+
+        **kwargs needs to be here even if unused, because this function gets passed arguments from mongo internals
+        """
         if not document.status == Status.SWAP_STATUS_SUBMITTED.value:
             return
 
-        sleep(20)
+        sleep(20)  # wtf is this shit
         tx_hash = document.scrt_tx_hash
         try:
             res = json.loads(query_tx(tx_hash))

@@ -5,10 +5,10 @@ logger_name = "test logger"
 
 # app settings
 signatures_threshold = 2
-blocks_confirmation_required = 2
-ethr_signer_start_block = 8781958
+eth_confirmations = 2
+eth_signer_start_block = 8781958
 
-default_sleep_time_interval = 5.0
+sleep_interval = 5.0
 chain_id = "holodeck"
 multisig_wallet_address = "0xCA4666D11bFc85300fd4cE98fD970Bdc98dCcc8B"
 secret_contract_address = "secret1uwcjkghqlz030r989clzqs8zlaujwyphwkpq0n"

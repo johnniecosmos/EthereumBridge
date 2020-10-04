@@ -1,4 +1,3 @@
-from logging import Logger
 from typing import Union, List, Tuple, Optional, Generator
 
 from eth_typing import HexStr, Hash32
@@ -13,10 +12,9 @@ from web3.types import BlockData
 def web3_provider(address_: str) -> Web3:
     if address_.startswith('http'):  # HTTP
         return Web3(Web3.HTTPProvider(address_))
-    elif address_.startswith('ws'):  # WebSocket
+    if address_.startswith('ws'):  # WebSocket
         return Web3(Web3.WebsocketProvider(address_))
-    else:  # IPC
-        return Web3(Web3.IPCProvider(address_))
+    return Web3(Web3.IPCProvider(address_))
 
 
 def extract_tx_by_address(address, block: BlockData) -> list:
@@ -42,6 +40,7 @@ def event_log(tx_hash: Union[Hash32, HexBytes, HexStr], events: List[str], provi
         if log:
             data_index = 0
             return event, log[data_index]
+    # todo: fix this - seems like some weird return
     return '', None
 
 
@@ -50,7 +49,7 @@ def normalize_address(address: str):
     return Web3.toChecksumAddress(address.lower())
 
 
-def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str, from_block: int = 0,
+def contract_event_in_range(provider: Web3, contract, event: str, from_block: int = 0,
                             to_block: Optional[int] = None) -> Generator:
     """
     scans the blockchain, and yields blocks that has contract tx with the provided event
@@ -58,28 +57,28 @@ def contract_event_in_range(logger: Logger, provider: Web3, contract, event: str
     Note: Be cautions with the range provided, as the logic creates query for each block which could be a bottleneck.
     :param from_block: starting block, defaults to 0
     :param to_block: end block, defaults to 'latest'
+    :param provider:
+    :param logger:
+    :param contract:
     :param event: name of the contract emit event you wish to be notified of
     """
     if to_block is None:
         to_block = provider.eth.getBlock('latest').number
 
     for block_num in range(from_block, to_block + 1):
-        try:
-            block = provider.eth.getBlock(block_num, full_transactions=True)
-            contract_transactions = extract_tx_by_address(contract.address, block)
+        block = provider.eth.getBlock(block_num, full_transactions=True)
+        contract_transactions = extract_tx_by_address(contract.address, block)
 
-            if not contract_transactions:
+        if not contract_transactions:
+            continue
+
+        for tx in contract_transactions:
+            _, log = event_log(tx_hash=tx.hash, events=[event], provider=provider, contract=contract.contract)
+
+            if log is None:
                 continue
 
-            for tx in contract_transactions:
-                _, log = event_log(tx_hash=tx.hash, events=[event], provider=provider, contract=contract.contract)
-
-                if log is None:
-                    continue
-
-                yield log
-        except Exception as e:
-            logger.error(msg=e)
+            yield log
     # raise StopIteration()
 
 
@@ -87,7 +86,6 @@ def send_contract_tx(provider: Web3, contract: Web3Contract, function_name: str,
                      *args, gas: int = 0, value: int = 0):
     """
     Creates the contract tx and signs it with private_key to be transmitted as raw tx
-    :param value: amount of ethr to transfer
     """
     submit_tx = getattr(contract.functions, function_name)(*args). \
         buildTransaction(

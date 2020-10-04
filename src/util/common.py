@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from os import remove
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import List
+from typing import List, Generator
 
 import src
 
@@ -18,7 +18,7 @@ def temp_file(data: str):
 
 
 @contextmanager
-def temp_files(data: List[str], logger) -> List[str]:
+def temp_files(data: List[str], logger) -> Generator:
     temp = []
     for d in data:
         temp.append(temp_file(d))
@@ -37,5 +37,5 @@ def project_base_path():
     return Path(res).parent
 
 
-def module_dir(module) -> str:
+def module_dir(module) -> Path:
     return Path(module.__file__).parent
