@@ -9,7 +9,7 @@ from web3 import Web3
 from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.management import Source, Management
 from src.db.collections.signatures import Signatures
-from src.signer.ether_signer import EtherSigner
+from src.signer.eth.historical import EtherSigner
 from src.util.common import project_base_path
 from src.util.config import Config
 from src.util.web3 import event_log
@@ -20,7 +20,7 @@ from tests.utils.keys import get_key_signer
 TRANSFER_AMOUNT = 100
 
 
-# TL;DR: Covers from swap tx to multisig in db(tx ready to be sent to scrt)
+# TL;DR: Covers from swap tx to multisig in db(tx ready to be sent to secret20)
 # Components tested:
 # 1. Event listener registration recognize contract events
 # 2. Manager status update and multisig creation.
@@ -28,7 +28,7 @@ TRANSFER_AMOUNT = 100
 # 4. Smart Contract swap functionality.
 def test_1(setup, manager, scrt_signers, web3_provider, configuration: Config, erc20_contract, multisig_wallet):
     t1_address = get_key_signer("t1", Path.joinpath(project_base_path(), configuration['path_to_keys']))['address']
-    # swap ethr for scrt token, deliver tokens to address of 'a'(we will use 'a' later to check it received the money)
+    # swap ethr for secret20 token, deliver tokens to address of 'a'(we will use 'a' later to check it received the money)
     tx_hash = erc20_contract.contract.functions.transfer(multisig_wallet.address,
                                                          TRANSFER_AMOUNT,
                                                          t1_address.encode()). \
@@ -56,9 +56,9 @@ def test_1(setup, manager, scrt_signers, web3_provider, configuration: Config, e
     assert Swap.objects().get().status == Status.SWAP_STATUS_SIGNED
 
 
-# Covers from Leader broadcast of signed tx to scrt swap tx submission on smart contract (withdraw)
+# Covers from Leader broadcast of signed tx to secret20 swap tx submission on smart contract (withdraw)
 # Components tested:
-# 1. Leader broadcast to scrt multi-signed mint
+# 1. Leader broadcast to secret20 multi-signed mint
 # 2. Secret Contract "mint"
 def test_2(scrt_leader, configuration: Config, erc20_contract, web3_provider, scrt_signers):
     # give scrt_leader time to multi-sign already existing signatures
@@ -85,7 +85,7 @@ def test_2(scrt_leader, configuration: Config, erc20_contract, web3_provider, sc
     assert abs(transfer_amount - amount) < 1  # TODO: == 0 after specificity fixed
 
 
-# covers EthrLeader tracking of swap events in scrt and creating submission event in Ethereum
+# covers EthrLeader tracking of swap events in secret20 and creating submission event in Ethereum
 # ethr_signers are here to respond for leader's submission
 def test_3(ethr_leader, configuration: Config, ethr_signers):
     # Generate swap tx on secret network
@@ -101,7 +101,7 @@ def test_3(ethr_leader, configuration: Config, ethr_signers):
 
     assert last_nonce + 1 == Management.last_processed(Source.scrt.value)
 
-    # Give ethr signers time to handle the scrt swap tx (will be verified in test_4
+    # Give ethr signers time to handle the secret20 swap tx (will be verified in test_4
     sleep(configuration['sleep_interval'] + 1)
 
 

@@ -25,7 +25,7 @@ signer_key = "6e9b1de69b263184bae321e8022453b478fab91fca0d7621d558f477336570e8"
 provider_address = "https://ropsten.infura.io/v3/c1b139e430f14107b851487a6e96b363"
 # provider_address = "wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74"
 
-# scrt:
+# secret20:
 enclave_key = "/home/guy/Workspace/dev/EthereumBridge/deployment/testnet/io-master-cert.der"
 viewing_key = "api_key_XWfhJgtZnPSA514+v2TOd9sG8RKCwogDEIKnfso5g+k="
 multisig_acc_addr = "secret1k798cssp56ndy7nhjdwml90qy933qp3l0kywtp"

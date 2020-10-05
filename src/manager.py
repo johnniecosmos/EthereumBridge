@@ -7,8 +7,8 @@ from src.contracts.secret.secret_contract import mint_json
 from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.management import Management, Source
 from src.db.collections.signatures import Signatures
-from src.contracts.ethereum.event_listener import EventListener
-from src.signer.secret_signer import SecretAccount
+from src.contracts.ethereum.event_listener import EthEventListener
+from src.signer.secret20.signer import SecretAccount
 from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.secretcli import create_unsigned_tx
@@ -17,7 +17,7 @@ from src.util.secretcli import create_unsigned_tx
 class Manager:
     """Registers to contract event and manages tx state in DB"""
 
-    def __init__(self, event_listener: EventListener, contract: EthereumContract,
+    def __init__(self, event_listener: EthEventListener, contract: EthereumContract,
                  multisig: SecretAccount, config: Config):
         self.contract = contract
         self.config = config
@@ -27,19 +27,23 @@ class Manager:
         self.logger = get_logger("Manager", db_name=self.config.get('db_name', ''))
         self.stop_signal = Event()
 
-        event_listener.register(self._handle, [contract.tracked_event()], self.config['eth_confirmations'])
+        self.event_listener.register(self._handle, [contract.tracked_event()], self.config['eth_confirmations'])
+
         self.catch_up()
         Thread(target=self.run).start()
 
     # noinspection PyUnresolvedReferences
     def run(self):
         """Scans for signed transactions and updates status if multisig threshold achieved"""
+        self.logger.info("Starting..")
+        self.event_listener.start()
         while not self.stop_signal.is_set():
             for transaction in Swap.objects(status=Status.SWAP_STATUS_UNSIGNED):
                 if Signatures.objects(tx_id=transaction.id).count() >= self.config['signatures_threshold']:
                     transaction.status = Status.SWAP_STATUS_SIGNED
                     transaction.save()
             self.stop_signal.wait(self.config['sleep_interval'])
+        self.logger.info("Stopping..")
 
     def catch_up(self):
         from_block = Management.last_processed(Source.eth.value) + 1
@@ -82,13 +86,13 @@ class Manager:
             # if ETHSwap.objects(tx_hash=tx_hash).count() == 0:  # TODO: exception because of force_insert?
             tx = Swap(src_tx_hash=tx_hash, status=Status.SWAP_STATUS_UNSIGNED, unsigned_tx=unsigned_tx)
             tx.save(force_insert=True)
-
+            self.logger.info(f"saved new eth -> scrt transaction {tx_hash}")
             Management.update_last_processed(src=Source.eth.value, update_val=block_number)
         except (IndexError, AttributeError) as e:
-            self.logger.error(msg=f"Failed on tx {tx_hash}, block {block_number}, "
-                                  f"due to missing config: {e}")
+            self.logger.error(f"Failed on tx {tx_hash}, block {block_number}, "
+                              f"due to missing config: {e}")
         except RuntimeError as e:
-            self.logger.error(msg=f"Failed to create swap tx for eth hash {tx_hash}, block {block_number}. Error: {e}")
+            self.logger.error(f"Failed to create swap tx for eth hash {tx_hash}, block {block_number}. Error: {e}")
 
     def _validate_event(self, event: AttributeDict):
         try:

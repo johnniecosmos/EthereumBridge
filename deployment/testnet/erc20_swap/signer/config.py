@@ -32,7 +32,7 @@ signer_key_2 = "6e9b1de69b263184bae321e8022453b478fab91fca0d7621d558f477336570e8
 signer_acc_addr_3 = "0xaeA9263ae4cC574b875be2eDF12df1FC86055f97"
 signer_key_3 = "39e449a85306edbc5231fe5a6fa4dd1bbbf690526d6f2901ee9de9b32b0d2d32"
 
-# ~~~~~~~~~~~~~~~~~~ scrt ~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~ secret20 ~~~~~~~~~~~~~~~~~~
 viewing_key = "api_key_bxa1ySwaFrCacBvHm73PMINyTwB+6GMZXMvZlnwOGgM="
 multisig_acc_addr = "secret1zh8w8q6tkqrrpz064c0xpjgkeyvnzvg3edg4cl"
 multisig_key_name = "ms2"

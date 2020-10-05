@@ -1,3 +1,4 @@
+from itertools import count
 from threading import Thread, Event, Lock
 from time import sleep
 from typing import List, Callable, Dict
@@ -8,23 +9,25 @@ from web3.exceptions import BlockNotFound
 from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.util.config import Config
 from src.util.logger import get_logger
-from src.util.web3 import extract_tx_by_address, event_log, contract_event_in_range
+from src.util.web3 import extract_tx_by_address, event_log, contract_event_in_range, web3_provider
 
 
-class EventListener:
+class EthEventListener(Thread):
     """Tracks the block-chain for new transactions on a given address"""
+    _ids = count(0)
 
-    def __init__(self, contract: EthereumContract, provider: Web3, config: Config):
+    def __init__(self, contract: EthereumContract, config: Config, **kwargs):
         # Note: each event listener can listen to one contract at a time
-        self.provider = provider
+        self.id = next(self._ids)
+        self.provider = web3_provider(config['eth_node_address'])
         self.contract = contract
         self.config = config
         self.callbacks = Callbacks()
         self.logger = get_logger(db_name=config['db_name'],
-                                 logger_name=config.get('logger_name', self.__class__.__name__))
+                                 logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.id}"))
 
         self.stop_event = Event()
-        Thread(target=self.run).start()
+        super().__init__(group=None, name=f"EventListener-{config.get('logger_name', '')}", target=self.run, **kwargs)
 
     def register(self, callback: Callable, events: List[str], confirmations_required: int = 0):
         """
@@ -38,8 +41,13 @@ class EventListener:
         for event in events:
             self.callbacks.add(event, callback, confirmations_required)
 
+    def stop(self):
+        self.logger.info("Stopping..")
+        self.stop_event.set()
+
     def run(self):
         """Notify registered callbacks upon event occurrence"""
+        self.logger.info("Starting..")
         current_block_num = self.provider.eth.getBlock('latest').number
 
         while not self.stop_event.is_set():

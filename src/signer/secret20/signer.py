@@ -1,7 +1,6 @@
 import json
 from collections import namedtuple
-from threading import Thread
-from time import sleep
+from threading import Thread, Event
 from typing import Dict
 
 from mongoengine import OperationError
@@ -17,29 +16,35 @@ from src.util.secretcli import sign_tx as secretcli_sign, decrypt
 SecretAccount = namedtuple('SecretAccount', ['address', 'name'])
 
 
-class SecretSigner(Thread):
+class Secret20Signer(Thread):
     """Signs on the SCRT side, after verifying Ethereum tx stored in the db"""
 
-    def __init__(self, multisig: SecretAccount, contract: EthereumContract, config: Config, **kwargs):
+    def __init__(self, contract: EthereumContract, multisig: SecretAccount, config: Config, **kwargs):
         self.multisig = multisig
         self.contract = contract
         self.config = config
-
+        self.stop_event = Event()
         self.logger = get_logger(db_name=config['db_name'],
-                                 logger_name=config.get('logger_name', self.__class__.__name__))
-        self.setDaemon(True)
+                                 logger_name=config.get('logger_name', f"SecretSigner-{self.multisig.name}"))
         super().__init__(group=None, name=f"SecretSigner-{self.multisig.name}", target=self.run, **kwargs)
+        self.setDaemon(True)  # so tests don't hang
         # signals.post_init.connect(self._tx_signal, sender=ETHSwap)  # TODO: test this with deployed db on machine
+
+    def stop(self):
+        self.logger.info("Stopping..")
+        self.stop_event.set()
 
     def run(self):
         """Scans the db for unsigned swap tx and signs them"""
-        while True:
+        self.logger.info("Starting..")
+        while not self.stop_event.is_set():
             for tx in Swap.objects(status=Status.SWAP_STATUS_UNSIGNED):
+                self.logger.info(f"Found new unsigned swap event {tx}")
                 try:
                     self._validate_and_sign(tx)
                 except ValueError as e:
                     self.logger.error(f'Failed to sign transaction: {tx} error: {e}')
-            sleep(self.config['sleep_interval'])
+            self.stop_event.wait(self.config['sleep_interval'])
 
     def _validate_and_sign(self, tx: Swap):
         """

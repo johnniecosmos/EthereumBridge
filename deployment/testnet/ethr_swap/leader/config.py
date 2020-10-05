@@ -24,7 +24,7 @@ token_contract_addr = ""
 leader_acc_addr = "0x53c22DBaFAFCcA28F6E2644b82eca5F8D66be96E"
 leader_key = "af2aa65ae259a496a134431d41a89cb1e8b81e3049141b77797d0b04bc7458a0"
 provider_address = "https://ropsten.infura.io/v3/c1b139e430f14107b851487a6e96b363"
-# scrt:
+# secret20:
 enclave_key = "/home/guy/Workspace/dev/EthereumBridge/deployment/testnet/io-master-cert.der"
 viewing_key = "api_key_XWfhJgtZnPSA514+v2TOd9sG8RKCwogDEIKnfso5g+k="
 multisig_acc_addr = "secret1k798cssp56ndy7nhjdwml90qy933qp3l0kywtp"

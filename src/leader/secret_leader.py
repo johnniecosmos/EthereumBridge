@@ -8,7 +8,7 @@ from mongoengine import OperationError
 
 from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.signatures import Signatures
-from src.signer.secret_signer import SecretAccount
+from src.signer.secret20.signer import SecretAccount
 from src.util.common import temp_file, temp_files
 from src.util.logger import get_logger
 from src.util.secretcli import broadcast, multisig_tx, query_tx
@@ -66,7 +66,7 @@ class SecretLeader(Thread):
         #     self.logger.error(msg=e)
 
     def _create_and_broadcast(self, tx: Swap):
-        # reacts to signed tx in the DB that are ready to be sent to scrt
+        # reacts to signed tx in the DB that are ready to be sent to secret20
         signatures = [signature.signed_tx for signature in Signatures.objects(tx_id=tx.id)]
         if len(signatures) < self.config['signatures_threshold']:  # sanity check
             self.logger.error(msg=f"Tried to sign tx {tx.id}, without enough signatures"

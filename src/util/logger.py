@@ -7,7 +7,7 @@ import mongoengine
 
 from src.db.collections.log import Logs
 
-LOG_LEVEL = logging.DEBUG
+DB_LOG_LEVEL = logging.ERROR
 
 
 class CustomFormatter(logging.Formatter):
@@ -67,14 +67,14 @@ def get_logger(logger_name: str = 'enigma', db_name: str = '') -> logging.Logger
     logger.addHandler(handler)
 
     if db_name:
-        db_handler = DBLoggerHandler(db_name, LOG_LEVEL)
+        db_handler = DBLoggerHandler(db_name, DB_LOG_LEVEL)
         logger.addHandler(db_handler)
 
     return logger
 
 
 class DBLoggerHandler(logging.Handler):
-    def __init__(self, db_name, level: int = LOG_LEVEL):
+    def __init__(self, db_name, level: int = DB_LOG_LEVEL):
         super().__init__(level)
         self.connection = mongoengine.connect(db_name)
         self.formatter = CustomFormatter()

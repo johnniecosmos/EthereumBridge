@@ -10,8 +10,15 @@ from src.util.secretcli import query_scrt_swap
 from src.util.config import Config
 
 
-class EtherLeader(Thread):  # pylint: disable=too-many-instance-attributes
-    """ Broadcasts signed ETH transfers after successful Secret-20 swap event """
+class EtherLeader(Thread):
+    """
+    secretETH --> Swap TX --> ETH
+
+    On Ethereum the leader monitors the sETH Secret Contract. When it sees a new swap, it will
+    broadcast a submit transaction on-chain.
+
+    The account set here must have enough ETH for all the transactions you're planning on doing
+    """
 
     def __init__(self, multisig_wallet: MultisigWallet, config: Config, **kwargs):
         self.config = config

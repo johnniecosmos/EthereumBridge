@@ -7,7 +7,7 @@ from pytest import fixture
 
 import tests as tests_package
 import tests.utils as utils_package
-from src.signer.secret_signer import SecretAccount
+from src.signer.secret20.signer import SecretAccount
 from src.util.common import module_dir
 # from tests import config
 
@@ -52,7 +52,7 @@ def multisig_account(configuration: Config):
 
 
 @fixture(scope="module")
-def scrt_signer_keys(configuration: Config) -> List[SecretAccount]:
+def scrt_accounts(configuration: Config) -> List[SecretAccount]:
     """multisig accounts for signers"""
     threshold = configuration['signatures_threshold']
     multisig_acc_addr = get_key_multisig_addr(f"ms{threshold}")

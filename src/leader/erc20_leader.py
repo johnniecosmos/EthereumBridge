@@ -15,7 +15,7 @@ class ERC20Leader(EtherLeader):  # pylint: disable=too-many-instance-attributes
     def __init__(self, multisig_wallet: MultisigWallet, token: Token, config: Config):
         self.token_contract = Erc20(Web3(Web3.HTTPProvider(config['eth_node_address'])),
                                     token,
-                                    self.multisig_wallet.address)
+                                    multisig_wallet.address)
         super().__init__(multisig_wallet, config)
 
     def _handle_swap(self, swap_data: str):

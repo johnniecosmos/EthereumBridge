@@ -55,7 +55,7 @@ class Swap(Document):
     status = EnumField(Status, required=True)
     unsigned_tx = StringField(required=True)
     dst_tx_hash = StringField(required=True, default='')
-    dst_network = StringField(required=True, default='scrt')
+    dst_network = StringField(required=True, default='secret20')
     dst_coin = StringField(required=True, default='seth')
     created_on = DateTimeField(default=datetime.utcnow())
     updated_on = DateTimeField(default=datetime.utcnow())

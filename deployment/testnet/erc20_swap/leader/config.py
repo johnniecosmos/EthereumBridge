@@ -28,6 +28,6 @@ token_contract_addr = "0x06526C574BA6e45069057733bB001520f08b59ff"
 leader_acc_addr = "0x53c22DBaFAFCcA28F6E2644b82eca5F8D66be96E"
 leader_key = "af2aa65ae259a496a134431d41a89cb1e8b81e3049141b77797d0b04bc7458a0"
 
-# ~~~~~~~~~~~~~~~~~~ scrt ~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~ secret20 ~~~~~~~~~~~~~~~~~~
 multisig_acc_addr = "secret1zh8w8q6tkqrrpz064c0xpjgkeyvnzvg3edg4cl"
 multisig_key_name = "ms2"

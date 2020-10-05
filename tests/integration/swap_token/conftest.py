@@ -12,9 +12,9 @@ from pytest import fixture
 
 from src.util.config import Config
 from src.contracts.ethereum.erc20 import Erc20
-from src.contracts.ethereum.event_listener import EventListener
+from src.contracts.ethereum.event_listener import EthEventListener
 from src.manager import Manager
-from src.signer.secret_signer import SecretSigner
+from src.signer.secret20.signer import Secret20Signer
 from tests.integration.conftest import contracts_folder, brownie_project_folder
 from tests.utils.keys import get_viewing_key
 
@@ -99,7 +99,7 @@ def erc20_contract(multisig_wallet, web3_provider, erc20_address):
 
 @fixture(scope="module")
 def event_listener_erc20(erc20_contract, web3_provider, configuration):
-    listener = EventListener(erc20_contract, web3_provider, configuration)
+    listener = EthEventListener(erc20_contract, web3_provider, configuration)
     yield listener
     listener.stop_event.set()
 
@@ -112,10 +112,10 @@ def manager(event_listener_erc20, erc20_contract, multisig_account, configuratio
 
 
 @fixture(scope="module")
-def scrt_signers(scrt_signer_keys, erc20_contract, configuration) -> List[SecretSigner]:
-    signers: List[SecretSigner] = []
-    for index, key in enumerate(scrt_signer_keys):
-        s = SecretSigner(key, erc20_contract, configuration)
+def scrt_signers(scrt_accounts, erc20_contract, configuration) -> List[Secret20Signer]:
+    signers: List[Secret20Signer] = []
+    for index, key in enumerate(scrt_accounts):
+        s = Secret20Signer(key, erc20_contract, configuration)
         signers.append(s)
 
     return signers
