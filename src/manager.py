@@ -4,10 +4,10 @@ from web3.datastructures import AttributeDict
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.contracts.secret.secret_contract import mint_json
-from src.db.collections.eth_swap import ETHSwap, Status
+from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.management import Management, Source
 from src.db.collections.signatures import Signatures
-from src.event_listener import EventListener
+from src.contracts.ethereum.event_listener import EventListener
 from src.signer.secret_signer import SecretAccount
 from src.util.config import Config
 from src.util.logger import get_logger
@@ -35,9 +35,9 @@ class Manager:
     def run(self):
         """Scans for signed transactions and updates status if multisig threshold achieved"""
         while not self.stop_signal.is_set():
-            for transaction in ETHSwap.objects(status=Status.SWAP_STATUS_UNSIGNED.value):
+            for transaction in Swap.objects(status=Status.SWAP_STATUS_UNSIGNED):
                 if Signatures.objects(tx_id=transaction.id).count() >= self.config['signatures_threshold']:
-                    transaction.status = Status.SWAP_STATUS_SIGNED.value
+                    transaction.status = Status.SWAP_STATUS_SIGNED
                     transaction.save()
             self.stop_signal.wait(self.config['sleep_interval'])
 
@@ -80,7 +80,7 @@ class Manager:
                                              self.multisig.address)
 
             # if ETHSwap.objects(tx_hash=tx_hash).count() == 0:  # TODO: exception because of force_insert?
-            tx = ETHSwap(tx_hash=tx_hash, status=Status.SWAP_STATUS_UNSIGNED.value, unsigned_tx=unsigned_tx)
+            tx = Swap(src_tx_hash=tx_hash, status=Status.SWAP_STATUS_UNSIGNED, unsigned_tx=unsigned_tx)
             tx.save(force_insert=True)
 
             Management.update_last_processed(src=Source.eth.value, update_val=block_number)

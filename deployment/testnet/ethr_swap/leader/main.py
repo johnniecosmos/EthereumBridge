@@ -4,7 +4,7 @@ from web3 import Web3
 from deployment.testnet.ethr_swap.leader import config
 from src.contracts.ethereum.message import Message
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
-from src.event_listener import EventListener
+from src.contracts.ethereum.event_listener import EventListener
 from src.leader.ether_leader import EtherLeader
 from src.leader.secret_leader import SecretLeader
 from src.manager import Manager

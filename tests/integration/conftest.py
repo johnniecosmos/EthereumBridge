@@ -12,7 +12,7 @@ import src.contracts.ethereum as contracts_package
 import tests.integration as integration_package
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import change_admin
-from src.event_listener import EventListener
+from src.contracts.ethereum.event_listener import EventListener
 from src.leader.ether_leader import EtherLeader
 from src.leader.secret_leader import SecretLeader
 from src.manager import Manager
@@ -28,26 +28,24 @@ brownie_project_folder = os.path.join(module_dir(integration_package), 'brownie_
 
 
 @fixture(scope="module")
-def ethr_signers(event_listener, web3_provider, multisig_wallet,
-                 configuration: Config, ether_accounts) -> List[EtherSigner]:
+def ethr_signers(event_listener, multisig_wallet, configuration: Config, ether_accounts) -> List[EtherSigner]:
     res = []
-    configuration['eth_signer_start_block'] = web3_provider.eth.blockNumber
     # we will manually create the last signer in test_3
     for acc in ether_accounts[:-1]:
         private_key = acc.key
         address = acc.address
 
-        res.append(EtherSigner(event_listener, web3_provider, multisig_wallet, private_key, address, configuration))
+        res.append(EtherSigner(event_listener, multisig_wallet, private_key, address, configuration))
 
     yield res
     rmtree(Path.joinpath(Path.home(), ".bridge_test"), ignore_errors=True)
 
 
 @fixture(scope="module")
-def scrt_signers(scrt_signer_keys, web3_provider, multisig_wallet, configuration) -> List[SecretSigner]:
+def scrt_signers(scrt_signer_keys, multisig_wallet, configuration) -> List[SecretSigner]:
     signers: List[SecretSigner] = []
     for index, key in enumerate(scrt_signer_keys):
-        s = SecretSigner(web3_provider, key, multisig_wallet, configuration)
+        s = SecretSigner(key, multisig_wallet, configuration)
         signers.append(s)
 
     return signers
@@ -73,7 +71,7 @@ def ether_accounts(web3_provider, configuration: Config):
         # account[0] is network.eth.coinbase
         web3_provider.eth.sendTransaction({'from': normalize_address(web3_provider.eth.accounts[0]),
                                            'to': normalize_address(acc.address),
-                                           'value': 10000000000000000000})
+                                           'value': 1000000000000000000})
         res.append(acc)
 
     return res
@@ -98,7 +96,8 @@ def ethr_leader(multisig_account, configuration: Config, web3_provider, multisig
     configuration['leader_acc_addr'] = normalize_address(ether_accounts[0].address)
     configuration['eth_start_block'] = web3_provider.eth.blockNumber
 
-    leader = EtherLeader(web3_provider, multisig_wallet, configuration)
+    leader = EtherLeader(multisig_wallet, configuration)
+    leader.start()
     yield leader
     leader.stop_event.set()
 
@@ -108,8 +107,11 @@ def scrt_leader(multisig_account: SecretAccount, configuration: Config):
     change_admin_q = f"docker exec secretdev secretcli tx compute execute " \
                      f"{configuration['secret_contract_address']}" \
                      f" '{change_admin(multisig_account.address)}' --from a -y"
-    res = run(change_admin_q, shell=True, stdout=PIPE, stderr=PIPE)
-    return SecretLeader(multisig_account, configuration)
+    _ = run(change_admin_q, shell=True, stdout=PIPE, stderr=PIPE)
+    leader = SecretLeader(multisig_account, configuration)
+    leader.start()
+    yield leader
+    leader.stop_event.set()
 
 
 @fixture(scope="module")

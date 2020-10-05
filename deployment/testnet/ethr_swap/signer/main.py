@@ -4,11 +4,10 @@ from web3 import Web3
 from deployment.testnet.ethr_swap.signer import config
 from src.contracts.ethereum.message import Message
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
-from src.event_listener import EventListener
+from src.contracts.ethereum.event_listener import EventListener
 from src.signer.ether_signer import EtherSigner
 from src.signer.secret_signer import SecretSigner, MultiSig
 from src.util.web3 import send_contract_tx
-from src.util.config import Config
 
 web3_provider = Web3(Web3.HTTPProvider(config.provider_address))
 multisig_wallet = MultisigWallet(web3_provider, config.multisig_wallet_address)

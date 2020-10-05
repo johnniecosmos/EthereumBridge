@@ -5,12 +5,11 @@ from deployment.testnet.erc20_swap.leader import config
 from src.contracts.ethereum.erc20 import Erc20
 from src.contracts.ethereum.message import Message
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
-from src.event_listener import EventListener
+from src.contracts.ethereum.event_listener import EventListener
 from src.leader.ether_leader import EtherLeader
 from src.leader.secret_leader import SecretLeader
 from src.manager import Manager
 from src.signer.secret_signer import MultiSig
-from src.util.web3 import send_contract_tx
 
 web3_provider = Web3(Web3.HTTPProvider(config.provider_address))
 multisig_wallet = MultisigWallet(web3_provider, config.multisig_wallet_address)

@@ -12,7 +12,7 @@ from pytest import fixture
 
 from src.util.config import Config
 from src.contracts.ethereum.erc20 import Erc20
-from src.event_listener import EventListener
+from src.contracts.ethereum.event_listener import EventListener
 from src.manager import Manager
 from src.signer.secret_signer import SecretSigner
 from tests.integration.conftest import contracts_folder, brownie_project_folder
@@ -112,10 +112,10 @@ def manager(event_listener_erc20, erc20_contract, multisig_account, configuratio
 
 
 @fixture(scope="module")
-def scrt_signers(scrt_signer_keys, web3_provider, erc20_contract, configuration) -> List[SecretSigner]:
+def scrt_signers(scrt_signer_keys, erc20_contract, configuration) -> List[SecretSigner]:
     signers: List[SecretSigner] = []
     for index, key in enumerate(scrt_signer_keys):
-        s = SecretSigner(web3_provider, key, erc20_contract, configuration)
+        s = SecretSigner(key, erc20_contract, configuration)
         signers.append(s)
 
     return signers

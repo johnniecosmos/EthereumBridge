@@ -6,7 +6,7 @@ from time import sleep
 
 from web3 import Web3
 
-from src.db.collections.eth_swap import ETHSwap, Status
+from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.management import Source, Management
 from src.db.collections.signatures import Signatures
 from src.signer.ether_signer import EtherSigner
@@ -40,12 +40,12 @@ def test_1(setup, manager, scrt_signers, web3_provider, configuration: Config, e
 
     sleep(configuration['sleep_interval'] + 2)
 
-    assert ETHSwap.objects(tx_hash=tx_hash).count() == 0  # verify blocks confirmation threshold wasn't meet
+    assert Swap.objects(src_tx_hash=tx_hash).count() == 0  # verify blocks confirmation threshold wasn't meet
     assert increase_block_number(web3_provider, 1)  # add the 'missing' confirmation block
 
     # give event listener and manager time to process tx
     sleep(configuration['sleep_interval'] + 2)
-    assert ETHSwap.objects(tx_hash=tx_hash).count() == 1  # verify swap event recorded
+    assert Swap.objects(src_tx_hash=tx_hash).count() == 1  # verify swap event recorded
 
     sleep(1)
     # check signers were notified of the tx and signed it
@@ -53,7 +53,7 @@ def test_1(setup, manager, scrt_signers, web3_provider, configuration: Config, e
 
     # give time for manager to process the signatures
     sleep(configuration['sleep_interval'] + 2)
-    assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SIGNED.value
+    assert Swap.objects().get().status == Status.SWAP_STATUS_SIGNED
 
 
 # Covers from Leader broadcast of signed tx to scrt swap tx submission on smart contract (withdraw)
@@ -63,10 +63,10 @@ def test_1(setup, manager, scrt_signers, web3_provider, configuration: Config, e
 def test_2(scrt_leader, configuration: Config, erc20_contract, web3_provider, scrt_signers):
     # give scrt_leader time to multi-sign already existing signatures
     sleep(configuration['sleep_interval'] + 3)
-    assert ETHSwap.objects().get().status == Status.SWAP_STATUS_SUBMITTED.value
+    assert Swap.objects().get().status == Status.SWAP_STATUS_SUBMITTED
 
     # get tx details
-    tx_hash = ETHSwap.objects().get().tx_hash
+    tx_hash = Swap.objects().get().src_tx_hash
     _, log = event_log(tx_hash, ['Transfer'], web3_provider, erc20_contract.contract)
     transfer_amount = web3_provider.fromWei(erc20_contract.extract_amount(log), 'ether')
     dest = erc20_contract.extract_addr(log)

@@ -11,7 +11,7 @@ import src.contracts.ethereum.message as message
 from src.contracts.ethereum.erc20 import Erc20
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
-from src.event_listener import EventListener
+from src.contracts.ethereum.event_listener import EventListener
 from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.secretcli import query_scrt_swap
@@ -19,12 +19,15 @@ from src.util.web3 import contract_event_in_range
 
 
 class EtherSigner:  # pylint: disable=too-many-instance-attributes, too-many-arguments
-    """Verifies Secret swap tx and adds it's confirmation to the smart contract"""
+    """Verifies Secret swap tx and adds it's confirmation to the smart contract
 
-    def __init__(self, event_listener: EventListener, provider: Web3, multisig_wallet: MultisigWallet,
+    Signs on the ETH side, after verifying SCRT tx stored in the db
+    """
+
+    def __init__(self, event_listener: EventListener, multisig_wallet: MultisigWallet,
                  private_key: bytes, acc_addr: str, config: Config):
         # todo: simplify this, pylint is right
-        self.provider = provider
+        self.provider = Web3(Web3.HTTPProvider(config['eth_node_address']))  # todo: option to set as WSS
         self.multisig_wallet = multisig_wallet
         self.private_key = private_key
         self.default_account = acc_addr
@@ -38,7 +41,7 @@ class EtherSigner:  # pylint: disable=too-many-instance-attributes, too-many-arg
 
         self.mint_token: bool = self.config['mint_token']
         if self.mint_token:
-            self.token_contract = Erc20(provider, config['token_contract_addr'], self.multisig_wallet.address)
+            self.token_contract = Erc20(self.provider, config['token_contract_addr'], self.multisig_wallet.address)
 
         self.thread_pool = ThreadPoolExecutor()
         event_listener.register(self.handle_submission, ['Submission'], 0)
@@ -91,14 +94,12 @@ class EtherSigner:  # pylint: disable=too-many-instance-attributes, too-many-arg
 
         self.catch_up_complete = True
 
-    def _choose_starting_block(self):
+    def _choose_starting_block(self) -> int:
         """Returns the block from which we start scanning Ethereum for new tx"""
         from_block = self.file_db.read()
         if from_block:  # if we have a record, use it
             return int(from_block)
-        if 'eth_signer_start_block' in dir(self.config):
-            return int(self.config['eth_signer_start_block'])
-        return 0
+        return self.config.get('eth_signer_start_block', 0)
 
     def _update_last_block_processed(self, block_num: int):
         self.file_db.seek(0)
@@ -119,11 +120,11 @@ class EtherSigner:  # pylint: disable=too-many-instance-attributes, too-many-arg
         try:
             swap_data = swap_query_res(swap)
         except (AttributeError, JSONDecodeError) as e:
-            self.logger.error(msg=f"Validation failed. Swap event:{swap}, Error: {e}")
+            self.logger.error(f"Validation failed. Swap event:{swap}, Error: {e}")
             return False
         if self._check_tx_data(swap_data, submission_data):
             return True
-        self.logger.info(msg=f"Validation failed. Swap event:{swap}")
+        self.logger.info(f"Validation failed. Swap event:{swap}")
         return False
 
     def _check_tx_data(self, swap_data: dict, submission_data: dict) -> bool:

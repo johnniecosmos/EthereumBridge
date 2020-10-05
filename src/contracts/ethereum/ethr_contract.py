@@ -1,11 +1,12 @@
 import json
 from abc import abstractmethod
+from typing import Optional
 
 from web3 import Web3
 from web3.datastructures import AttributeDict
 
 from src.contracts.ethereum.message import Message
-from src.util.web3 import normalize_address, send_contract_tx
+from src.util.web3 import normalize_address, send_contract_tx, event_log
 
 
 class EthereumContract:
@@ -13,14 +14,29 @@ class EthereumContract:
 
     def __init__(self, provider: Web3, contract_address: str, abi_path: str):
         self.abi = self.load_abi(abi_path)
-        self.address = contract_address
-        self.contract = provider.eth.contract(address=normalize_address(self.address), abi=self.abi)
+        self._address = contract_address
+        self.contract = provider.eth.contract(address=normalize_address(self._address), abi=self.abi)
         self.provider = provider
+
+    @property
+    def address(self):
+        return self._address
 
     @staticmethod
     def load_abi(abi_path_: str) -> str:
         with open(abi_path_, "r") as f:
             return json.load(f)['abi']
+
+    def get_events_by_tx(self, tx_id: str) -> Optional[AttributeDict]:
+        """ get logs for a tx with a key
+
+        :param tx_id: a valid 32 byte hex string
+        """
+        _, log = event_log(tx_id, [self.tracked_event()], self.provider, self.contract)
+
+        if not log:  # because for some reason event_log can return None???
+            return None
+        return log
 
     def contract_tx(self, func_name: str, from_: str, private_key: bytes, message: Message):
         """

@@ -4,14 +4,18 @@ from typing import Tuple
 from web3 import Web3
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
-from src.util.common import project_base_path
+from src.util.common import project_base_path, Token
 
 
 class Erc20(EthereumContract):
-    def __init__(self, provider: Web3, contract_address: str, multisig_wallet_addr: str):
+    def __init__(self, provider: Web3, token: Token, multisig_wallet_addr: str):
         abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'ethereum', 'abi', 'EIP20.json')
-        super().__init__(provider, contract_address, abi_path)
+        self.token = token
+        super().__init__(provider, token.address, abi_path)
         self.multisig_wallet_addr = multisig_wallet_addr
+
+    def symbol(self):
+        return self.token.name
 
     def extract_addr(self, tx_log) -> str:
         return tx_log.args.recipient.decode()

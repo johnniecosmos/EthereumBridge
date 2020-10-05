@@ -1,10 +1,7 @@
 from subprocess import CalledProcessError
 from threading import Event, Thread
 
-from web3 import Web3
-
 import src.contracts.ethereum.message as message
-from src.contracts.ethereum.erc20 import Erc20
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
 from src.db.collections.management import Management, Source
@@ -13,11 +10,10 @@ from src.util.secretcli import query_scrt_swap
 from src.util.config import Config
 
 
-class EtherLeader:  # pylint: disable=too-many-instance-attributes
-    """Broadcasts signed transactions Scrt -> Ethr"""
+class EtherLeader(Thread):  # pylint: disable=too-many-instance-attributes
+    """ Broadcasts signed ETH transfers after successful Secret-20 swap event """
 
-    def __init__(self, provider: Web3, multisig_wallet: MultisigWallet, config: Config):
-        self.provider = provider
+    def __init__(self, multisig_wallet: MultisigWallet, config: Config, **kwargs):
         self.config = config
         self.multisig_wallet = multisig_wallet
         self.private_key = config['leader_key']
@@ -25,13 +21,7 @@ class EtherLeader:  # pylint: disable=too-many-instance-attributes
         self.logger = get_logger(db_name=self.config['db_name'],
                                  logger_name=config.get('logger_name', self.__class__.__name__))
         self.stop_event = Event()
-
-        # metadata that is used to allow withdraw from 3rd party erc20 contract
-        self.mint_token: bool = self.config['mint_token']
-        if self.mint_token:
-            self.token_contract = Erc20(provider, config['token_contract_addr'], self.multisig_wallet.address)
-
-        Thread(target=self._scan_swap).start()
+        super().__init__(group=None, name="EtherLeader", target=self._scan_swap, **kwargs)
 
     def _scan_swap(self):
         """ Scans secret network contract for swap events """
@@ -62,21 +52,11 @@ class EtherLeader:  # pylint: disable=too-many-instance-attributes
         swap_json = swap_query_res(swap_data)
 
         data = b""
-        if self.mint_token:  # dealing with token to token transfer
-            # Note: if token is to-be-swapped, the destination function name HAS to have the following signature
-            # transfer(address to, uint256 value)
-            data = self.token_contract.contract_tx_as_bytes('transfer',
-                                                            swap_json['destination'],
-                                                            int(swap_json['amount']),
-                                                            b"")
-            msg = message.Submit(self.token_contract.address,
-                                 0,  # if we are swapping token, no ethr should be rewarded
-                                 int(swap_json['nonce']), data)
-        else:  # dealing with token to ethr transfer
-            msg = message.Submit(swap_json['destination'], int(swap_json['amount']), int(swap_json['nonce']), data)
 
+        msg = message.Submit(swap_json['destination'], int(swap_json['amount']), int(swap_json['nonce']), data)
+
+        self._broadcast_transaction(msg)
+
+    def _broadcast_transaction(self, msg: message.Submit):
         tx_hash = self.multisig_wallet.submit_transaction(self.default_account, self.private_key, msg)
         self.logger.info(msg=f"Submitted tx, tx hash: {tx_hash.hex()}, msg: {msg}")
-
-        # except Exception as e:
-        #     self.logger.error(msg=f"Failed swap, transaction data: {swap_data}. Error: {e}")

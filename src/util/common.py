@@ -1,4 +1,5 @@
 import sys
+from collections import namedtuple
 from contextlib import contextmanager
 from os import remove
 from pathlib import Path
@@ -39,3 +40,6 @@ def project_base_path():
 
 def module_dir(module) -> Path:
     return Path(module.__file__).parent
+
+
+Token = namedtuple('Token', ['address', 'name'])

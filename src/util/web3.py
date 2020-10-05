@@ -1,7 +1,5 @@
-from typing import Union, List, Tuple, Optional, Generator
+from typing import List, Tuple, Optional, Generator
 
-from eth_typing import HexStr, Hash32
-from hexbytes import HexBytes
 from web3 import Web3
 from web3.contract import Contract as Web3Contract
 from web3.datastructures import AttributeDict
@@ -22,7 +20,7 @@ def extract_tx_by_address(address, block: BlockData) -> list:
     return [tx for tx in block.transactions if tx.to and address.lower() == tx.to.lower()]
 
 
-def event_log(tx_hash: Union[Hash32, HexBytes, HexStr], events: List[str], provider: Web3, contract: Web3Contract) -> \
+def event_log(tx_hash: str, events: List[str], provider: Web3, contract: Web3Contract) -> \
         Tuple[str, Optional[AttributeDict]]:
     """
     Extracts logs of @event from tx_hash if present
@@ -32,6 +30,7 @@ def event_log(tx_hash: Union[Hash32, HexBytes, HexStr], events: List[str], provi
     :param contract: Web3 Contract
     :return: event name and log represented in 'AttributeDict' or 'None' if not found
     """
+
     receipt = provider.eth.getTransactionReceipt(tx_hash)
     for event in events:
         # we discard warning as we do best effort to find wanted event, not always there
