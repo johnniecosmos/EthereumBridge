@@ -24,8 +24,12 @@ class EtherSigner:  # pylint: disable=too-many-instance-attributes, too-many-arg
     Signs on the ETH side, after verifying SCRT tx stored in the db
     """
 
-    def __init__(self, event_listener: EventListener, multisig_wallet: MultisigWallet,
-                 private_key: bytes, acc_addr: str, config: Config):
+    def __init__(self,
+                 event_listener: EventListener,
+                 multisig_wallet: MultisigWallet,
+                 private_key: bytes,
+                 acc_addr: str,
+                 config: Config):
         # todo: simplify this, pylint is right
         self.provider = Web3(Web3.HTTPProvider(config['eth_node_address']))  # todo: option to set as WSS
         self.multisig_wallet = multisig_wallet
@@ -38,10 +42,6 @@ class EtherSigner:  # pylint: disable=too-many-instance-attributes, too-many-arg
         self.submissions_lock = Lock()
         self.catch_up_complete = False
         self.file_db = self._create_file_db()
-
-        self.mint_token: bool = self.config['mint_token']
-        if self.mint_token:
-            self.token_contract = Erc20(self.provider, config['token_contract_addr'], self.multisig_wallet.address)
 
         self.thread_pool = ThreadPoolExecutor()
         event_listener.register(self.handle_submission, ['Submission'], 0)
@@ -129,20 +129,11 @@ class EtherSigner:  # pylint: disable=too-many-instance-attributes, too-many-arg
 
     def _check_tx_data(self, swap_data: dict, submission_data: dict) -> bool:
         """
-        This used to verify both uScrt <-> ether and uScrt <-> erc20 tx data
+        This used to verify secret-20 <-> ether tx data
         :param swap_data: the data from scrt contract query
         :param submission_data: the data from the proposed tx on the smart contract
         """
-        if not self.mint_token:  # swapping scrt for ethr
-            return int(swap_data['amount']) == int(submission_data['value'])
-
-        if int(submission_data['value']) != 0:  # sanity check
-            self.logger.critical(msg=f"Trying to swap ethr while swap_token flag is true. "
-                                     f"Tx: {swap_data['ethr_tx_hash']}")
-            return False
-
-        addr, amount = self.token_contract.decode_encodeAbi(submission_data['data'])
-        return addr.lower() == swap_data['destination'].lower() and amount == int(swap_data['amount'])
+        return int(swap_data['amount']) == int(submission_data['value'])
 
     def _is_confirmed(self, transaction_id: int, submission_data: Dict[str, any]) -> bool:
         """Checks with the data on the contract if signer already added confirmation or if threshold already reached"""
