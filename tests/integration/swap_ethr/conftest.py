@@ -5,11 +5,16 @@ import string
 import random
 from shutil import copy, rmtree
 from time import sleep
+from typing import List
 
 from brownie import project, network
 from brownie.exceptions import ProjectAlreadyLoaded
 from pytest import fixture
 
+from src.contracts.ethereum.event_listener import EthEventListener
+from src.contracts.secret.secret_contract import change_admin
+from src.leader.scrt.leader import SecretLeader
+from src.signer.secret20.signer import SecretAccount, Secret20Signer
 from src.util.config import Config
 from tests.integration.conftest import contracts_folder, brownie_project_folder
 from tests.utils.keys import get_viewing_key
@@ -18,6 +23,7 @@ from tests.utils.keys import get_viewing_key
 def rand_str(n):
     alphabet = string.ascii_letters + string.digits
     return ''.join(random.choice(alphabet) for i in range(n))
+
 
 @fixture(scope="module")
 def setup(make_project, configuration: Config):
@@ -65,3 +71,34 @@ def make_project(db, configuration: Config):
     del brownie_project
     sleep(1)
     rmtree(brownie_project_folder, ignore_errors=True)
+
+
+@fixture(scope="module")
+def event_listener(multisig_wallet, configuration: Config):
+    listener = EthEventListener(multisig_wallet, configuration)
+    yield listener
+    listener.stop()
+
+
+@fixture(scope="module")
+def scrt_leader(multisig_account: SecretAccount, event_listener, multisig_wallet, configuration: Config):
+    change_admin_q = f"docker exec secretdev secretcli tx compute execute " \
+                     f"{configuration['secret_contract_address']}" \
+                     f" '{change_admin(multisig_account.address)}' --from a -y"
+    _ = subprocess.run(change_admin_q, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    leader = SecretLeader(multisig_account, event_listener, multisig_wallet, configuration)
+    yield leader
+    leader.stop()
+
+
+@fixture(scope="module")
+def scrt_signers(scrt_accounts, multisig_wallet, configuration) -> List[Secret20Signer]:
+    signers: List[Secret20Signer] = []
+    for account in scrt_accounts:
+        s = Secret20Signer(multisig_wallet, account, configuration)
+        signers.append(s)
+
+    yield signers
+
+    for signer in signers:
+        signer.stop()

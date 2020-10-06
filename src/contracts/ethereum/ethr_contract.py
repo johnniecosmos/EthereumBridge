@@ -38,17 +38,17 @@ class EthereumContract:
             return None
         return log
 
-    def contract_tx(self, func_name: str, from_: str, private_key: bytes, message: Message):
+    def send_transaction(self, func_name: str, from_: str, private_key: bytes, *args):
         """
         Used for sending contract transactions (executing @func_name  on a ethr contract)
         :param func_name: name of the function to invoke in the contract
         :param from_: the account from which gas payment will be taken
         :param private_key: private key matching the from_ account
-        :param message: see 'send_contract_tx' for more details
+        :param args: see 'send_contract_tx' for more details
         """
-        return send_contract_tx(self.provider, self.contract, func_name, from_, private_key, *message.args())
+        return send_contract_tx(self.provider, self.contract, func_name, from_, private_key, *args)
 
-    def contract_tx_as_bytes(self, fn_name: str, *args):
+    def transaction_raw_bytes(self, fn_name: str, *args):
         """
         In order to invoke functions in contracts, one would we required to generate the raw tx message and pass
         it as param to the call function. call signature: call(g, a, v, in, insize, out, outsize).

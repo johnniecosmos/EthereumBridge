@@ -32,8 +32,8 @@ class EtherLeader(Thread):
 
     def _scan_swap(self):
         """ Scans secret network contract for swap events """
-        current_nonce = Management.last_processed(Source.scrt.value)
-        doc = Management.objects(nonce=current_nonce, src=Source.scrt.value).get()
+        current_nonce = Management.last_processed(Source.SCRT.value)
+        doc = Management.objects(nonce=current_nonce, src=Source.SCRT.value).get()
         next_nonce = current_nonce + 1
 
         while not self.stop_event.is_set():

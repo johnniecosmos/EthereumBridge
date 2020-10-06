@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 from shutil import rmtree
-from subprocess import run, PIPE
 from typing import List
 
 from brownie import accounts
@@ -11,13 +10,8 @@ from web3 import Web3
 import src.contracts.ethereum as contracts_package
 import tests.integration as integration_package
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
-from src.contracts.secret.secret_contract import change_admin
-from src.contracts.ethereum.event_listener import EthEventListener
-from src.leader.ether_leader import EtherLeader
-from src.leader.secret_leader import SecretLeader
-from src.manager import Manager
+from src.leader.eth.leader import EtherLeader
 from src.signer.eth.signer import EtherSigner
-from src.signer.secret20.signer import SecretAccount
 from src.signer.secret20.signer import Secret20Signer
 from src.util.common import module_dir
 from src.util.config import Config
@@ -42,19 +36,6 @@ def ethr_signers(multisig_wallet, configuration: Config, ether_accounts) -> List
     for signer in res:
         signer.stop()
     rmtree(Path.joinpath(Path.home(), ".bridge_test"), ignore_errors=True)
-
-
-@fixture(scope="module")
-def scrt_signers(scrt_accounts, multisig_wallet, configuration) -> List[Secret20Signer]:
-    signers: List[Secret20Signer] = []
-    for index, account in enumerate(scrt_accounts):
-        s = Secret20Signer(multisig_wallet, account, configuration)
-        signers.append(s)
-
-    yield signers
-
-    for signer in signers:
-        signer.stop()
 
 
 @fixture(scope="module")
@@ -84,16 +65,9 @@ def ether_accounts(web3_provider, configuration: Config):
 
 
 @fixture(scope="module")
-def web3_provider():
+def web3_provider(configuration):
     # connect to local ganache node, started by brownie
-    return Web3(Web3.HTTPProvider('http://127.0.0.1:8545'))
-
-
-@fixture(scope="module")
-def manager(event_listener, multisig_wallet, multisig_account, configuration: Config):
-    manager = Manager(event_listener, multisig_wallet, multisig_account, configuration)
-    yield manager
-    manager.stop_signal.set()
+    return Web3(Web3.HTTPProvider(configuration['eth_node_address']))
 
 
 @fixture(scope="module")
@@ -107,21 +81,3 @@ def ethr_leader(multisig_account, configuration: Config, web3_provider, multisig
     yield leader
     leader.stop_event.set()
 
-
-@fixture(scope="module")
-def scrt_leader(multisig_account: SecretAccount, configuration: Config):
-    change_admin_q = f"docker exec secretdev secretcli tx compute execute " \
-                     f"{configuration['secret_contract_address']}" \
-                     f" '{change_admin(multisig_account.address)}' --from a -y"
-    _ = run(change_admin_q, shell=True, stdout=PIPE, stderr=PIPE)
-    leader = SecretLeader(multisig_account, configuration)
-    leader.start()
-    yield leader
-    leader.stop_event.set()
-
-
-@fixture(scope="module")
-def event_listener(multisig_wallet, configuration: Config):
-    listener = EthEventListener(multisig_wallet, configuration)
-    yield listener
-    listener.stop_event.set()

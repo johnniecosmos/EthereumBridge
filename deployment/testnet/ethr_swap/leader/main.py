@@ -5,9 +5,9 @@ from deployment.testnet.ethr_swap.leader import config
 from src.contracts.ethereum.message import Message
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.ethereum.event_listener import EthEventListener
-from src.leader.ether_leader import EtherLeader
-from src.leader.secret_leader import SecretLeader
-from src.manager import Manager
+from src.leader.eth.leader import EtherLeader
+from src.leader.scrt.leader import SecretLeader
+from src.leader.scrt.manager import SecretManager
 from src.signer.secret20.signer import MultiSig
 
 
@@ -26,5 +26,5 @@ if __name__ == "__main__":
     connection = connect(db=config.db_name)
     ethr_leader = EtherLeader(web3_provider, multisig_wallet, config)
     scrt_leader = SecretLeader(multi_sig_acc, config)
-    manager = Manager(event_listener, multisig_wallet, multi_sig_acc, config)
+    manager = SecretManager(event_listener, multisig_wallet, multi_sig_acc, config)
     pass

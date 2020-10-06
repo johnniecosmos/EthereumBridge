@@ -6,8 +6,11 @@ from typing import List
 
 from mongoengine import OperationError
 
+from src.contracts.ethereum.ethr_contract import EthereumContract
+from src.contracts.ethereum.event_listener import EthEventListener
 from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.signatures import Signatures
+from src.leader.scrt.manager import SecretManager
 from src.signer.secret20.signer import SecretAccount
 from src.util.common import temp_file, temp_files
 from src.util.logger import get_logger
@@ -22,17 +25,19 @@ SCRT_BLOCK_TIME = 7
 class SecretLeader(Thread):
     """ Broadcasts signed Secret-20 minting tx after successful ETH or ERC20 swap event """
 
-    def __init__(self, secret_multisig: SecretAccount, config: Config, *args, **kwargs):
+    def __init__(self,
+                 secret_multisig: SecretAccount,
+                 contract: EthereumContract,
+                 config: Config, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.multisig_name = secret_multisig.name
         self.config = config
+        self.manager = SecretManager(contract, secret_multisig, config)
         self.logger = get_logger(db_name=self.config['db_name'],
-                                 logger_name=config.get('logger_name', self.__class__.__name__))
+                                 logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.multisig_name}"))
         self.stop_event = Event()
-        # Thread(target=self._catch_up).start()
-        # signals.post_save.connect(self._swap_signal, sender=Swap)
-        # signals.post_save.connect(self._broadcast_validation, sender=Swap)
-        super().__init__(group=None, name="SecretLeader", target=self._scan_swap, **kwargs)
+
+        super().__init__(group=None, name="SecretLeader", target=self.run, **kwargs)
 
     def _catch_up(self):
         """ Scans the DB for signed swap tx at startup"""
@@ -40,7 +45,14 @@ class SecretLeader(Thread):
         for tx in Swap.objects(status=Status.SWAP_STATUS_SIGNED):
             self._create_and_broadcast(tx)
 
+    def stop(self):
+        self.logger.info("Stopping")
+        self.manager.stop()
+        self.stop_event.set()
+
     def run(self):
+        self.logger.info("Starting")
+        self.manager.start()
         self._scan_swap()
 
     def _scan_swap(self):
@@ -50,20 +62,7 @@ class SecretLeader(Thread):
                 sleep(SCRT_BLOCK_TIME)
             for tx in Swap.objects(status=Status.SWAP_STATUS_SUBMITTED):
                 self._broadcast_validation(tx)
-        self.stop_event.wait(self.config['sleep_interval'])
-
-    # def _swap_signal(self, _, document, **kwargs):  # pylint: disable=unused-argument
-    #     """Callback function to handle db signals
-    #
-    #     **kwargs needs to be here even if unused, because this function gets passed arguments from mongo internals
-    #     """
-    #     if document.status == Status.SWAP_STATUS_SIGNED.value:
-    #         self._create_and_broadcast(document)
-        # pretty sure this can't actually fail, so this is unnecessary
-        # try:
-
-        # except Exception as e:
-        #     self.logger.error(msg=e)
+            self.stop_event.wait(self.config['sleep_interval'])
 
     def _create_and_broadcast(self, tx: Swap):
         # reacts to signed tx in the DB that are ready to be sent to secret20

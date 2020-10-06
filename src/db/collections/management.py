@@ -31,5 +31,5 @@ class Management(Document):
 
 
 class Source(Enum):
-    eth = 1
-    scrt = 2
+    ETH = 1
+    SCRT = 2

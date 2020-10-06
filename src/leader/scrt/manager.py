@@ -14,28 +14,34 @@ from src.util.logger import get_logger
 from src.util.secretcli import create_unsigned_tx
 
 
-class Manager:
+class SecretManager(Thread):
     """Registers to contract event and manages tx state in DB"""
 
-    def __init__(self, event_listener: EthEventListener, contract: EthereumContract,
-                 multisig: SecretAccount, config: Config):
+    def __init__(self, contract: EthereumContract,
+                 multisig: SecretAccount, config: Config, **kwargs):
         self.contract = contract
         self.config = config
         self.multisig = multisig
-        self.event_listener = event_listener
+        self.event_listener = EthEventListener(contract, config)
 
-        self.logger = get_logger("Manager", db_name=self.config.get('db_name', ''))
+        self.logger = get_logger(db_name=self.config['db_name'],
+                                 logger_name=config.get('logger_name',
+                                                        f"{self.__class__.__name__}-{self.multisig.name}"))
         self.stop_signal = Event()
 
-        self.event_listener.register(self._handle, [contract.tracked_event()], self.config['eth_confirmations'])
+        self.event_listener.register(self._handle, [contract.tracked_event()],
+                                     confirmations=self.config['eth_confirmations'])
+        super().__init__(group=None, name="SecretManager", target=self.run, **kwargs)
 
-        self.catch_up()
-        Thread(target=self.run).start()
+    def stop(self):
+        self.logger.info("Stopping..")
+        self.event_listener.stop()
+        self.stop_signal.set()
 
-    # noinspection PyUnresolvedReferences
     def run(self):
         """Scans for signed transactions and updates status if multisig threshold achieved"""
         self.logger.info("Starting..")
+        self.catch_up()
         self.event_listener.start()
         while not self.stop_signal.is_set():
             for transaction in Swap.objects(status=Status.SWAP_STATUS_UNSIGNED):
@@ -43,15 +49,14 @@ class Manager:
                     transaction.status = Status.SWAP_STATUS_SIGNED
                     transaction.save()
             self.stop_signal.wait(self.config['sleep_interval'])
-        self.logger.info("Stopping..")
 
     def catch_up(self):
-        from_block = Management.last_processed(Source.eth.value) + 1
+        from_block = Management.last_processed(Source.ETH.value) + 1
         self.logger.debug(f'Starting to catch up from block {from_block}')
         if self.config['eth_start_block'] > from_block:
             self.logger.debug(f'Due to config fast forwarding to block {self.config["eth_start_block"]}')
             from_block = self.config['eth_start_block']
-            Management.update_last_processed(Source.eth.value, from_block)
+            Management.update_last_processed(Source.ETH.value, from_block)
 
         to_block = \
             self.event_listener.provider.eth.getBlock('latest').number - self.config['eth_confirmations']
@@ -70,10 +75,10 @@ class Manager:
         if not self.contract.verify_destination(event):
             return
 
-        amount, _ = self.contract.extract_amount(event), self.contract.extract_addr(event)
+        amount = self.contract.extract_amount(event)
 
         try:
-            block_number, tx_hash, recipient = self._validate_event(event)
+            block_number, tx_hash, recipient = self._parse_event(event)
         except ValueError:
             return
 
@@ -87,14 +92,14 @@ class Manager:
             tx = Swap(src_tx_hash=tx_hash, status=Status.SWAP_STATUS_UNSIGNED, unsigned_tx=unsigned_tx)
             tx.save(force_insert=True)
             self.logger.info(f"saved new eth -> scrt transaction {tx_hash}")
-            Management.update_last_processed(src=Source.eth.value, update_val=block_number)
+            Management.update_last_processed(src=Source.ETH.value, update_val=block_number)
         except (IndexError, AttributeError) as e:
             self.logger.error(f"Failed on tx {tx_hash}, block {block_number}, "
                               f"due to missing config: {e}")
         except RuntimeError as e:
             self.logger.error(f"Failed to create swap tx for eth hash {tx_hash}, block {block_number}. Error: {e}")
 
-    def _validate_event(self, event: AttributeDict):
+    def _parse_event(self, event: AttributeDict):
         try:
             block_number = event["blockNumber"]
         except IndexError:

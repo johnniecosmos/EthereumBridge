@@ -7,14 +7,16 @@ from web3 import Web3
 from web3.exceptions import BlockNotFound
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
+from src.contracts.event_provider import EventProvider
 from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.web3 import extract_tx_by_address, event_log, contract_event_in_range, web3_provider
 
 
-class EthEventListener(Thread):
+class EthEventListener(EventProvider):
     """Tracks the block-chain for new transactions on a given address"""
     _ids = count(0)
+    _chain = "ETH"
 
     def __init__(self, contract: EthereumContract, config: Config, **kwargs):
         # Note: each event listener can listen to one contract at a time
@@ -29,15 +31,16 @@ class EthEventListener(Thread):
         self.stop_event = Event()
         super().__init__(group=None, name=f"EventListener-{config.get('logger_name', '')}", target=self.run, **kwargs)
 
-    def register(self, callback: Callable, events: List[str], confirmations_required: int = 0):
+    def register(self, callback: Callable, events: List[str], *args, **kwargs):
         """
         Allows registration to certain event of contract with confirmations threshold
         Note: events are Case Sensitive
 
         :param callback: callback function that will be invoked upon event
         :param events: list of events the caller wants to register to
-        :param confirmations_required: after how many confirmations to notify of the event
+        :param kwargs: ['confirmations'] number of confirmations to wait before triggering the event (default: 12)
         """
+        confirmations_required = kwargs.get('confirmations', 12)
         for event in events:
             self.callbacks.add(event, callback, confirmations_required)
 
