@@ -1,5 +1,5 @@
 from itertools import count
-from threading import Thread, Event, Lock
+from threading import Event, Lock
 from time import sleep
 from typing import List, Callable, Dict
 

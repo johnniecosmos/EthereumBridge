@@ -7,7 +7,6 @@ from typing import List
 from mongoengine import OperationError
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
-from src.contracts.ethereum.event_listener import EthEventListener
 from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.signatures import Signatures
 from src.leader.scrt.manager import SecretManager

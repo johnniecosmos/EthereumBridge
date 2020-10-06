@@ -3,6 +3,7 @@ import os
 import subprocess
 import string
 import random
+from pathlib import Path
 from shutil import copy, rmtree
 from time import sleep
 from typing import List
@@ -11,13 +12,16 @@ from brownie import project, network, accounts
 from pytest import fixture
 
 from src.contracts.secret.secret_contract import change_admin
+from src.leader.erc20.leader import ERC20Leader
 from src.leader.scrt.leader import SecretLeader
+from src.signer.erc20.signer import ERC20Signer
 from src.util.common import Token
 from src.util.config import Config
 from src.contracts.ethereum.erc20 import Erc20
 from src.contracts.ethereum.event_listener import EthEventListener
 from src.leader.scrt.manager import SecretManager
 from src.signer.secret20.signer import Secret20Signer, SecretAccount
+from src.util.web3 import normalize_address
 from tests.integration.conftest import contracts_folder, brownie_project_folder
 from tests.utils.keys import get_viewing_key
 
@@ -123,3 +127,31 @@ def scrt_signers(scrt_accounts, erc20_contract, configuration) -> List[Secret20S
     for signer in signers:
         signer.stop()
 
+
+@fixture(scope="module")
+def ethr_leader(multisig_account, configuration: Config, web3_provider, erc20_token, multisig_wallet, ether_accounts):
+    configuration['leader_key'] = ether_accounts[0].key
+    configuration['leader_acc_addr'] = normalize_address(ether_accounts[0].address)
+    configuration['eth_start_block'] = web3_provider.eth.blockNumber
+
+    leader = ERC20Leader(multisig_wallet, erc20_token, configuration)
+    leader.start()
+    yield leader
+    leader.stop()
+
+
+@fixture(scope="module")
+def ethr_signers(multisig_wallet, configuration: Config, ether_accounts, erc20_token) -> List[ERC20Signer]:
+    res = []
+    # we will manually create the last signer in test_3
+    for acc in ether_accounts[:]:
+        private_key = acc.key
+        address = acc.address
+
+        res.append(ERC20Signer(multisig_wallet, erc20_token, private_key, address, configuration))
+
+    yield res
+
+    for signer in res:
+        signer.stop()
+    rmtree(Path.joinpath(Path.home(), ".bridge_test"), ignore_errors=True)

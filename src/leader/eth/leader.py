@@ -28,7 +28,15 @@ class EtherLeader(Thread):
         self.logger = get_logger(db_name=self.config['db_name'],
                                  logger_name=config.get('logger_name', self.__class__.__name__))
         self.stop_event = Event()
-        super().__init__(group=None, name="EtherLeader", target=self._scan_swap, **kwargs)
+        super().__init__(group=None, name="EtherLeader", target=self.run, **kwargs)
+
+    def stop(self):
+        self.logger.info("Stopping")
+        self.stop_event.set()
+
+    def run(self):
+        self.logger.info("Starting")
+        self._scan_swap()
 
     def _scan_swap(self):
         """ Scans secret network contract for swap events """

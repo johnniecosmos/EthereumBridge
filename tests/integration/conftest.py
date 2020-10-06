@@ -22,23 +22,6 @@ brownie_project_folder = os.path.join(module_dir(integration_package), 'brownie_
 
 
 @fixture(scope="module")
-def ethr_signers(multisig_wallet, configuration: Config, ether_accounts) -> List[EtherSigner]:
-    res = []
-    # we will manually create the last signer in test_3
-    for acc in ether_accounts[:]:
-        private_key = acc.key
-        address = acc.address
-
-        res.append(EtherSigner(multisig_wallet, private_key, address, configuration))
-
-    yield res
-
-    for signer in res:
-        signer.stop()
-    rmtree(Path.joinpath(Path.home(), ".bridge_test"), ignore_errors=True)
-
-
-@fixture(scope="module")
 def multisig_wallet(web3_provider, configuration: Config, ether_accounts):
     # erc20_contract is here only to deploy and update configuration, can be remove if not working with ERC20
     from brownie.project.IntegrationTests import MultiSigSwapWallet
@@ -68,16 +51,3 @@ def ether_accounts(web3_provider, configuration: Config):
 def web3_provider(configuration):
     # connect to local ganache node, started by brownie
     return Web3(Web3.HTTPProvider(configuration['eth_node_address']))
-
-
-@fixture(scope="module")
-def ethr_leader(multisig_account, configuration: Config, web3_provider, multisig_wallet, ether_accounts):
-    configuration['leader_key'] = ether_accounts[0].key
-    configuration['leader_acc_addr'] = normalize_address(ether_accounts[0].address)
-    configuration['eth_start_block'] = web3_provider.eth.blockNumber
-
-    leader = EtherLeader(multisig_wallet, configuration)
-    leader.start()
-    yield leader
-    leader.stop_event.set()
-

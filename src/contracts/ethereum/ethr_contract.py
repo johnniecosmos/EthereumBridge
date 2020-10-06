@@ -5,7 +5,6 @@ from typing import Optional
 from web3 import Web3
 from web3.datastructures import AttributeDict
 
-from src.contracts.ethereum.message import Message
 from src.util.web3 import normalize_address, send_contract_tx, event_log
 
 
