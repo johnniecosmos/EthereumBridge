@@ -9,9 +9,9 @@ from mongoengine import OperationError
 from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.signatures import Signatures
-from src.leader.scrt.manager import SecretManager
+from src.leader.secret20.manager import SecretManager
 from src.signer.secret20.signer import SecretAccount
-from src.util.common import temp_file, temp_files
+from src.util.common import temp_file, temp_files, Token
 from src.util.logger import get_logger
 from src.util.secretcli import broadcast, multisig_tx, query_tx
 from src.util.config import Config
@@ -21,17 +21,18 @@ BROADCAST_VALIDATION_COOLDOWN = 60
 SCRT_BLOCK_TIME = 7
 
 
-class SecretLeader(Thread):
+class Secret20Leader(Thread):
     """ Broadcasts signed Secret-20 minting tx after successful ETH or ERC20 swap event """
 
     def __init__(self,
                  secret_multisig: SecretAccount,
+                 s20_contract: Token,
                  contract: EthereumContract,
                  config: Config, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.multisig_name = secret_multisig.name
         self.config = config
-        self.manager = SecretManager(contract, secret_multisig, config)
+        self.manager = SecretManager(contract, s20_contract, secret_multisig, config)
         self.logger = get_logger(db_name=self.config['db_name'],
                                  logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.multisig_name}"))
         self.stop_event = Event()

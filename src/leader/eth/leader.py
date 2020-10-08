@@ -20,11 +20,11 @@ class EtherLeader(Thread):
     The account set here must have enough ETH for all the transactions you're planning on doing
     """
 
-    def __init__(self, multisig_wallet: MultisigWallet, config: Config, **kwargs):
+    def __init__(self, multisig_wallet: MultisigWallet, private_key: bytes, account: str, config: Config, **kwargs):
         self.config = config
         self.multisig_wallet = multisig_wallet
-        self.private_key = config['leader_key']
-        self.default_account = config['leader_acc_addr']
+        self.private_key = private_key
+        self.default_account = account
         self.logger = get_logger(db_name=self.config['db_name'],
                                  logger_name=config.get('logger_name', self.__class__.__name__))
         self.stop_event = Event()

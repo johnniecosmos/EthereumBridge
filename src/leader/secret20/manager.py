@@ -9,6 +9,7 @@ from src.db.collections.management import Management, Source
 from src.db.collections.signatures import Signatures
 from src.contracts.ethereum.event_listener import EthEventListener
 from src.signer.secret20.signer import SecretAccount
+from src.util.common import Token
 from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.secretcli import create_unsigned_tx
@@ -18,8 +19,10 @@ class SecretManager(Thread):
     """Registers to contract event and manages tx state in DB"""
 
     def __init__(self, contract: EthereumContract,
+                 s20_contract: Token,
                  multisig: SecretAccount, config: Config, **kwargs):
         self.contract = contract
+        self.s20_address = s20_contract.address
         self.config = config
         self.multisig = multisig
         self.event_listener = EthEventListener(contract, config)
@@ -84,7 +87,7 @@ class SecretManager(Thread):
 
         mint = mint_json(amount, tx_hash, recipient)
         try:
-            unsigned_tx = create_unsigned_tx(self.config['secret_contract_address'], mint, self.config['chain_id'],
+            unsigned_tx = create_unsigned_tx(self.s20_address, mint, self.config['chain_id'],
                                              self.config['enclave_key'], self.config['code_hash'],
                                              self.multisig.address)
 

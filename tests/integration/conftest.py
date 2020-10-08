@@ -1,7 +1,4 @@
 import os
-from pathlib import Path
-from shutil import rmtree
-from typing import List
 
 from brownie import accounts
 from pytest import fixture
@@ -10,9 +7,6 @@ from web3 import Web3
 import src.contracts.ethereum as contracts_package
 import tests.integration as integration_package
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
-from src.leader.eth.leader import EtherLeader
-from src.signer.eth.signer import EtherSigner
-from src.signer.secret20.signer import Secret20Signer
 from src.util.common import module_dir
 from src.util.config import Config
 from src.util.web3 import normalize_address

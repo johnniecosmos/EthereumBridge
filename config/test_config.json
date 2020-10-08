@@ -10,10 +10,13 @@
   "multisig_wallet_address": "0xef06222f18a008cd3635a8325208fc0ff934d830",
   "mint_token": false,
   "leader_acc_addr": "0x53c22DBaFAFCcA28F6E2644b82eca5F8D66be96E",
+  "secret_token_name": "seth",
+  "secret_contract_address": "secret1k48x38gdrunurennpemt4ns45cphlvuvg9kfzs",
   "leader_key": "af2aa65ae259a496a134431d41a89cb1e8b81e3049141b77797d0b04bc7458a0",
   "provider_address": "wss://ropsten.infura.io/ws/v3/e5314917699a499c8f3171828fac0b74",
   "multisig_key_name": "ms1",
   "path_to_keys": "keys/keys",
   "path_to_certs": "../keys/deployment",
-  "eth_node_address": "http://127.0.0.1:8545"
+  "eth_node_address": "http://127.0.0.1:8545",
+  "secret_node": "tcp://localhost:26657"
 }

@@ -13,14 +13,14 @@ from pytest import fixture
 
 from src.contracts.secret.secret_contract import change_admin
 from src.leader.erc20.leader import ERC20Leader
-from src.leader.scrt.leader import SecretLeader
+from src.leader.secret20 import Secret20Leader
 from src.signer.erc20.signer import ERC20Signer
-from src.util.common import Token
+from src.util.common import Token, SecretAccount
 from src.util.config import Config
 from src.contracts.ethereum.erc20 import Erc20
 from src.contracts.ethereum.event_listener import EthEventListener
-from src.leader.scrt.manager import SecretManager
-from src.signer.secret20.signer import Secret20Signer, SecretAccount
+from src.leader.secret20.manager import SecretManager
+from src.signer.secret20 import Secret20Signer
 from src.util.web3 import normalize_address
 from tests.integration.conftest import contracts_folder, brownie_project_folder
 from tests.utils.keys import get_viewing_key
@@ -110,7 +110,8 @@ def scrt_leader(multisig_account: SecretAccount, erc20_contract, configuration: 
                      f"{configuration['secret_contract_address']}" \
                      f" '{change_admin(multisig_account.address)}' --from a -y"
     _ = subprocess.run(change_admin_q, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    leader = SecretLeader(multisig_account, erc20_contract, configuration)
+    s20_contract = Token(configuration['secret_contract_address'], configuration['secret_contract_name'])
+    leader = Secret20Leader(multisig_account, s20_contract, erc20_contract, configuration)
     yield leader
     leader.stop()
 

@@ -4,6 +4,7 @@ from subprocess import PIPE, run as subprocess_run
 from typing import List, Dict
 
 from src.contracts.secret.secret_contract import swap_json
+from src.util.config import Config
 
 
 def sign_tx(unsigned_tx_path: str, multi_sig_account_addr: str, account_name: str):
@@ -59,3 +60,22 @@ def run_secret_cli(cmd: List[str]) -> str:
         raise RuntimeError from e
 
     return p.stdout.decode()
+
+
+def configure_secretcli(config: Config):
+
+    cmd = ['secretcli', 'config', 'output', 'json']
+    run_secret_cli(cmd)
+    cmd = ['secretcli', 'config', 'indent', 'true']
+    run_secret_cli(cmd)
+    cmd = ['secretcli', 'config', 'trust-node', 'true']
+    run_secret_cli(cmd)
+    cmd = ['secretcli', 'config', 'node', config['secret_node']]
+    run_secret_cli(cmd)
+    cmd = ['secretcli', 'config', 'chain-id', config['chain_id']]
+    run_secret_cli(cmd)
+    cmd = ['secretcli', 'config', 'keyring-backend', 'test']
+    run_secret_cli(cmd)
+    # test configuration
+    cmd = ['secretcli', 'query', 'account', config['multisig_acc_addr']]
+    run_secret_cli(cmd)

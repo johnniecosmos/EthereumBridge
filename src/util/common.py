@@ -43,3 +43,10 @@ def module_dir(module) -> Path:
 
 
 Token = namedtuple('Token', ['address', 'name'])
+SecretAccount = namedtuple('SecretAccount', ['address', 'name'])
+
+
+def bytes_from_hex(s: str):
+    if s[0:1] == '0x':
+        return bytes.fromhex(s[2:])
+    return bytes.fromhex(s)

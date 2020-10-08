@@ -7,8 +7,8 @@ from src.contracts.ethereum.message import Message
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.ethereum.event_listener import EthEventListener
 from src.leader.eth.leader import EtherLeader
-from src.leader.scrt.leader import SecretLeader
-from src.leader.scrt.manager import SecretManager
+from src.leader.secret20.leader import SecretLeader
+from src.leader.secret20.manager import SecretManager
 from src.signer.secret20.signer import MultiSig
 
 web3_provider = Web3(Web3.HTTPProvider(config.provider_address))

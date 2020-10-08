@@ -12,11 +12,12 @@ from src.util.common import Token
 class ERC20Leader(EtherLeader):  # pylint: disable=too-many-instance-attributes
     """ Broadcasts signed ERC20 minting transfers after successful Secret-20 swap event """
 
-    def __init__(self, multisig_wallet: MultisigWallet, token: Token, config: Config):
+    def __init__(self, multisig_wallet: MultisigWallet, token: Token, private_key, account, config: Config):
+        print('ERC20Leader.__init__\n')
         self.token_contract = Erc20(Web3(Web3.HTTPProvider(config['eth_node_address'])),
                                     token,
                                     multisig_wallet.address)
-        super().__init__(multisig_wallet, config)
+        super().__init__(multisig_wallet, private_key, account, config)
 
     def _handle_swap(self, swap_data: str):
         # Note: This operation costs Ether
