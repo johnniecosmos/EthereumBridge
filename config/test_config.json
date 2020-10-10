@@ -6,7 +6,7 @@
   "eth_start_block": 0,
   "eth_signer_start_block": 0,
   "sleep_interval": 2.0,
-  "chain_id": "enigma-testnet",
+  "chain_id": "enigma-pub-testnet-3",
   "multisig_wallet_address": "0xef06222f18a008cd3635a8325208fc0ff934d830",
   "mint_token": false,
   "leader_acc_addr": "0x53c22DBaFAFCcA28F6E2644b82eca5F8D66be96E",

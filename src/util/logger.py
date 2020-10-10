@@ -76,7 +76,7 @@ def get_logger(logger_name: str = 'enigma', db_name: str = '') -> logging.Logger
 class DBLoggerHandler(logging.Handler):
     def __init__(self, db_name, level: int = DB_LOG_LEVEL):
         super().__init__(level)
-        self.connection = mongoengine.connect(db_name)
+        # conn = mongoengine.get_connection()
         self.formatter = CustomFormatter()
 
     def emit(self, record: logging.LogRecord) -> None:

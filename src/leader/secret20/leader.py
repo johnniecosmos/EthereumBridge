@@ -13,7 +13,7 @@ from src.leader.secret20.manager import SecretManager
 from src.signer.secret20.signer import SecretAccount
 from src.util.common import temp_file, temp_files, Token
 from src.util.logger import get_logger
-from src.util.secretcli import broadcast, multisig_tx, query_tx
+from src.util.secretcli import broadcast, multisig_tx, query_tx, query_encrypted_error
 from src.util.config import Config
 
 
@@ -58,10 +58,12 @@ class Secret20Leader(Thread):
     def _scan_swap(self):
         while not self.stop_event.is_set():
             for tx in Swap.objects(status=Status.SWAP_STATUS_SIGNED):
+                self.logger.info(f"Found tx ready for broadcasting {tx.id}")
                 self._create_and_broadcast(tx)
                 sleep(SCRT_BLOCK_TIME)
             for tx in Swap.objects(status=Status.SWAP_STATUS_SUBMITTED):
                 self._broadcast_validation(tx)
+            self.logger.debug('done scanning for swaps. sleeping..')
             self.stop_event.wait(self.config['sleep_interval'])
 
     def _create_and_broadcast(self, tx: Swap):
@@ -75,9 +77,11 @@ class Secret20Leader(Thread):
         try:
             signed_tx = self._create_multisig(tx.unsigned_tx, signatures)
             scrt_tx_hash = self._broadcast(signed_tx)
+            self.logger.info(f"Broadcasted {tx.id} successfully - {scrt_tx_hash}")
             tx.status = Status.SWAP_STATUS_SUBMITTED
             tx.dst_tx_hash = scrt_tx_hash
             tx.save()
+            self.logger.info(f"Changed status of tx {tx.id} to submitted")
         except (RuntimeError, OperationError) as e:
             self.logger.error(msg=f"Failed to create multisig and broadcast, error: {e}")
 
@@ -106,6 +110,12 @@ class Secret20Leader(Thread):
         tx_hash = document.dst_tx_hash
         try:
             res = json.loads(query_tx(tx_hash))
+
+            if isinstance(res["raw_log"], str):
+                if "encrypted" in res["raw_log"]:
+                    raise RuntimeError(query_encrypted_error(tx_hash))
+                raise RuntimeError(res["raw_log"])
+
             logs = json.loads(res["raw_log"])[0]
             if not logs.get('log', ''):
                 document.update(status=Status.SWAP_STATUS_CONFIRMED)

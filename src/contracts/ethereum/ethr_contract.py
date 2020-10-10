@@ -45,7 +45,7 @@ class EthereumContract:
         :param private_key: private key matching the from_ account
         :param args: see 'send_contract_tx' for more details
         """
-        return send_contract_tx(self.provider, self.contract, func_name, from_, private_key, *args)
+        return send_contract_tx(self.contract, func_name, from_, private_key, *args)
 
     def transaction_raw_bytes(self, fn_name: str, *args):
         """

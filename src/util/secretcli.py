@@ -1,10 +1,23 @@
+import os
 import json
 import subprocess
+from shutil import copyfile
 from subprocess import PIPE, run as subprocess_run
 from typing import List, Dict
 
 from src.contracts.secret.secret_contract import swap_json
 from src.util.config import Config
+from src.util.logger import get_logger
+
+logger = get_logger(logger_name="SecretCLI")
+
+
+def query_encrypted_error(tx_hash: str):
+    cmd = ['secretcli', 'q', 'compute', 'tx', tx_hash]
+    resp = run_secret_cli(cmd)
+
+    resp_json = json.loads(resp)
+    return resp_json["output_error"]
 
 
 def sign_tx(unsigned_tx_path: str, multi_sig_account_addr: str, account_name: str):
@@ -55,16 +68,28 @@ def run_secret_cli(cmd: List[str]) -> str:
 
     """
     try:
+        logger.debug(f'Running command: {cmd}')
         p = subprocess.run(cmd, stdout=PIPE, stderr=PIPE, check=True)
     except subprocess.CalledProcessError as e:
-        raise RuntimeError from e
+        logger.error(f'Failed: stderr: {e.stderr.decode()}, stdout: {e.stdout.decode()}')
+        raise RuntimeError(e.stdout.decode())
 
+    logger.debug('Success')
     return p.stdout.decode()
 
 
 def configure_secretcli(config: Config):
 
+    # check if cli is already set up:
+    cmd = ['secretcli', 'keys', 'list']
+    result = run_secret_cli(cmd)
+    if result.strip() != '[]':  # sometimes \n is added to the result
+        logger.info(f"{result}")
+        logger.info("CLI already set up")
+        return
+
     cmd = ['secretcli', 'config', 'output', 'json']
+
     run_secret_cli(cmd)
     cmd = ['secretcli', 'config', 'indent', 'true']
     run_secret_cli(cmd)
@@ -76,6 +101,45 @@ def configure_secretcli(config: Config):
     run_secret_cli(cmd)
     cmd = ['secretcli', 'config', 'keyring-backend', 'test']
     run_secret_cli(cmd)
+
+    # set up multisig
+    signers = []
+    for i, key in enumerate(config["secret_signers"]):
+        cmd = ['secretcli', 'keys', 'add', f'ms_signer{i}', f'--pubkey={key}']
+        signers.append(f'ms_signer{i}')
+        run_secret_cli(cmd)
+
+    cmd = ['secretcli', 'keys', 'add', f'{config["multisig_key_name"]}', f"--multisig={','.join(signers)}",
+           f'--multisig-threshold', f'{config["signatures_threshold"]}']
+    run_secret_cli(cmd)
+
+    logger.debug(f'importing private key from {config["secret_key_file"]} with name {config["secret_key_name"]}')
+
+    # import key
+    key_path = os.path.join(f'{config["KEYS_BASE_PATH"]}', f'{config["secret_key_file"]}')
+    cmd = ['secretcli', 'keys', 'import', f'{config["secret_key_name"]}',
+           f'{key_path}']
+    process = subprocess.Popen(cmd,
+                               stdin=subprocess.PIPE,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+    inputdata = config["secret_key_password"]
+    stdoutdata, stderrdata = process.communicate(input=(inputdata+"\n").encode())
+
+    if stderrdata:
+        logger.error(f"Error importing secret key: {stderrdata}")
+        raise EnvironmentError
+
+    logger.debug("copying transaction key..")
+    # copy transaction key from shared location
+    src_key_path = os.path.join(f'{config["KEYS_BASE_PATH"]}', f'id_tx_io.json')
+    dst_key_path = os.path.join(f'{config["SECRETCLI_HOME"]}', f'id_tx_io.json')
+    copyfile(src_key_path , dst_key_path)
+
     # test configuration
     cmd = ['secretcli', 'query', 'account', config['multisig_acc_addr']]
+    run_secret_cli(cmd)
+
+    #
+    cmd = ['secretcli', 'query', 'register', 'secret-network-params']
     run_secret_cli(cmd)

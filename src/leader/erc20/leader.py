@@ -7,6 +7,7 @@ from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
 from src.util.config import Config
 from src.util.common import Token
+from src.util.web3 import w3
 
 
 class ERC20Leader(EtherLeader):  # pylint: disable=too-many-instance-attributes
@@ -14,7 +15,7 @@ class ERC20Leader(EtherLeader):  # pylint: disable=too-many-instance-attributes
 
     def __init__(self, multisig_wallet: MultisigWallet, token: Token, private_key, account, config: Config):
         print('ERC20Leader.__init__\n')
-        self.token_contract = Erc20(Web3(Web3.HTTPProvider(config['eth_node_address'])),
+        self.token_contract = Erc20(w3,
                                     token,
                                     multisig_wallet.address)
         super().__init__(multisig_wallet, private_key, account, config)

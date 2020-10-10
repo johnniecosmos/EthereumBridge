@@ -28,7 +28,7 @@ if __name__ == "__main__":
                               config.signer_key, config.signer_acc_addr, config)
     scrt_signer = Secret20Signer(web3_provider, singer_acc, multisig_wallet, config)
     m = SwapMessage()
-    tx_hash = send_contract_tx(ethr_signer.provider, ethr_signer.multisig_wallet.contract, 'swap',
+    tx_hash = send_contract_tx(ethr_signer.multisig_wallet.contract, 'swap',
                                ethr_signer.default_account, ethr_signer.private_key, *m.args(), value=200)
     print(repr(tx_hash))
     pass

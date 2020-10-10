@@ -13,6 +13,7 @@ from src.util.common import Token
 from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.secretcli import create_unsigned_tx
+from src.util.web3 import get_block
 
 
 class SecretManager(Thread):
@@ -44,13 +45,21 @@ class SecretManager(Thread):
     def run(self):
         """Scans for signed transactions and updates status if multisig threshold achieved"""
         self.logger.info("Starting..")
-        self.catch_up()
         self.event_listener.start()
+
+        self.catch_up()
+        self.logger.info("Done catching up")
+
         while not self.stop_signal.is_set():
             for transaction in Swap.objects(status=Status.SWAP_STATUS_UNSIGNED):
+                self.logger.debug(f"Checking unsigned tx {transaction.id}")
                 if Signatures.objects(tx_id=transaction.id).count() >= self.config['signatures_threshold']:
+                    self.logger.info(f"Found tx {transaction.id} with enough signatures to broadcast")
                     transaction.status = Status.SWAP_STATUS_SIGNED
                     transaction.save()
+                    self.logger.info(f"Set status of tx {transaction.id} to signed")
+                else:
+                    self.logger.debug(f"Tx {transaction.id} does not have enough signatures")
             self.stop_signal.wait(self.config['sleep_interval'])
 
     def catch_up(self):
@@ -61,8 +70,7 @@ class SecretManager(Thread):
             from_block = self.config['eth_start_block']
             Management.update_last_processed(Source.ETH.value, from_block)
 
-        to_block = \
-            self.event_listener.provider.eth.getBlock('latest').number - self.config['eth_confirmations']
+        to_block = get_block('latest').number - self.config['eth_confirmations']
 
         if to_block <= 0:
             return

@@ -1,3 +1,4 @@
+from threading import Lock
 from typing import List, Tuple, Optional, Generator
 
 from web3 import Web3
@@ -6,6 +7,8 @@ from web3.datastructures import AttributeDict
 from web3.logs import DISCARD
 from web3.types import BlockData
 
+from src.util.config import Config
+
 
 def web3_provider(address_: str) -> Web3:
     if address_.startswith('http'):  # HTTP
@@ -13,6 +16,27 @@ def web3_provider(address_: str) -> Web3:
     if address_.startswith('ws'):  # WebSocket
         return Web3(Web3.WebsocketProvider(address_))
     return Web3(Web3.IPCProvider(address_))
+
+
+w3: Web3 = None
+
+
+def init_provider(config: Config):
+    global w3
+    w3 = web3_provider(config["eth_node_address"])
+
+
+cfg = Config()
+init_provider(cfg)
+
+w3_lock = Lock()
+event_lock = Lock()
+
+
+def get_block(block_identifier, full_transactions: bool = False):
+    with w3_lock:
+        res = w3.eth.getBlock(block_identifier, full_transactions)
+    return res
 
 
 def extract_tx_by_address(address, block: BlockData) -> list:
@@ -48,7 +72,7 @@ def normalize_address(address: str):
     return Web3.toChecksumAddress(address.lower())
 
 
-def contract_event_in_range(provider: Web3, contract, event: str, from_block: int = 0,
+def contract_event_in_range(contract, event_name: str, from_block: int = 0,
                             to_block: Optional[int] = None) -> Generator:
     """
     scans the blockchain, and yields blocks that has contract tx with the provided event
@@ -59,29 +83,35 @@ def contract_event_in_range(provider: Web3, contract, event: str, from_block: in
     :param provider:
     :param logger:
     :param contract:
-    :param event: name of the contract emit event you wish to be notified of
+    :param event_name: name of the contract emit event you wish to be notified of
     """
     if to_block is None:
-        to_block = provider.eth.getBlock('latest').number
+        to_block = get_block('latest').number
 
-    for block_num in range(from_block, to_block + 1):
-        block = provider.eth.getBlock(block_num, full_transactions=True)
-        contract_transactions = extract_tx_by_address(contract.address, block)
+    with event_lock:
 
-        if not contract_transactions:
-            continue
+        event = getattr(contract.contract.events, event_name)
+        event_filter = event.createFilter(fromBlock=from_block, toBlock=to_block)
 
-        for tx in contract_transactions:
-            _, log = event_log(tx_hash=tx.hash, events=[event], provider=provider, contract=contract.contract)
+        for tx in event_filter.get_new_entries():
+            _, log = event_log(tx_hash=tx.hash, events=[event_name], provider=w3, contract=contract.contract)
 
             if log is None:
                 continue
 
             yield log
+
+    # for block_num in range(from_block, to_block + 1):
+    #     block = provider.eth.getBlock(block_num, full_transactions=True)
+    #     contract_transactions = extract_tx_by_address(contract.address, block)
+    #
+    #     if not contract_transactions:
+    #         continue
+
     # raise StopIteration()
 
 
-def send_contract_tx(provider: Web3, contract: Web3Contract, function_name: str, from_acc: str, private_key: bytes,
+def send_contract_tx(contract: Web3Contract, function_name: str, from_acc: str, private_key: bytes,
                      *args, gas: int = 0, value: int = 0):
     """
     Creates the contract tx and signs it with private_key to be transmitted as raw tx
@@ -90,10 +120,10 @@ def send_contract_tx(provider: Web3, contract: Web3Contract, function_name: str,
         buildTransaction(
         {
             'from': from_acc,
-            'chainId': provider.eth.chainId,
-            'gasPrice': provider.eth.gasPrice if not gas else gas,
-            'nonce': provider.eth.getTransactionCount(from_acc),
+            'chainId': w3.eth.chainId,
+            'gasPrice': w3.eth.gasPrice if not gas else gas,
+            'nonce': w3.eth.getTransactionCount(from_acc),
             'value': value
         })
-    signed_txn = provider.eth.account.sign_transaction(submit_tx, private_key)
-    return provider.eth.sendRawTransaction(signed_txn.rawTransaction)
+    signed_txn = w3.eth.account.sign_transaction(submit_tx, private_key)
+    return w3.eth.sendRawTransaction(signed_txn.rawTransaction)

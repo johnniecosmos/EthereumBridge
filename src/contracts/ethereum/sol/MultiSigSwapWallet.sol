@@ -103,7 +103,7 @@ contract MultiSigSwapWallet {
     public
     payable
     {
-        throw;
+        revert();
     }
 
     function swap(bytes memory recipient)

@@ -11,7 +11,7 @@ from src.contracts.secret.secret_contract import swap_query_res
 from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.secretcli import query_scrt_swap
-from src.util.web3 import contract_event_in_range, web3_provider
+from src.util.web3 import contract_event_in_range, get_block
 
 
 class HistoricalEthSigner:  # pylint: disable=too-many-instance-attributes, too-many-arguments
@@ -21,7 +21,6 @@ class HistoricalEthSigner:  # pylint: disable=too-many-instance-attributes, too-
 
     def __init__(self, multisig_wallet: MultisigWallet, private_key: bytes, account: str, config: Config):
         # todo: simplify this, pylint is right
-        self.provider = web3_provider(config['eth_node_address'])
         self.multisig_wallet = multisig_wallet
         self.private_key = private_key
         self.account = account
@@ -34,7 +33,6 @@ class HistoricalEthSigner:  # pylint: disable=too-many-instance-attributes, too-
         self.cache = self._create_cache()
 
         self.thread_pool = ThreadPoolExecutor()
-        # super().__init__(group=None, name=f"EthCatchUp-{self.account}", target=self.run, **kwargs)
 
     def sign_all_historical_swaps(self):
         self._submission_catch_up()
@@ -80,10 +78,10 @@ class HistoricalEthSigner:  # pylint: disable=too-many-instance-attributes, too-
         """
 
         from_block = self._choose_starting_block()
-        to_block = self.provider.eth.getBlock('latest').number
+        to_block = get_block('latest').number
         self.logger.info(f'starting to catch up from {from_block} to {to_block}..')
         with self.thread_pool as pool:
-            for event in contract_event_in_range(self.provider, self.multisig_wallet, 'Submission',
+            for event in contract_event_in_range(self.multisig_wallet, 'Submission',
                                                  from_block, to_block):
                 self.logger.info(f'Got new Submission event on block: {event.blockNumber}')
                 self._update_last_block_processed(event.blockNumber)

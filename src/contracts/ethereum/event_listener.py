@@ -10,7 +10,7 @@ from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.contracts.event_provider import EventProvider
 from src.util.config import Config
 from src.util.logger import get_logger
-from src.util.web3 import extract_tx_by_address, event_log, contract_event_in_range, web3_provider
+from src.util.web3 import extract_tx_by_address, event_log, contract_event_in_range, w3, get_block
 
 
 class EthEventListener(EventProvider):
@@ -21,7 +21,6 @@ class EthEventListener(EventProvider):
     def __init__(self, contract: EthereumContract, config: Config, **kwargs):
         # Note: each event listener can listen to one contract at a time
         self.id = next(self._ids)
-        self.provider = web3_provider(config['eth_node_address'])
         self.contract = contract
         self.config = config
         self.callbacks = Callbacks()
@@ -51,21 +50,18 @@ class EthEventListener(EventProvider):
     def run(self):
         """Notify registered callbacks upon event occurrence"""
         self.logger.info("Starting..")
-        current_block_num = self.provider.eth.getBlock('latest').number
 
         while not self.stop_event.is_set():
             try:
-                block = self.provider.eth.getBlock(current_block_num, full_transactions=True)
-                self.callbacks.call(self.provider, self.contract, block.number)
+                block = get_block('latest', full_transactions=True)
+                self.callbacks.call(self.contract, block.number)
             except BlockNotFound:
                 sleep(self.config['sleep_interval'])
                 continue
 
-            current_block_num += 1
-
     def events_in_range(self, event: str, from_block: int, to_block: int = None):
         """ Returns a generator that yields all contract events in range"""
-        return contract_event_in_range(self.provider, self.contract, event, from_block=from_block,
+        return contract_event_in_range(self.contract, event, from_block=from_block,
                                        to_block=to_block)
 
 
@@ -82,14 +78,14 @@ class Callbacks:
             callbacks = callbacks.setdefault(event_name, list())
             callbacks.append(callback)
 
-    def call(self, provider: Web3, contract: EthereumContract, block_number: int):
+    def call(self, contract: EthereumContract, block_number: int):
         """ call all the callbacks whose confirmation threshold reached """
 
         for threshold, callbacks in self.callbacks_by_confirmations.items():
             if block_number - threshold <= 0:
                 continue
 
-            block = provider.eth.getBlock(block_number - threshold, full_transactions=True)
+            block = get_block(block_number - threshold, full_transactions=True)
             contract_transactions = extract_tx_by_address(contract.address, block)
 
             if not contract_transactions:

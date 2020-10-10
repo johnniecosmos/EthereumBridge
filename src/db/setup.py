@@ -4,18 +4,16 @@ import mongoengine
 
 
 @contextmanager
-def database(db="test_db", host='localhost', port=27017, username=None, password=None):
-    alias = f"{db}-{host}-{port}"
+def database(db="test_db", host='localhost', username=None, password=None):
+    # alias = f"{db}-{host}-{username}"
+
+    DB_URI = f"mongodb+srv://{username}:{password}@{host}/{db}?retryWrites=true&w=majority"
+
     yield mongoengine.connect(
-        alias=alias,
-        db=db,
-        host=host,
-        port=port,
-        username=username,
-        password=password,
+        host=DB_URI
     )
 
-    mongoengine.disconnect(alias)
+    mongoengine.disconnect()
 
 
 def connect_default():

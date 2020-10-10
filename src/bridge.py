@@ -19,7 +19,7 @@ from src.util.common import Token, bytes_from_hex
 from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.secretcli import configure_secretcli
-from src.util.web3 import web3_provider
+from src.util.web3 import web3_provider, init_provider, w3
 
 
 def chain_objects(signer, leader) -> dict:
@@ -75,7 +75,7 @@ def get_leader(coin_name: str, eth_contract: Union[Erc20, MultisigWallet], priva
         return EtherLeader(eth_contract, private_key, account, config=cfg)
 
     if NETWORK_PARAMS[coin_name]['type'] == 's20':
-        s20token = get_token(coin_name, cfg['network'])
+        s20token = get_token(coin_name, cfg['chain_id'])
         account = SecretAccount(cfg['multisig_acc_addr'], cfg['multisig_key_name'])
         return Secret20Leader(account, s20token, eth_contract, config=cfg)
 
@@ -90,14 +90,16 @@ def run_bridge():
         configure_secretcli(cfg)
     except RuntimeError as e:
         logger = get_logger(logger_name='runner')
-        logger.error(f'Failed to set up secretcli - {e}')
+        logger.error(f'Failed to set up secretcli')
         _exit(1)
 
-    with database(db=cfg['db_name'], host=cfg['db_host'], port=['db_port'],
+    # init web3 provider
+    init_provider(cfg)
+
+    with database(db=cfg['db_name'], host=cfg['db_host'],
                   password=cfg['db_password'], username=cfg['db_username']):
 
-        provider = web3_provider(cfg['eth_node_address'])
-        eth_wallet = MultisigWallet(provider, '0xef06222f18a008cd3635a8325208fc0ff934d830')
+        eth_wallet = MultisigWallet(w3, cfg['multisig_wallet_address'])
 
         private_key = bytes_from_hex(cfg['private_key'])
         account = cfg['account']
@@ -105,11 +107,11 @@ def run_bridge():
         scoin = cfg['SRC_COIN']
         dcoin = cfg['DST_COIN']
         erc20_contract = ''
-        token = ''
+
         secret_account = SecretAccount(cfg['multisig_acc_addr'], cfg['secret_key_name'])
         if NETWORK_PARAMS[scoin]['type'] == 'erc20':
             token = get_token(scoin, cfg['network'])
-            erc20_contract = Erc20(provider, token, eth_wallet.address)
+            erc20_contract = Erc20(w3, token, eth_wallet.address)
             src_signer = ERC20Signer(eth_wallet, token, private_key, account, cfg)
             dst_signer = Secret20Signer(erc20_contract, secret_account, cfg)
         else:
@@ -128,7 +130,8 @@ def run_bridge():
             runners.append(src_leader)
             runners.append(dst_leader)
 
-        map(lambda t: t.start(), runners)
+        for r in runners:
+            r.start()
 
         try:
             while True:

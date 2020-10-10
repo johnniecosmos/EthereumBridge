@@ -53,8 +53,7 @@ class Secret20Signer(Thread):
         :raises: ValueError
         """
         if self._is_signed(tx):
-            self.logger.warning(f"Tried to sign an already signed tx. Signer:"
-                                f" {self.multisig.address}.tx id:{tx.id}. This could happen due to catch up or tests")
+            self.logger.debug(f"This signer already this transaction. Waiting for other signers... id:{tx.id}")
             return
 
         if not self._is_valid(tx):
@@ -73,7 +72,7 @@ class Secret20Signer(Thread):
             raise ValueError from e
 
     def _is_signed(self, tx: Swap) -> bool:
-        """ Returns True if tx was already signed, else False """
+        """ Returns True if tx was already signed by us, else False """
         return Signatures.objects(tx_id=tx.id, signer=self.multisig.name).count() > 0
 
     def _is_valid(self, tx: Swap) -> bool:

@@ -19,8 +19,9 @@ mkdir -p "$keys_directory"
 mkdir -p "$deployment_directory"
 
 # Setup secretcli configuration
-secretcli config chain-id enigma-testnet
+secretcli config chain-id enigma-pub-testnet-3
 secretcli config output json
+secretcli config keyring-backend test
 secretcli config indent true
 secretcli config trust-node true
 secretcli config node tcp://localhost:26657
