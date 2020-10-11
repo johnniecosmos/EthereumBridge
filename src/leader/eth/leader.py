@@ -46,8 +46,7 @@ class EtherLeader(Thread):
 
         while not self.stop_event.is_set():
             try:
-                swap_data = query_scrt_swap(next_nonce, self.config['secret_contract_address'],
-                                            self.config['viewing_key'])
+                swap_data = query_scrt_swap(next_nonce, self.config['secret_swap_contract_address'])
                 self._handle_swap(swap_data)
                 doc.nonce = next_nonce
                 doc.save()
@@ -56,7 +55,7 @@ class EtherLeader(Thread):
 
             except CalledProcessError as e:
                 if e.stderr != b'ERROR: query result: encrypted: Tx does not exist\n':
-                    self.logger.error(msg=e.stdout + e.stderr)
+                    self.logger.error(e.stdout + e.stderr)
 
             self.stop_event.wait(self.config['sleep_interval'])
 

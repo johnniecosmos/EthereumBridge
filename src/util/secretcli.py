@@ -51,8 +51,8 @@ def decrypt(data: str) -> str:
     return run_secret_cli(cmd)
 
 
-def query_scrt_swap(nonce: int, contract_addr: str, viewing_key: str) -> str:
-    query_str = swap_json(nonce, viewing_key)
+def query_scrt_swap(nonce: int, contract_addr: str) -> str:
+    query_str = swap_json(nonce)
     cmd = ['secretcli', 'query', 'compute', 'query', contract_addr, f"{query_str}"]
     p = subprocess_run(cmd, stdout=PIPE, stderr=PIPE, check=True)
     return p.stdout.decode()
@@ -72,7 +72,7 @@ def run_secret_cli(cmd: List[str]) -> str:
         p = subprocess.run(cmd, stdout=PIPE, stderr=PIPE, check=True)
     except subprocess.CalledProcessError as e:
         logger.error(f'Failed: stderr: {e.stderr.decode()}, stdout: {e.stdout.decode()}')
-        raise RuntimeError(e.stdout.decode())
+        raise RuntimeError(e.stdout.decode()) from None
 
     logger.debug('Success')
     return p.stdout.decode()
@@ -110,7 +110,7 @@ def configure_secretcli(config: Config):
         run_secret_cli(cmd)
 
     cmd = ['secretcli', 'keys', 'add', f'{config["multisig_key_name"]}', f"--multisig={','.join(signers)}",
-           f'--multisig-threshold', f'{config["signatures_threshold"]}']
+           '--multisig-threshold', f'{config["signatures_threshold"]}']
     run_secret_cli(cmd)
 
     logger.debug(f'importing private key from {config["secret_key_file"]} with name {config["secret_key_name"]}')
@@ -124,7 +124,7 @@ def configure_secretcli(config: Config):
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
     inputdata = config["secret_key_password"]
-    stdoutdata, stderrdata = process.communicate(input=(inputdata+"\n").encode())
+    _, stderrdata = process.communicate(input=(inputdata+"\n").encode())
 
     if stderrdata:
         logger.error(f"Error importing secret key: {stderrdata}")
@@ -132,9 +132,9 @@ def configure_secretcli(config: Config):
 
     logger.debug("copying transaction key..")
     # copy transaction key from shared location
-    src_key_path = os.path.join(f'{config["KEYS_BASE_PATH"]}', f'id_tx_io.json')
-    dst_key_path = os.path.join(f'{config["SECRETCLI_HOME"]}', f'id_tx_io.json')
-    copyfile(src_key_path , dst_key_path)
+    src_key_path = os.path.join(f'{config["KEYS_BASE_PATH"]}', 'id_tx_io.json')
+    dst_key_path = os.path.join(f'{config["SECRETCLI_HOME"]}', 'id_tx_io.json')
+    copyfile(src_key_path, dst_key_path)
 
     # test configuration
     cmd = ['secretcli', 'query', 'account', config['multisig_acc_addr']]

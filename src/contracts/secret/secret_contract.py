@@ -34,7 +34,7 @@ def mint_json(amount, tx_hash, address: str) -> Dict:
     return {"mint_from_ext_chain": {"amount": str(amount), "address": address, "identifier": tx_hash}}
 
 
-def swap_json(nonce: int, viewing_key: str) -> str:
+def swap_json(nonce: int) -> str:
     return json.dumps({"swap": {"nonce": nonce}})
 
 

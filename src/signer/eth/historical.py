@@ -106,7 +106,7 @@ class HistoricalEthSigner:  # pylint: disable=too-many-instance-attributes, too-
     def _is_valid(self, submission_data: Dict[str, any]) -> bool:
         # lookup the tx hash in secret20, and validate it.
         nonce = submission_data['nonce']
-        swap = query_scrt_swap(nonce, self.config['secret_contract_address'], self.config['viewing_key'])
+        swap = query_scrt_swap(nonce, self.config['secret_swap_contract_address'])
 
         try:
             swap_data = swap_query_res(swap)

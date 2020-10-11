@@ -32,19 +32,34 @@ def rand_str(n):
 
 @fixture(scope="module")
 def setup(make_project, configuration: Config):
-    tx_data = {"admin": configuration['a_address'].decode(), "name": "Coin Name", "symbol": "ETHR", "decimals": 6,
-               "initial_balances": []}
+    multisig_account = configuration["multisig_acc_addr"]
 
-    cmd = f"docker exec secretdev secretcli tx compute instantiate 1 --label {rand_str(10)} '{json.dumps(tx_data)}'" \
-          f" --from a -b block -y"
-    _ = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
+    tx_data = {"admin": multisig_account, "name": "Coin Name", "symbol": "ETHR", "decimals": 6,
+               "initial_balances": [], "config": {}, "prng_seed": "aa"}
+
+    cmd = f"secretcli tx compute instantiate 1 --label {rand_str(10)} '{json.dumps(tx_data)}'" \
+          f" --from t1 -b block -y"
+    res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
 
     res = subprocess.run("secretcli query compute list-contract-by-code 1 | jq '.[-1].address'",
                          shell=True, stdout=subprocess.PIPE)
-    configuration['secret_contract_address'] = res.stdout.decode().strip()[1:-1]
-    configuration['viewing_key'] = get_viewing_key(configuration['a_address'].decode(), configuration['secret_contract_address'])
+    configuration['secret_token_address'] = res.stdout.decode().strip()[1:-1]
+    res = subprocess.run(f"secretcli q compute contract-hash {configuration['secret_token_address']}",
+                         shell=True, stdout=subprocess.PIPE).stdout.decode().strip()[2:]
+    token_contract_hash = res
 
-    res = subprocess.run(f"secretcli q compute contract-hash {configuration['secret_contract_address']}",
+    tx_data = {"owner": multisig_account, "token_address": configuration['secret_token_address'],
+               "code_hash": token_contract_hash}
+
+    cmd = f"secretcli tx compute instantiate 2 --label {rand_str(10)} '{json.dumps(tx_data)}'" \
+          f" --from t1 -b block -y"
+    res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
+
+    res = subprocess.run("secretcli query compute list-contract-by-code 2 | jq '.[-1].address'",
+                         shell=True, stdout=subprocess.PIPE)
+    configuration['secret_swap_contract_address'] = res.stdout.decode().strip()[1:-1]
+
+    res = subprocess.run(f"secretcli q compute contract-hash {configuration['secret_swap_contract_address']}",
                          shell=True, stdout=subprocess.PIPE).stdout.decode().strip()[2:]
     configuration['code_hash'] = res
 
@@ -91,7 +106,7 @@ def scrt_leader(multisig_account: SecretAccount, event_listener, multisig_wallet
                      f"{configuration['secret_contract_address']}" \
                      f" '{change_admin(multisig_account.address)}' --from a -y"
     _ = subprocess.run(change_admin_q, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    s20_contract = Token(configuration['secret_contract_address'], configuration['secret_contract_name'])
+    s20_contract = Token(configuration['secret_token_address'], configuration['secret_token_name'])
     leader = Secret20Leader(multisig_account, s20_contract, multisig_wallet, configuration)
     yield leader
     leader.stop()

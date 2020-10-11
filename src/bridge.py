@@ -1,9 +1,7 @@
 from os import _exit
 from threading import Thread
 from time import sleep
-from typing import Union
-
-from mongoengine import connect
+from typing import Union, List
 
 from src.contracts.ethereum.erc20 import Erc20
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
@@ -19,7 +17,7 @@ from src.util.common import Token, bytes_from_hex
 from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.secretcli import configure_secretcli
-from src.util.web3 import web3_provider, init_provider, w3
+from src.util.web3 import init_provider, w3
 
 
 def chain_objects(signer, leader) -> dict:
@@ -29,7 +27,6 @@ def chain_objects(signer, leader) -> dict:
 SUPPORTED_TYPES = ['erc20', 'eth', 's20', 'scrt']
 
 SUPPORTED_COINS = [{'dai': 'sdai'}, {'eth': 'seth'}]
-
 
 NETWORK_PARAMS = {
     'dai': {'type': 'erc20',
@@ -44,14 +41,16 @@ NETWORK_PARAMS = {
              'mainnet': {'address': 'secret1uwcjkghqlz030r989clzqs8zlaujwyphwkpq0n',
                          'decimals': 6},
              'holodeck': {'address': 'secret1uwcjkghqlz030r989clzqs8zlaujwyphwkpq0n',
-                         'decimals': 6}},
+                          'decimals': 6}},
     'eth': {'type': 'eth'},
     'seth': {'type': 's20',
              'mainnet': {'address': 'secret1uwcjkghqlz030r989clzqs8zlaujwyphwkpq0n',
                          'decimals': 6},
              'holodeck': {'address': 'secret1uwcjkghqlz030r989clzqs8zlaujwyphwkpq0n',
-                         'decimals': 6}},
+                          'decimals': 6}},
 }
+
+
 #
 #
 # chains = {
@@ -79,22 +78,20 @@ def get_leader(coin_name: str, eth_contract: Union[Erc20, MultisigWallet], priva
         account = SecretAccount(cfg['multisig_acc_addr'], cfg['multisig_key_name'])
         return Secret20Leader(account, s20token, eth_contract, config=cfg)
 
+    raise TypeError
+
 
 def run_bridge():
-
     runners = []
     required_configs = ['SRC_COIN', 'DST_COIN', 'MODE', 'private_key', 'account', 'secret_node', 'multisig_acc_addr',
                         'chain_id']
     cfg = Config(required=required_configs)
     try:
         configure_secretcli(cfg)
-    except RuntimeError as e:
+    except RuntimeError:
         logger = get_logger(logger_name='runner')
-        logger.error(f'Failed to set up secretcli')
+        logger.error('Failed to set up secretcli')
         _exit(1)
-
-    # init web3 provider
-    init_provider(cfg)
 
     with database(db=cfg['db_name'], host=cfg['db_host'],
                   password=cfg['db_password'], username=cfg['db_username']):
@@ -104,13 +101,11 @@ def run_bridge():
         private_key = bytes_from_hex(cfg['private_key'])
         account = cfg['account']
 
-        scoin = cfg['SRC_COIN']
-        dcoin = cfg['DST_COIN']
         erc20_contract = ''
-
         secret_account = SecretAccount(cfg['multisig_acc_addr'], cfg['secret_key_name'])
-        if NETWORK_PARAMS[scoin]['type'] == 'erc20':
-            token = get_token(scoin, cfg['network'])
+
+        if NETWORK_PARAMS[cfg['SRC_COIN']]['type'] == 'erc20':
+            token = get_token(cfg['SRC_COIN'], cfg['network'])
             erc20_contract = Erc20(w3, token, eth_wallet.address)
             src_signer = ERC20Signer(eth_wallet, token, private_key, account, cfg)
             dst_signer = Secret20Signer(erc20_contract, secret_account, cfg)
@@ -122,26 +117,30 @@ def run_bridge():
         runners.append(dst_signer)
 
         if cfg['MODE'].lower() == 'leader':
-            src_leader = get_leader(scoin, eth_wallet, private_key, account, cfg)
+            src_leader = get_leader(cfg['SRC_COIN'], eth_wallet, private_key, account, cfg)
             if erc20_contract:
-                dst_leader = get_leader(dcoin, erc20_contract, private_key, account, cfg)
+                dst_leader = get_leader(cfg['DST_COIN'], erc20_contract, private_key, account, cfg)
             else:
-                dst_leader = get_leader(dcoin, eth_wallet, private_key, account, cfg)
+                dst_leader = get_leader(cfg['DST_COIN'], eth_wallet, private_key, account, cfg)
             runners.append(src_leader)
             runners.append(dst_leader)
 
-        for r in runners:
-            r.start()
+        run_all(runners)
 
-        try:
-            while True:
-                sleep(1)
-        except KeyboardInterrupt:
-            pass
-        finally:
-            for r in runners:
-                if r.is_alive():
-                    r.stop()
+
+def run_all(runners: List[Thread]):
+    for r in runners:
+        r.start()
+
+    try:
+        while True:
+            sleep(1)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        for r in runners:
+            if r.is_alive():
+                r.stop()
 
 
 if __name__ == '__main__':

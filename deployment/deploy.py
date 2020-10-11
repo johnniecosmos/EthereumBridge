@@ -64,18 +64,27 @@ def deploy_scrt():
     deployer = "secret1qcz0405jctqvar3e5wmlsj2q5vrehgudtv5nqd"
 
     tx_data = {"admin": multisig_account, "name": "Coin Name", "symbol": "ETHR", "decimals": 6,
-               "initial_balances": []}
+               "initial_balances": [], "config": {}, "prng_seed": "aa"}
+
     cmd = f"secretcli tx compute instantiate 1 --label {rand_str(10)} '{json.dumps(tx_data)}'" \
           f" --from t1 -b block -y"
     res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
 
     res = subprocess.run("secretcli query compute list-contract-by-code 1 | jq '.[-1].address'",
                          shell=True, stdout=subprocess.PIPE)
-    configuration['secret_contract_address'] = res.stdout.decode().strip()[1:-1]
-    configuration['viewing_key'] = get_viewing_key(configuration['a_address'].decode(),
-                                                   configuration['secret_contract_address'])
+    configuration['secret_token_address'] = res.stdout.decode().strip()[1:-1]
 
-    res = subprocess.run(f"secretcli q compute contract-hash {configuration['secret_contract_address']}",
+    tx_data = { "owner": multisig_account }
+
+    cmd = f"secretcli tx compute instantiate 2 --label {rand_str(10)} '{json.dumps(tx_data)}'" \
+          f" --from t1 -b block -y"
+    res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
+
+    res = subprocess.run("secretcli query compute list-contract-by-code 2 | jq '.[-1].address'",
+                         shell=True, stdout=subprocess.PIPE)
+    configuration['secret_swap_contract_address'] = res.stdout.decode().strip()[1:-1]
+
+    res = subprocess.run(f"secretcli q compute contract-hash {configuration['secret_swap_contract_address']}",
                          shell=True, stdout=subprocess.PIPE).stdout.decode().strip()[2:]
     configuration['code_hash'] = res
 

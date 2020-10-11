@@ -3,7 +3,6 @@ from threading import Event, Lock
 from time import sleep
 from typing import List, Callable, Dict
 
-from web3 import Web3
 from web3.exceptions import BlockNotFound
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
@@ -92,7 +91,7 @@ class Callbacks:
                 continue
 
             for tx in contract_transactions:
-                event_name, log = event_log(tx_hash=tx.hash, events=list(callbacks.keys()), provider=provider,
+                event_name, log = event_log(tx_hash=tx.hash, events=list(callbacks.keys()), provider=w3,
                                             contract=contract.contract)
                 if log is None:
                     continue
