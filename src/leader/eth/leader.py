@@ -1,3 +1,4 @@
+import base64
 from subprocess import CalledProcessError
 from threading import Event, Thread
 
@@ -54,7 +55,7 @@ class EtherLeader(Thread):
                 continue
 
             except CalledProcessError as e:
-                if e.stderr != b'ERROR: query result: encrypted: Tx does not exist\n':
+                if e.stderr != b'ERROR: query result: encrypted: AppendStorage access out of bounds\n':
                     self.logger.error(e.stdout + e.stderr)
 
             self.stop_event.wait(self.config['sleep_interval'])
@@ -67,7 +68,9 @@ class EtherLeader(Thread):
 
         data = b""
 
-        msg = message.Submit(swap_json['destination'], int(swap_json['amount']), int(swap_json['nonce']), data)
+        dest_address = base64.b64decode(swap_json['destination']).decode()
+
+        msg = message.Submit(dest_address, int(swap_json['amount']), int(swap_json['nonce']), data)
 
         self._broadcast_transaction(msg)
 

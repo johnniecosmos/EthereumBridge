@@ -1,15 +1,14 @@
+from collections.abc import MutableMapping
 from itertools import count
-from threading import Event, Lock
+from threading import Event
 from time import sleep
-from typing import List, Callable, Dict
-
-from web3.exceptions import BlockNotFound
+from typing import List, Callable, Iterator
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.contracts.event_provider import EventProvider
 from src.util.config import Config
 from src.util.logger import get_logger
-from src.util.web3 import extract_tx_by_address, event_log, contract_event_in_range, w3, get_block
+from src.util.web3 import contract_event_in_range, w3
 
 
 class EthEventListener(EventProvider):
@@ -25,11 +24,12 @@ class EthEventListener(EventProvider):
         self.callbacks = Callbacks()
         self.logger = get_logger(db_name=config['db_name'],
                                  logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.id}"))
-
+        self.events = []
         self.stop_event = Event()
+        self.confirmations = config['eth_confirmations']
         super().__init__(group=None, name=f"EventListener-{config.get('logger_name', '')}", target=self.run, **kwargs)
 
-    def register(self, callback: Callable, events: List[str], *args, **kwargs):
+    def register(self, callback: Callable, events: List[str]):
         """
         Allows registration to certain event of contract with confirmations threshold
         Note: events are Case Sensitive
@@ -38,9 +38,12 @@ class EthEventListener(EventProvider):
         :param events: list of events the caller wants to register to
         :param kwargs: ['confirmations'] number of confirmations to wait before triggering the event (default: 12)
         """
-        confirmations_required = kwargs.get('confirmations', 12)
-        for event in events:
-            self.callbacks.add(event, callback, confirmations_required)
+
+        for event_name in events:
+            # event = getattr(self.contract.contract.events, event_name)
+            self.logger.info(f"registering event {event_name}")
+            self.events.append(event_name)
+            self.callbacks[event_name] = callback
 
     def stop(self):
         self.logger.info("Stopping..")
@@ -49,52 +52,59 @@ class EthEventListener(EventProvider):
     def run(self):
         """Notify registered callbacks upon event occurrence"""
         self.logger.info("Starting..")
-
+        block = w3.eth.blockNumber - self.confirmations
         while not self.stop_event.is_set():
-            try:
-                block = get_block('latest', full_transactions=True)
-                self.callbacks.call(self.contract, block.number)
-            except BlockNotFound:
-                sleep(self.config['sleep_interval'])
-                continue
+            for event_name in self.events:
+                self.logger.debug(f'Searching for events {event_name} on {block}..')
+                for evt in self.events_in_range(event_name, from_block=block, to_block=block):
+                    self.logger.info(f"New event found {event_name}")
+                    self.callbacks.trigger(event_name, evt)
+
+            block += 1
+            self.wait_for_block(block)
 
     def events_in_range(self, event: str, from_block: int, to_block: int = None):
         """ Returns a generator that yields all contract events in range"""
         return contract_event_in_range(self.contract, event, from_block=from_block,
                                        to_block=to_block)
 
+    def wait_for_block(self, number: int) -> int:
+        while True:
+            block = (w3.eth.blockNumber - self.confirmations)
+            if block >= number:
+                return block
+            sleep(self.config['sleep_interval'])
 
-class Callbacks:
+
+class Callbacks(MutableMapping):
     """Utility class that manages events registration by confirmation threshold"""
 
-    def __init__(self):
-        self.callbacks_by_confirmations: Dict[int, Dict[str, List[Callable]]] = dict()
-        self.lock = Lock()
+    def __iter__(self) -> Iterator:
+        return iter(self.store)
 
-    def add(self, event_name: str, callback: Callable, confirmations_required: int):
-        with self.lock:
-            callbacks = self.callbacks_by_confirmations.setdefault(confirmations_required, dict())
-            callbacks = callbacks.setdefault(event_name, list())
-            callbacks.append(callback)
+    def __len__(self) -> int:
+        return len(self.store)
 
-    def call(self, contract: EthereumContract, block_number: int):
+    def __delitem__(self, key) -> None:
+        del self.store[key]
+
+    def __init__(self, *args, **kwargs):
+        self.store = dict()
+        self.update(dict(*args, **kwargs))
+
+    def __setitem__(self, key, value):
+        if key in self.store:
+            self.store[key].extend(value)
+        else:
+            self.store[key] = [value]
+
+    def __getitem__(self, key):
+        if key not in self.store:
+            return []
+        return self.store[key]
+
+    def trigger(self, event_name: str, event):
         """ call all the callbacks whose confirmation threshold reached """
 
-        for threshold, callbacks in self.callbacks_by_confirmations.items():
-            if block_number - threshold <= 0:
-                continue
-
-            block = get_block(block_number - threshold, full_transactions=True)
-            contract_transactions = extract_tx_by_address(contract.address, block)
-
-            if not contract_transactions:
-                continue
-
-            for tx in contract_transactions:
-                event_name, log = event_log(tx_hash=tx.hash, events=list(callbacks.keys()), provider=w3,
-                                            contract=contract.contract)
-                if log is None:
-                    continue
-
-                for callback in callbacks[event_name]:
-                    callback(log)
+        for callback in self[event_name]:
+            callback(event)

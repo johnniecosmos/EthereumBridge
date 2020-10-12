@@ -38,7 +38,7 @@ class EtherSigner(Thread):
         self.logger.info("Starting..")
         self.signer.sign_all_historical_swaps()
         # then we can start signing new transactions
-        self.event_listener.register(self.signer.handle_submission, ['Submission'], confirmations=0)
+        self.event_listener.register(self.signer.handle_submission, ['Submission'])
         self.event_listener.start()
         while not self.stop_event.is_set():
             if not self.event_listener.is_alive():

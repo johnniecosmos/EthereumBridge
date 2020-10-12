@@ -33,8 +33,7 @@ class SecretManager(Thread):
                                                         f"{self.__class__.__name__}-{self.multisig.name}"))
         self.stop_signal = Event()
 
-        self.event_listener.register(self._handle, [contract.tracked_event()],
-                                     confirmations=self.config['eth_confirmations'])
+        self.event_listener.register(self._handle, [contract.tracked_event()],)
         super().__init__(group=None, name="SecretManager", target=self.run, **kwargs)
 
     def stop(self):
@@ -45,17 +44,17 @@ class SecretManager(Thread):
     def run(self):
         """Scans for signed transactions and updates status if multisig threshold achieved"""
         self.logger.info("Starting..")
-        self.event_listener.start()
-
         self.catch_up()
+
+        self.event_listener.start()
         self.logger.info("Done catching up")
 
         while not self.stop_signal.is_set():
-            for transaction in Swap.objects(status=Status.SWAP_STATUS_UNSIGNED):
+            for transaction in Swap.objects(status=Status.SWAP_UNSIGNED):
                 self.logger.debug(f"Checking unsigned tx {transaction.id}")
                 if Signatures.objects(tx_id=transaction.id).count() >= self.config['signatures_threshold']:
                     self.logger.info(f"Found tx {transaction.id} with enough signatures to broadcast")
-                    transaction.status = Status.SWAP_STATUS_SIGNED
+                    transaction.status = Status.SWAP_SIGNED
                     transaction.save()
                     self.logger.info(f"Set status of tx {transaction.id} to signed")
                 else:
@@ -100,7 +99,7 @@ class SecretManager(Thread):
                                              self.multisig.address)
 
             # if ETHSwap.objects(tx_hash=tx_hash).count() == 0:  # TODO: exception because of force_insert?
-            tx = Swap(src_tx_hash=tx_hash, status=Status.SWAP_STATUS_UNSIGNED, unsigned_tx=unsigned_tx)
+            tx = Swap(src_tx_hash=tx_hash, status=Status.SWAP_UNSIGNED, unsigned_tx=unsigned_tx)
             tx.save(force_insert=True)
             self.logger.info(f"saved new eth -> scrt transaction {tx_hash}")
             Management.update_last_processed(src=Source.ETH.value, update_val=block_number)

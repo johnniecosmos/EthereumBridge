@@ -60,7 +60,7 @@ def test_1_swap_erc_to_s20(setup, scrt_leader, scrt_signers, web3_provider, conf
 
     # give time for manager to process the signatures
     sleep(configuration['sleep_interval'] + 2)
-    assert Swap.objects().get().status == Status.SWAP_STATUS_SUBMITTED
+    assert Swap.objects().get().status == Status.SWAP_SUBMITTED
 
     # get tx details
     tx_hash = Swap.objects().get().src_tx_hash
@@ -84,7 +84,7 @@ def test_1_swap_erc_to_s20(setup, scrt_leader, scrt_signers, web3_provider, conf
 
     # give scrt_leader time to multi-sign already existing signatures
     sleep(configuration['sleep_interval'] + 3)
-    assert Swap.objects().get().status == Status.SWAP_STATUS_CONFIRMED
+    assert Swap.objects().get().status == Status.SWAP_CONFIRMED
 
 
 # covers EthrLeader tracking of swap events in secret20 and creating submission event in Ethereum

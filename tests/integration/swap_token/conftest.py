@@ -76,7 +76,13 @@ def setup(make_project, configuration: Config, erc20_token):
 
     res = subprocess.run("secretcli query compute list-contract-by-code 1 | jq '.[-1].address'",
                          shell=True, stdout=subprocess.PIPE)
-    configuration['secret_contract_address'] = res.stdout.decode().strip()[1:-1]
+    configuration['secret_token_address'] = res.stdout.decode().strip()[1:-1]
+
+    res = subprocess.run(f"secretcli q compute contract-hash {configuration['secret_contract_address']}",
+                         shell=True, stdout=subprocess.PIPE).stdout.decode().strip()[2:]
+    configuration['code_hash'] = res
+
+
     configuration['viewing_key'] = get_viewing_key(configuration['a_address'].decode(),
                                                 configuration['secret_contract_address'])
 
@@ -106,10 +112,10 @@ def erc20_contract(multisig_wallet, web3_provider, erc20_token):
 
 @fixture(scope="module")
 def scrt_leader(multisig_account: SecretAccount, erc20_contract, configuration: Config):
-    change_admin_q = f"docker exec secretdev secretcli tx compute execute " \
-                     f"{configuration['secret_contract_address']}" \
-                     f" '{change_admin(multisig_account.address)}' --from a -y"
-    _ = subprocess.run(change_admin_q, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # change_admin_q = f"docker exec secretdev secretcli tx compute execute " \
+    #                  f"{configuration['secret_contract_address']}" \
+    #                  f" '{change_admin(multisig_account.address)}' --from a -y"
+    # _ = subprocess.run(change_admin_q, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     s20_contract = Token(configuration['secret_contract_address'], configuration['secret_contract_name'])
     leader = Secret20Leader(multisig_account, s20_contract, erc20_contract, configuration)
     yield leader

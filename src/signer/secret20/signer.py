@@ -38,7 +38,7 @@ class Secret20Signer(Thread):
         """Scans the db for unsigned swap tx and signs them"""
         self.logger.info("Starting..")
         while not self.stop_event.is_set():
-            for tx in Swap.objects(status=Status.SWAP_STATUS_UNSIGNED):
+            for tx in Swap.objects(status=Status.SWAP_UNSIGNED):
                 self.logger.info(f"Found new unsigned swap event {tx}")
                 try:
                     self._validate_and_sign(tx)
@@ -58,6 +58,8 @@ class Secret20Signer(Thread):
 
         if not self._is_valid(tx):
             self.logger.error(f"Validation failed. Signer: {self.multisig.name}. Tx id:{tx.id}.")
+            tx.status = Status.SWAP_FAILED
+            tx.save()
             return
 
         try:
@@ -87,7 +89,7 @@ class Secret20Signer(Thread):
             self.logger.error(f'Tried to load tx with hash: {tx.src_tx_hash} '
                               f'but got raw data as invalid json')
             return False
-
+        decrypted_data = {}
         try:
             res = self._decrypt(unsigned_tx)
             self.logger.debug(f'Decrypted unsigned tx successfully {res}')
@@ -95,10 +97,10 @@ class Secret20Signer(Thread):
             json_end_index = res.rfind('}') + 1
             decrypted_data = json.loads(res[json_start_index:json_end_index])
             # assert decrypted_data['mint']['eth_tx_hash'] == log.transactionHash.hex()
-            assert int(decrypted_data['mint']['amount']) == self.contract.extract_amount(log)
-            assert decrypted_data['mint']['address'] == self.contract.extract_addr(log)
-        except (json.JSONDecodeError, AssertionError) as e:
-            self.logger.error(f"Failed to validate tx data: {tx}. Error: {e}")
+            assert int(decrypted_data['mint_from_ext_chain']['amount']) == self.contract.extract_amount(log)
+            assert decrypted_data['mint_from_ext_chain']['address'] == self.contract.extract_addr(log)
+        except (json.JSONDecodeError, AssertionError, KeyError) as e:
+            self.logger.error(f"Failed to validate tx data: {tx}, {decrypted_data}. Error: {e}")
             return False
 
         return True

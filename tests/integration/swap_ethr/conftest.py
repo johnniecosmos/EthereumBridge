@@ -46,10 +46,10 @@ def setup(make_project, configuration: Config):
     configuration['secret_token_address'] = res.stdout.decode().strip()[1:-1]
     res = subprocess.run(f"secretcli q compute contract-hash {configuration['secret_token_address']}",
                          shell=True, stdout=subprocess.PIPE).stdout.decode().strip()[2:]
-    token_contract_hash = res
+    configuration['secret_token_code_hash'] = res
 
     tx_data = {"owner": multisig_account, "token_address": configuration['secret_token_address'],
-               "code_hash": token_contract_hash}
+               "code_hash": configuration['secret_token_code_hash']}
 
     cmd = f"secretcli tx compute instantiate 2 --label {rand_str(10)} '{json.dumps(tx_data)}'" \
           f" --from t1 -b block -y"
@@ -102,11 +102,11 @@ def event_listener(multisig_wallet, configuration: Config):
 
 @fixture(scope="module")
 def scrt_leader(multisig_account: SecretAccount, event_listener, multisig_wallet, configuration: Config):
-    change_admin_q = f"docker exec secretdev secretcli tx compute execute " \
-                     f"{configuration['secret_contract_address']}" \
-                     f" '{change_admin(multisig_account.address)}' --from a -y"
-    _ = subprocess.run(change_admin_q, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    s20_contract = Token(configuration['secret_token_address'], configuration['secret_token_name'])
+    # change_admin_q = f"docker exec secretdev secretcli tx compute execute " \
+    #                  f"{configuration['secret_contract_address']}" \
+    #                  f" '{change_admin(multisig_account.address)}' --from a -y"
+    # _ = subprocess.run(change_admin_q, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    s20_contract = Token(configuration['secret_swap_contract_address'], configuration['secret_token_name'])
     leader = Secret20Leader(multisig_account, s20_contract, multisig_wallet, configuration)
     yield leader
     leader.stop()
@@ -131,7 +131,7 @@ def ethr_leader(multisig_account, configuration: Config, web3_provider, multisig
     configuration['leader_acc_addr'] = normalize_address(ether_accounts[0].address)
     configuration['eth_start_block'] = web3_provider.eth.blockNumber
 
-    leader = EtherLeader(multisig_wallet, configuration)
+    leader = EtherLeader(multisig_wallet, configuration['leader_key'], configuration['leader_acc_addr'], configuration)
     leader.start()
     yield leader
     leader.stop_event.set()

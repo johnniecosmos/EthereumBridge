@@ -1,3 +1,4 @@
+import base64
 import json
 from decimal import Decimal
 from pathlib import Path
@@ -12,6 +13,7 @@ from src.db.collections.signatures import Signatures
 from src.signer.eth.signer import EtherSigner
 from src.util.common import project_base_path
 from src.util.config import Config
+from src.util.secretcli import query_data_success
 from src.util.web3 import event_log
 # Note: The tests are ordered and named test_0...N and should be executed in that order as they demonstrate the flow
 # Ethr -> Scrt and then Scrt -> Ethr
@@ -36,6 +38,7 @@ def test_1_swap_eth_to_s20(setup, scrt_signers, scrt_leader, web3_provider, conf
     t1_address = get_key_signer("t1", Path.joinpath(project_base_path(), configuration['path_to_keys']))['address']
     # swap ethr for secret20 token, deliver tokens to address of 'a'
     # (we will use 'a' later to check it received the money)
+    print(f"Creating new swap transaction at {web3_provider.eth.getBlock('latest').number + 1}")
     tx_hash = multisig_wallet.contract.functions.swap(t1_address.encode()). \
         transact({'from': web3_provider.eth.coinbase, 'value': TRANSFER_AMOUNT}).hex().lower()
     # TODO: validate ethr increase of the smart contract
@@ -48,37 +51,34 @@ def test_1_swap_eth_to_s20(setup, scrt_signers, scrt_leader, web3_provider, conf
     assert increase_block_number(web3_provider, 1)  # add the 'missing' confirmation block
 
     # give event listener and manager time to process tx
-    sleep(configuration['sleep_interval'] + 2)
+    sleep(configuration['sleep_interval'] + 5)
     assert Swap.objects(src_tx_hash=tx_hash).count() == 1  # verify swap event recorded
 
     sleep(1)
     # check signers were notified of the tx and signed it
     assert Signatures.objects().count() == len(scrt_signers)
-
+    assert Swap.objects().get().status == Status.SWAP_SUBMITTED
     # give time for manager to process the signatures
-    sleep(configuration['sleep_interval'] + 2)
-    assert Swap.objects().get().status == Status.SWAP_STATUS_SUBMITTED
+    sleep(configuration['sleep_interval'] + 5)
+    assert Swap.objects().get().status == Status.SWAP_CONFIRMED
 
     # get tx details
     tx_hash = Swap.objects().get().src_tx_hash
     _, log = event_log(tx_hash, ['Swap'], web3_provider, multisig_wallet.contract)
-    transfer_amount = web3_provider.fromWei(log.args.value, 'ether')
+    transfer_amount = log.args.value
     dest = log.args.recipient.decode()
 
     # validate swap tx on ethr delivers to the destination
     balance_query = '{"balance": {}}'
-    tx_hash = run(f"secretcli tx compute execute {configuration['secret_contract_address']} "
+    tx_hash = run(f"secretcli tx compute execute {configuration['secret_token_address']} "
                   f"'{balance_query}' --from {dest} -b block -y | jq '.txhash'", shell=True, stdout=PIPE)
     tx_hash = tx_hash.stdout.decode().strip()[1:-1]
 
-    res = run(f"secretcli q compute tx {tx_hash} | jq '.output_log' | jq '.[0].attributes' "
-              f"| jq '.[3].value'", shell=True, stdout=PIPE).stdout.decode().strip()[1:-1]
-    end_index = res.find(' ')
-    amount = Decimal(res[:end_index])
-
-    assert abs(transfer_amount - amount) < 1  # TODO: == 0 after specificity fixed
-    sleep(7)
-    assert Swap.objects().get().status == Status.SWAP_STATUS_CONFIRMED
+    res = query_data_success(tx_hash)
+    assert "balance" in res
+    amount = res["balance"]["amount"]
+    print(f"tx amount: {transfer_amount}, swap amount: {amount}")
+    assert int(amount) == log.args.value
 
 
 # covers EthrLeader tracking of swap events in secret20 and creating submission event in Ethereum
@@ -90,12 +90,15 @@ def test_2_swap_s20_to_eth(ethr_leader, configuration: Config, ethr_signers):
         signer.start()
 
     # Generate swap tx on secret network
-    swap = {"swap": {"amount": str(TRANSFER_AMOUNT), "network": "Ethereum", "destination": ethr_leader.default_account}}
+    swap = {"send": {"amount": str(TRANSFER_AMOUNT),
+                     "msg": base64.b64encode(ethr_leader.default_account.encode()).decode(),
+                     "recipient": configuration["secret_swap_contract_address"]}}
+
     sleep(configuration['sleep_interval'])
     last_nonce = Management.last_processed(Source.SCRT.value)
     print(f"last processed before: {last_nonce}")
-    tx_hash = run(f"secretcli tx compute execute {configuration['secret_contract_address']} "
-                  f"'{json.dumps(swap)}' --from t1 -y", shell=True, stdout=PIPE, stderr=PIPE)
+    tx_hash = run(f"secretcli tx compute execute {configuration['secret_token_address']} "
+                  f"'{json.dumps(swap)}' --from t1 --gas 500000 -y", shell=True, stdout=PIPE, stderr=PIPE)
     tx_hash = json.loads(tx_hash.stdout)['txhash']
 
     # Verify that leader recognized the burn tx
@@ -121,6 +124,7 @@ def test_3_confirm_and_finalize_eth_tx(ethr_signers, configuration: Config):
     last_nonce = Management.last_processed(Source.SCRT.value)
     assert ethr_signers[-1].signer.multisig_wallet.contract.functions.confirmations(last_nonce,
                                                                                     ethr_signers[-1].account).call()
+
 
 def increase_block_number(web3_provider: Web3, increment: int) -> True:
     # Creates arbitrary tx on the chain to increase the last block number

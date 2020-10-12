@@ -1,7 +1,7 @@
 from threading import Lock
 from typing import List, Tuple, Optional, Generator
 
-from web3 import Web3
+from web3 import Web3, HTTPProvider
 from web3.contract import Contract as Web3Contract
 from web3.datastructures import AttributeDict
 from web3.logs import DISCARD
@@ -90,16 +90,29 @@ def contract_event_in_range(contract, event_name: str, from_block: int = 0,
 
     with event_lock:
 
-        event = getattr(contract.contract.events, event_name)
-        event_filter = event.createFilter(fromBlock=from_block, toBlock=to_block)
+        if isinstance(w3.provider, HTTPProvider):
+            for block_num in range(from_block, to_block + 1):
+                block = w3.eth.getBlock(block_num, full_transactions=True)
+                contract_transactions = extract_tx_by_address(contract.address, block)
 
-        for tx in event_filter.get_new_entries():
-            _, log = event_log(tx_hash=tx.hash, events=[event_name], provider=w3, contract=contract.contract)
+                if not contract_transactions:
+                    continue
+                for tx in contract_transactions:
+                    _, log = event_log(tx_hash=tx.hash, events=[event_name], provider=w3, contract=contract.contract)
+                    if log is None:
+                        continue
+                    yield log
+        else:
+            event = getattr(contract.contract.events, event_name)
+            event_filter = event.createFilter(fromBlock=0, toBlock=500)
 
-            if log is None:
-                continue
+            for tx in event_filter.get_new_entries():
+                _, log = event_log(tx_hash=tx.hash, events=[event_name], provider=w3, contract=contract.contract)
 
-            yield log
+                if log is None:
+                    continue
+
+                yield log
 
     # for block_num in range(from_block, to_block + 1):
     #     block = provider.eth.getBlock(block_num, full_transactions=True)

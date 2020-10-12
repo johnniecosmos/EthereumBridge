@@ -12,10 +12,9 @@ from src.db.collections.signatures import Signatures
 from src.leader.secret20.manager import SecretManager
 from src.signer.secret20.signer import SecretAccount
 from src.util.common import temp_file, temp_files, Token
-from src.util.logger import get_logger
-from src.util.secretcli import broadcast, multisig_tx, query_tx, query_encrypted_error
 from src.util.config import Config
-
+from src.util.logger import get_logger
+from src.util.secretcli import broadcast, multisig_tx, query_data_success
 
 BROADCAST_VALIDATION_COOLDOWN = 60
 SCRT_BLOCK_TIME = 7
@@ -42,7 +41,7 @@ class Secret20Leader(Thread):
     def _catch_up(self):
         """ Scans the DB for signed swap tx at startup"""
         # Note: As Collection.objects() call is cached, there shouldn't be collisions with DB signals
-        for tx in Swap.objects(status=Status.SWAP_STATUS_SIGNED):
+        for tx in Swap.objects(status=Status.SWAP_SIGNED):
             self._create_and_broadcast(tx)
 
     def stop(self):
@@ -57,11 +56,11 @@ class Secret20Leader(Thread):
 
     def _scan_swap(self):
         while not self.stop_event.is_set():
-            for tx in Swap.objects(status=Status.SWAP_STATUS_SIGNED):
+            for tx in Swap.objects(status=Status.SWAP_SIGNED):
                 self.logger.info(f"Found tx ready for broadcasting {tx.id}")
                 self._create_and_broadcast(tx)
                 sleep(SCRT_BLOCK_TIME)
-            for tx in Swap.objects(status=Status.SWAP_STATUS_SUBMITTED):
+            for tx in Swap.objects(status=Status.SWAP_SUBMITTED):
                 self._broadcast_validation(tx)
             self.logger.debug('done scanning for swaps. sleeping..')
             self.stop_event.wait(self.config['sleep_interval'])
@@ -78,7 +77,7 @@ class Secret20Leader(Thread):
             signed_tx = self._create_multisig(tx.unsigned_tx, signatures)
             scrt_tx_hash = self._broadcast(signed_tx)
             self.logger.info(f"Broadcasted {tx.id} successfully - {scrt_tx_hash}")
-            tx.status = Status.SWAP_STATUS_SUBMITTED
+            tx.status = Status.SWAP_SUBMITTED
             tx.dst_tx_hash = scrt_tx_hash
             tx.save()
             self.logger.info(f"Changed status of tx {tx.id} to submitted")
@@ -104,29 +103,23 @@ class Secret20Leader(Thread):
 
         **kwargs needs to be here even if unused, because this function gets passed arguments from mongo internals
         """
-        if not document.status == Status.SWAP_STATUS_SUBMITTED:
+        if not document.status == Status.SWAP_SUBMITTED:
             return
 
         tx_hash = document.dst_tx_hash
         try:
-            res = json.loads(query_tx(tx_hash))
+            res = query_data_success(tx_hash)
 
-            if isinstance(res["raw_log"], str):
-                if "encrypted" in res["raw_log"]:
-                    raise RuntimeError(query_encrypted_error(tx_hash))
-                raise RuntimeError(res["raw_log"])
-
-            logs = json.loads(res["raw_log"])[0]
-            if not logs.get('log', ''):
-                document.update(status=Status.SWAP_STATUS_CONFIRMED)
+            if res and res["mint_from_ext_chain"]["status"] == "success":
+                document.update(status=Status.SWAP_CONFIRMED)
             else:
                 # maybe the block took a long time - we wait 60 seconds before we mark it as failed
                 if (datetime.utcnow() - document.updated_on).total_seconds() < BROADCAST_VALIDATION_COOLDOWN:
                     return
-                document.update(status=Status.SWAP_STATUS_FAILED)
+                document.update(status=Status.SWAP_FAILED)
                 self.logger.critical(f"Failed confirming broadcast for tx: {document}")
         except (IndexError, json.JSONDecodeError, RuntimeError) as e:
             self.logger.critical(f"Failed confirming broadcast for tx: {document}. Error: {e}")
             # This can fail, but if it does we want to crash - this can lead to duplicate amounts and confusion
             # Better to just stop and make sure everything is kosher before continuing
-            document.update(status=Status.SWAP_STATUS_FAILED)
+            document.update(status=Status.SWAP_FAILED)

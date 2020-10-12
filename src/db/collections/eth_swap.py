@@ -40,11 +40,11 @@ class EnumField(BaseField):
 
 
 class Status(Enum):
-    SWAP_STATUS_UNSIGNED = auto()
-    SWAP_STATUS_SIGNED = auto()
-    SWAP_STATUS_SUBMITTED = auto()  # Submitted to Secret
-    SWAP_STATUS_CONFIRMED = auto()
-    SWAP_STATUS_FAILED = auto()
+    SWAP_UNSIGNED = auto()
+    SWAP_SIGNED = auto()
+    SWAP_SUBMITTED = auto()  # Submitted to Secret
+    SWAP_CONFIRMED = auto()
+    SWAP_FAILED = auto()
 
 
 class Swap(Document):

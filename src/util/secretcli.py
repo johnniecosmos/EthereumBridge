@@ -63,6 +63,18 @@ def query_tx(tx_hash: str):
     return run_secret_cli(cmd)
 
 
+def query_data_success(tx_hash: str):
+    """ This command is used to test success of transactions - so we can safely ignore any errors and assume in any case
+    that means the tx isn't on-chain
+    """
+    cmd = ['secretcli', 'query', 'compute', 'tx', tx_hash]
+    try:
+        resp = run_secret_cli(cmd)
+        return json.loads(json.loads(resp)["output_data_as_string"])
+    except (RuntimeError, json.JSONDecodeError, KeyError):
+        return {}
+
+
 def run_secret_cli(cmd: List[str]) -> str:
     """
 
@@ -78,7 +90,7 @@ def run_secret_cli(cmd: List[str]) -> str:
     return p.stdout.decode()
 
 
-def configure_secretcli(config: Config):
+def configure_secretcli(config: Config):  # pylint: disable=too-many-statements
 
     # check if cli is already set up:
     cmd = ['secretcli', 'keys', 'list']

@@ -17,7 +17,7 @@ from src.util.common import Token, bytes_from_hex
 from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.secretcli import configure_secretcli
-from src.util.web3 import init_provider, w3
+from src.util.web3 import w3
 
 
 def chain_objects(signer, leader) -> dict:
@@ -81,7 +81,7 @@ def get_leader(coin_name: str, eth_contract: Union[Erc20, MultisigWallet], priva
     raise TypeError
 
 
-def run_bridge():
+def run_bridge():  # pylint: disable=too-many-statements
     runners = []
     required_configs = ['SRC_COIN', 'DST_COIN', 'MODE', 'private_key', 'account', 'secret_node', 'multisig_acc_addr',
                         'chain_id']
