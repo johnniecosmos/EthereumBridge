@@ -3,17 +3,17 @@ from threading import Thread, Event
 from web3.datastructures import AttributeDict
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
+from src.contracts.ethereum.event_listener import EthEventListener
 from src.contracts.secret.secret_contract import mint_json
 from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.management import Management, Source
 from src.db.collections.signatures import Signatures
-from src.contracts.ethereum.event_listener import EthEventListener
 from src.signer.secret20.signer import SecretAccount
 from src.util.common import Token
 from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.secretcli import create_unsigned_tx
-from src.util.web3 import get_block
+from src.util.web3 import w3
 
 
 class SecretManager(Thread):
@@ -44,7 +44,10 @@ class SecretManager(Thread):
     def run(self):
         """Scans for signed transactions and updates status if multisig threshold achieved"""
         self.logger.info("Starting..")
-        self.catch_up()
+
+        to_block = w3.eth.blockNumber - self.config['eth_confirmations']
+
+        self.catch_up(to_block)
 
         self.event_listener.start()
         self.logger.info("Done catching up")
@@ -61,15 +64,13 @@ class SecretManager(Thread):
                     self.logger.debug(f"Tx {transaction.id} does not have enough signatures")
             self.stop_signal.wait(self.config['sleep_interval'])
 
-    def catch_up(self):
+    def catch_up(self, to_block: int):
         from_block = Management.last_processed(Source.ETH.value) + 1
         self.logger.debug(f'Starting to catch up from block {from_block}')
         if self.config['eth_start_block'] > from_block:
             self.logger.debug(f'Due to config fast forwarding to block {self.config["eth_start_block"]}')
             from_block = self.config['eth_start_block']
             Management.update_last_processed(Source.ETH.value, from_block)
-
-        to_block = get_block('latest').number - self.config['eth_confirmations']
 
         if to_block <= 0:
             return

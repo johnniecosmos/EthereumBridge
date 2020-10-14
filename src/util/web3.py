@@ -86,9 +86,9 @@ def contract_event_in_range(contract, event_name: str, from_block: int = 0,
     :param event_name: name of the contract emit event you wish to be notified of
     """
     if to_block is None:
-        to_block = get_block('latest').number
+        to_block = w3.eth.blockNumber
 
-    with event_lock:
+    with w3_lock:
 
         if isinstance(w3.provider, HTTPProvider):
             for block_num in range(from_block, to_block + 1):
@@ -104,7 +104,7 @@ def contract_event_in_range(contract, event_name: str, from_block: int = 0,
                     yield log
         else:
             event = getattr(contract.contract.events, event_name)
-            event_filter = event.createFilter(fromBlock=0, toBlock=500)
+            event_filter = event.createFilter(fromBlock=from_block, toBlock=to_block)
 
             for tx in event_filter.get_new_entries():
                 _, log = event_log(tx_hash=tx.hash, events=[event_name], provider=w3, contract=contract.contract)

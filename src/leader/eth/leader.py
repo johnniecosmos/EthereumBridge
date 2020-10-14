@@ -56,7 +56,8 @@ class EtherLeader(Thread):
 
             except CalledProcessError as e:
                 if e.stderr != b'ERROR: query result: encrypted: AppendStorage access out of bounds\n':
-                    self.logger.error(e.stdout + e.stderr)
+                    if b'ERROR: query result: encrypted: Failed to get swap for key' not in e.stderr:
+                        self.logger.error(e.stdout + e.stderr)
 
             self.stop_event.wait(self.config['sleep_interval'])
 

@@ -10,8 +10,8 @@ def swap_eth():
 
     cfg = Config()
 
-    private_key = "b84db86a570359ca8a16ad840f7495d3d8a1b799b29ae60a2032451d918f3826"
-    account = "0xA48e330838A6167a68d7991bf76F2E522566Da33"
+    private_key = ""  # your private key here
+    account = ""  # your account here
 
     with open('./src/contracts/ethereum/compiled/MultiSigSwapWallet.json', 'r') as f:
         contract_source_code = json.loads(f.read())
@@ -22,7 +22,7 @@ def swap_eth():
 
     class SwapMessage(Message):
         def args(self):
-            return "secret1x2dz8zlv6wqrdzlsapvwjgu2ahan2hf6dje3ht".encode(),
+            return "secret13l72vhjngmg55ykajxdnlalktwglyqjqv9pkq4".encode(),
 
     m = SwapMessage()
     tx_hash = send_contract_tx(multisig_wallet.contract, 'swap',

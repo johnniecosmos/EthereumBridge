@@ -11,7 +11,7 @@ from src.contracts.secret.secret_contract import swap_query_res
 from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.secretcli import query_scrt_swap
-from src.util.web3 import contract_event_in_range, get_block
+from src.util.web3 import contract_event_in_range, w3
 
 
 class HistoricalEthSigner:  # pylint: disable=too-many-instance-attributes, too-many-arguments
@@ -78,7 +78,7 @@ class HistoricalEthSigner:  # pylint: disable=too-many-instance-attributes, too-
         """
 
         from_block = self._choose_starting_block()
-        to_block = get_block('latest').number
+        to_block = w3.eth.blockNumber
         self.logger.info(f'starting to catch up from {from_block} to {to_block}..')
         with self.thread_pool as pool:
             for event in contract_event_in_range(self.multisig_wallet, 'Submission',

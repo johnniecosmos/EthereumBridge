@@ -52,10 +52,11 @@ class EthEventListener(EventProvider):
     def run(self):
         """Notify registered callbacks upon event occurrence"""
         self.logger.info("Starting..")
+
         block = w3.eth.blockNumber - self.confirmations
         while not self.stop_event.is_set():
             for event_name in self.events:
-                self.logger.debug(f'Searching for events {event_name} on {block}..')
+                self.logger.debug(f'Searching for event {event_name} in block #{block}..')
                 for evt in self.events_in_range(event_name, from_block=block, to_block=block):
                     self.logger.info(f"New event found {event_name}")
                     self.callbacks.trigger(event_name, evt)
