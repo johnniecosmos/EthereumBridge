@@ -95,7 +95,7 @@ class HistoricalEthSigner:  # pylint: disable=too-many-instance-attributes, too-
         from_block = self.cache.read()
         if from_block:  # if we have a record, use it
             return int(from_block)
-        return self.config.get('eth_signer_start_block', 0)
+        return int(self.config.get('eth_signer_start_block', 0))
 
     def _update_last_block_processed(self, block_num: int):
         self.cache.seek(0)
