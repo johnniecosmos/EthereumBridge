@@ -1,0 +1,44 @@
+
+version: "3"
+
+services:
+  leader:
+    hostname: leader
+    image: bridge:latest
+    volumes:
+      - /mnt/c/EthereumBridge/tkeys:/root/keys
+      - /mnt/c/.bridge:/root/.bridge_data
+    environment:
+      - SWAP_ENV=TESTNET # either "TESTNET" or "MAINNET"
+      - MODE=leader      # either "leader" or "signer"
+      - db_username=memyselfandI
+      - db_password=supersecret
+      - db_host=url_to_db.com
+      - db_port=12345
+      - private_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa   # ethereum private key
+      - account=0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb                     # ethereum account address
+      - secret_key_name=t1         # doesn't really matter what you choose here
+      - secret_key_file=t1.key     # file name containing the encrypted key
+      - secret_key_password=12345678  # password for encrypted key
+      - SRC_COIN=eth               # SRC_COIN is the original coin
+      - DST_COIN=seth              # DST_COIN is the wrapped coin (i.e. s+<src_coin> ; eth -> seth)
+  signer:
+    hostname: signer
+    image: bridge:latest
+    volumes:
+      - /mnt/c/EthereumBridge/tkeys:/root/keys  # path where the file specified by "secret_key_name" exists
+      - /mnt/c/.bridge:/root/.bridge_data    # used to persist cache when the docker is shutdown
+    environment:
+      - SWAP_ENV=TESTNET
+      - MODE=signer
+      - db_username=memyselfandI
+      - db_password=supersecret
+      - db_host=url_to_db.com
+      - db_port=12345
+      - private_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa   # ethereum private key
+      - account=0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb                     # ethereum account address
+      - secret_key_name=t1
+      - secret_key_file=t1.key
+      - secret_key_password=12345678
+      - SRC_COIN=eth
+      - DST_COIN=seth
