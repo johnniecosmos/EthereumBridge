@@ -1,4 +1,4 @@
-from os import _exit
+from sys import exit
 from threading import Thread
 from time import sleep
 from typing import Union, List
@@ -92,7 +92,7 @@ def run_bridge():  # pylint: disable=too-many-statements
     except RuntimeError:
         logger = get_logger(logger_name='runner')
         logger.error('Failed to set up secretcli')
-        _exit(1)
+        exit(1)
 
     with database(db=cfg['db_name'], host=cfg['db_host'],
                   password=cfg['db_password'], username=cfg['db_username']):
