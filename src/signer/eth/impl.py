@@ -14,9 +14,19 @@ from src.util.secretcli import query_scrt_swap
 from src.util.web3 import contract_event_in_range, w3
 
 
-class HistoricalEthSigner:  # pylint: disable=too-many-instance-attributes, too-many-arguments
+class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-arguments
     """
-    Helper that runs through all the db, and checks that
+    Used to run through all the blocks starting from the number specified by the 'eth_start_block' config value, and up
+    to the current block. After that is done the handle_submission method is used to sign individual transactions
+    when triggered by an event listener
+
+    Not 100% sure why we're doing this like this instead of just doing it in a single generic signer thread, but eh,
+    it is what it is.
+
+    Saves the last block in a file, which is used on the next execution to tell us where to start so we don't run
+    through the same blocks multiple times
+
+    Todo: Naming sucks. This is mostly caused by bad design, and by me not having enough coffee
     """
 
     def __init__(self, multisig_wallet: MultisigWallet, private_key: bytes, account: str, config: Config):
@@ -95,7 +105,7 @@ class HistoricalEthSigner:  # pylint: disable=too-many-instance-attributes, too-
         from_block = self.cache.read()
         if from_block:  # if we have a record, use it
             return int(from_block)
-        return int(self.config.get('eth_signer_start_block', 0))
+        return int(self.config.get('eth_start_block', 0))
 
     def _update_last_block_processed(self, block_num: int):
         self.cache.seek(0)

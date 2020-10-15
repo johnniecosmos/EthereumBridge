@@ -1,17 +1,19 @@
 from typing import Dict
 
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
-from src.signer.eth.historical import HistoricalEthSigner
+from src.signer.eth.impl import EthSignerImpl
 from src.contracts.ethereum.erc20 import Erc20
 from src.util.common import Token
 from src.util.config import Config
 from src.util.web3 import web3_provider
 
 
-class HistoricalERC20Signer(HistoricalEthSigner):
+class _ERC20SignerImpl(EthSignerImpl):
     """
     Verifies Secret swap tx and adds it's confirmation to the ERC-20 contract
     Sends the ERC-20 confirmation tx, after verifying SCRT tx stored in the db
+
+    See EthSignerImpl for more info
     """
 
     def __init__(self, multisig_wallet: MultisigWallet, token: Token,
@@ -33,6 +35,7 @@ class HistoricalERC20Signer(HistoricalEthSigner):
             return False
         try:
             addr, amount = self.token_contract.get_params_from_data(submission_data['data'])
+            return addr.lower() == swap_data['destination'].lower() and amount == int(swap_data['amount'])
         except ValueError as e:
             self.logger.error(f"Failed to verify transaction with submission data: {submission_data} - {str(e)}")
-        return addr.lower() == swap_data['destination'].lower() and amount == int(swap_data['amount'])
+            return False

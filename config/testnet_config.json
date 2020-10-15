@@ -4,7 +4,6 @@
   "signatures_threshold": 3,
   "eth_confirmations": 2,
   "eth_start_block": 8880990,
-  "eth_signer_start_block": 8880990,
   "sleep_interval": 5.0,
   "network": "ropsten",
   "chain_id": "holodeck",
