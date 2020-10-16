@@ -136,7 +136,7 @@ of the files in the ./config/ directory, and the rest by setting environment var
 * secret_signers - list of the public keys of addresses that comprise the address in `multisig_acc_addr`
 
 Example settings:
-
+```json
 {
   "db_name": "test_db",
   "app_data": ".bridge_data",
@@ -161,3 +161,4 @@ Example settings:
   "multisig_key_name": "ms3",
   "secret_signers": ["secretpub1addwnpepqwamxgvaeayyhlsh5htwx9z8vh40vnm5fwlr5axzn6jheeyv3yxhv2qk5p7", "secretpub1addwnpepqf080zg7qhwh7wx777jfnyaemp366778edfc5yt7238m3vk03a75ypdtyzk", "secretpub1addwnpepqfr4h7p7ylhyjuv0fcef22wu28sgdqljhnz9dtrpafhs4hdkn4r9z3w2z2n"]
 }
+```
