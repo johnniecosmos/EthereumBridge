@@ -10,8 +10,8 @@ def swap_eth():
 
     cfg = Config()
 
-    private_key = ""  # your private key here
-    account = ""  # your account here
+    private_key = "b84db86a570359ca8a16ad840f7495d3d8a1b799b29ae60a2032451d918f3826"  # your private key here
+    account = "0xA48e330838A6167a68d7991bf76F2E522566Da33"  # your account here
 
     with open('./src/contracts/ethereum/compiled/MultiSigSwapWallet.json', 'r') as f:
         contract_source_code = json.loads(f.read())

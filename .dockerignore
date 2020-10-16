@@ -144,4 +144,4 @@ cython_debug/
 /tests/deployment/
 /tests/keys/
 *.der
-
+secretcli

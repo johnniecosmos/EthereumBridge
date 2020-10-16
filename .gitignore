@@ -146,4 +146,6 @@ cython_debug/
 /tests/deployment/
 /tests/keys/
 *.der
-
+tkeys/*
+docker-compose.yaml
+secretcli
