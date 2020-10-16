@@ -4,6 +4,8 @@ from threading import Event
 from time import sleep
 from typing import List, Callable, Iterator
 
+from web3.exceptions import BlockNotFound
+
 from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.contracts.event_provider import EventProvider
 from src.util.config import Config
@@ -57,11 +59,13 @@ class EthEventListener(EventProvider):
         while not self.stop_event.is_set():
             for event_name in self.events:
                 self.logger.debug(f'Searching for event {event_name} in block #{block}..')
-                for evt in self.events_in_range(event_name, from_block=block, to_block=block):
-                    self.logger.info(f"New event found {event_name}")
-                    self.callbacks.trigger(event_name, evt)
-
-            block += 1
+                try:
+                    for evt in self.events_in_range(event_name, from_block=block, to_block=block):
+                        self.logger.info(f"New event found {event_name}")
+                        self.callbacks.trigger(event_name, evt)
+                        block += 1
+                except BlockNotFound:
+                    self.logger.error(f'Block not found on block {block}')
             self.wait_for_block(block)
 
     def events_in_range(self, event: str, from_block: int, to_block: int = None):
