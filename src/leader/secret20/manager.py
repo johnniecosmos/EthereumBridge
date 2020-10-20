@@ -67,9 +67,9 @@ class SecretManager(Thread):
     def catch_up(self, to_block: int):
         from_block = Management.last_processed(Source.ETH.value) + 1
         self.logger.debug(f'Starting to catch up from block {from_block}')
-        if self.config['eth_start_block'] > from_block:
+        if int(self.config['eth_start_block']) > from_block:
             self.logger.debug(f'Due to config fast forwarding to block {self.config["eth_start_block"]}')
-            from_block = self.config['eth_start_block']
+            from_block = int(self.config['eth_start_block'])
             Management.update_last_processed(Source.ETH.value, from_block)
 
         if to_block <= 0:
