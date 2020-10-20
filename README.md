@@ -154,7 +154,7 @@ Example settings:
   "KEYS_BASE_PATH": "/EthereumBridge/tkeys",
   "SECRETCLI_HOME": "/root/.secretcli",
   "secret_node": "tcp://bootstrap.secrettestnet.io:26657",
-  "eth_node_address": "https://ropsten.infura.io/v3/89693d2faa364dfabc22b5635cb85a21",
+  "eth_node_address": "https://ropsten.infura.io/v3/",
   "enclave_key": "io-master-cert.der",
   "viewing_key": "api_key_A90Mw0L31a4Uxm5E1wr+woYq8vuZfnzTpnH6ivyajb4=",
   "multisig_acc_addr": "secret18g2pvlz2ess848qkfwert28a2n7xqknjxjgesd",
