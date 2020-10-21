@@ -6,6 +6,7 @@ from typing import Dict
 from mongoengine import OperationError
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
+from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.signatures import Signatures
 from src.util.common import temp_file
@@ -19,7 +20,7 @@ SecretAccount = namedtuple('SecretAccount', ['address', 'name'])
 class Secret20Signer(Thread):
     """Signs on the SCRT side, after verifying Ethereum tx stored in the db"""
 
-    def __init__(self, contract: EthereumContract, multisig: SecretAccount, config: Config, **kwargs):
+    def __init__(self, contract: MultisigWallet, multisig: SecretAccount, config: Config, **kwargs):
         self.multisig = multisig
         self.contract = contract
         self.config = config

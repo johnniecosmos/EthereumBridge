@@ -17,14 +17,15 @@ class Message:
 class Submit(Message):
     """MultisigWallet submitTransaction message"""
 
-    def __init__(self, dest: str, amount: int, nonce: int, data=b""):
+    def __init__(self, dest: str, amount: int, nonce: int, token: str, data=b""):
         self.dest = dest
         self.amount = amount
         self.nonce = nonce
         self.data = data
+        self.token = token
 
     def args(self) -> Tuple:
-        return self.dest, self.amount, self.nonce, self.data
+        return self.dest, self.amount, self.nonce, self.token, self.data
 
 
 class Confirm(Message):

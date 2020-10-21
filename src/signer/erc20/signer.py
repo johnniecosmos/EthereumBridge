@@ -1,3 +1,5 @@
+from typing import Dict
+
 from src.contracts.ethereum.erc20 import Erc20
 from src.contracts.ethereum.event_listener import EthEventListener
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
@@ -15,13 +17,14 @@ class ERC20Signer(EtherSigner):
     See EtherSigner for a description of what this does - just replace ETH with ERC20 :)
 
     """
-    def __init__(self, contract: MultisigWallet, token: Token, private_key: bytes, account: str, config: Config,
+    def __init__(self, contract: MultisigWallet, token: Token, private_key: bytes, account: str,
+                 token_map: Dict[str, Token], config: Config,
                  **kwargs):
         super().__init__(contract, private_key, account, config, **kwargs)
 
         # everything is basically the same, just overload the signer and event listener
         token_contract = Erc20(web3_provider(config['eth_node_address']),
-                               token,
-                               contract.address)
+                               multisig_address=contract.address,
+                               token=token)
         self.signer = _ERC20SignerImpl(contract, token, private_key, account, config)
         self.event_listener = EthEventListener(token_contract, config)

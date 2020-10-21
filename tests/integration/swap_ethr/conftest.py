@@ -35,7 +35,7 @@ def setup(make_project, configuration: Config):
     multisig_account = configuration["multisig_acc_addr"]
 
     tx_data = {"admin": multisig_account, "name": "Coin Name", "symbol": "ETHR", "decimals": 6,
-               "initial_balances": [], "config": {}, "prng_seed": "aa"}
+               "initial_balances": [], "config": {}, "prng_seed": "YWE"}
 
     cmd = f"secretcli tx compute instantiate 1 --label {rand_str(10)} '{json.dumps(tx_data)}'" \
           f" --from t1 -b block -y"
@@ -106,8 +106,9 @@ def scrt_leader(multisig_account: SecretAccount, event_listener, multisig_wallet
     #                  f"{configuration['secret_contract_address']}" \
     #                  f" '{change_admin(multisig_account.address)}' --from a -y"
     # _ = subprocess.run(change_admin_q, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    s20_contract = Token(configuration['secret_swap_contract_address'], configuration['secret_token_name'])
-    leader = Secret20Leader(multisig_account, s20_contract, multisig_wallet, configuration)
+    token_map = {configuration['secret_swap_contract_address']: Token("native", "eth")}
+
+    leader = Secret20Leader(multisig_account, multisig_wallet, token_map, configuration)
     yield leader
     leader.stop()
 
@@ -126,12 +127,14 @@ def scrt_signers(scrt_accounts, multisig_wallet, configuration) -> List[Secret20
 
 
 @fixture(scope="module")
-def ethr_leader(multisig_account, configuration: Config, web3_provider, multisig_wallet, ether_accounts):
+def ethr_leader(multisig_account, configuration: Config, web3_provider, multisig_wallet, ether_accounts, erc20_contract):
     configuration['leader_key'] = ether_accounts[0].key
     configuration['leader_acc_addr'] = normalize_address(ether_accounts[0].address)
     configuration['eth_start_block'] = web3_provider.eth.blockNumber
 
-    leader = EtherLeader(multisig_wallet, configuration['leader_key'], configuration['leader_acc_addr'], configuration)
+    token_map = {erc20_contract.address: Token(configuration['secret_swap_contract_address'], configuration['secret_token_name'])}
+
+    leader = EtherLeader(multisig_wallet, configuration['leader_key'], configuration['leader_acc_addr'], token_map, configuration)
     leader.start()
     yield leader
     leader.stop_event.set()
@@ -140,12 +143,16 @@ def ethr_leader(multisig_account, configuration: Config, web3_provider, multisig
 @fixture(scope="module")
 def ethr_signers(multisig_wallet, configuration: Config, ether_accounts) -> List[EtherSigner]:
     res = []
+
+    token_map = {'native': Token(configuration['secret_swap_contract_address'],
+                                 configuration['secret_token_name'])}
+
     # we will manually create the last signer in test_3
     for acc in ether_accounts[:]:
         private_key = acc.key
         address = acc.address
 
-        res.append(EtherSigner(multisig_wallet, private_key, address, configuration))
+        res.append(EtherSigner(multisig_wallet, private_key, address, token_map, configuration))
 
     yield res
 

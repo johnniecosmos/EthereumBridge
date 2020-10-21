@@ -28,8 +28,7 @@ class ERC20Leader(EtherLeader):  # pylint: disable=too-many-instance-attributes
         # transfer(address to, uint256 value)
         data = self.token_contract.transaction_raw_bytes('transfer',
                                                          swap_json['destination'],
-                                                         int(swap_json['amount']),
-                                                         b"")
+                                                         int(swap_json['amount']))
         msg = message.Submit(self.token_contract.address,
                              0,  # if we are swapping token, no ether should be rewarded
                              int(swap_json['nonce']),

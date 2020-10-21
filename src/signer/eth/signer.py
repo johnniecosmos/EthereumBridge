@@ -1,9 +1,11 @@
 from threading import Thread, Event
 from time import sleep
+from typing import Dict
 
 from src.contracts.ethereum.event_listener import EthEventListener
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.signer.eth.impl import EthSignerImpl
+from src.util.common import Token
 from src.util.config import Config
 from src.util.logger import get_logger
 
@@ -23,14 +25,16 @@ class EtherSigner(Thread):
 
     The account set here must have enough ETH for all the transactions you're planning on doing
     """
-    def __init__(self, contract: MultisigWallet, private_key: bytes, account: str, config: Config, **kwargs):
+    def __init__(self, contract: MultisigWallet, private_key: bytes, account: str, token_map: Dict[str, Token],
+                 config: Config, **kwargs):
         self.account = account
         self.private_key = private_key
         self.event_listener = EthEventListener(contract, config)
         self.stop_event = Event()
         self.logger = get_logger(db_name=config['db_name'],
                                  logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.account[0:5]}"))
-        self.signer = EthSignerImpl(contract, self.private_key, self.account, config)
+
+        self.signer = EthSignerImpl(contract, self.private_key, self.account, token_map, config)
 
         super().__init__(group=None, name=f"{self.__class__.__name__}-{self.account[0:5]}", target=self.run, **kwargs)
 

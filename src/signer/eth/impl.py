@@ -8,6 +8,7 @@ from web3.datastructures import AttributeDict
 import src.contracts.ethereum.message as message
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
+from src.util.common import Token
 from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.secretcli import query_scrt_swap
@@ -29,9 +30,10 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
     Todo: Naming sucks. This is mostly caused by bad design, and by me not having enough coffee
     """
 
-    def __init__(self, multisig_wallet: MultisigWallet, private_key: bytes, account: str, config: Config):
+    def __init__(self, multisig_contract: MultisigWallet, private_key: bytes, account: str,
+                 token_map: Dict[str, Token], config: Config):
         # todo: simplify this, pylint is right
-        self.multisig_wallet = multisig_wallet
+        self.multisig_contract = multisig_contract
         self.private_key = private_key
         self.account = account
         self.config = config
@@ -41,6 +43,9 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         self.submissions_lock = Lock()
         self.catch_up_complete = False
         self.cache = self._create_cache()
+
+        self.tracked_tokens = token_map.keys()
+        self.token_map = token_map
 
         self.thread_pool = ThreadPoolExecutor()
 
@@ -65,11 +70,12 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         confirms and signs if valid"""
         transaction_id = submission_event.args.transactionId
         self.logger.info(f'Got submission event with transaction id: {transaction_id}, checking status')
-        data = self.multisig_wallet.submission_data(transaction_id)
+        data = self.multisig_contract.submission_data(transaction_id)
         with self.submissions_lock:
-            # todo: might want to move this to the end, in case we fail processing so we can retry?
-            if self.catch_up_complete:
-                self._update_last_block_processed(submission_event.blockNumber)
+            # # todo: might want to move this to the end, in case we fail processing so we can retry?
+            # if self.catch_up_complete:
+            #     self._update_last_block_processed(submission_event.blockNumber)
+
             if not self._is_confirmed(transaction_id, data):
                 self.logger.info(f'Transaction {transaction_id} is missing approvals. Checking validity..')
 
@@ -91,7 +97,7 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         to_block = w3.eth.blockNumber
         self.logger.info(f'starting to catch up from {from_block} to {to_block}..')
         with self.thread_pool as pool:
-            for event in contract_event_in_range(self.multisig_wallet, 'Submission',
+            for event in contract_event_in_range(self.multisig_contract, 'Submission',
                                                  from_block, to_block):
                 self.logger.info(f'Got new Submission event on block: {event.blockNumber}')
                 self._update_last_block_processed(event.blockNumber)
@@ -116,7 +122,12 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
     def _is_valid(self, submission_data: Dict[str, any]) -> bool:
         # lookup the tx hash in secret20, and validate it.
         nonce = submission_data['nonce']
-        swap = query_scrt_swap(nonce, self.config['secret_swap_contract_address'])
+        token = submission_data['token']
+
+        if token == '0x0000000000000000000000000000000000000000':
+            swap = query_scrt_swap(nonce, self.token_map['native'].address)
+        else:
+            swap = query_scrt_swap(nonce, self.token_map[token].address)
 
         try:
             swap_data = swap_query_res(swap)
@@ -143,7 +154,7 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
             return True
 
         # check if signer already signed the tx
-        if self.multisig_wallet.contract.functions.confirmations(transaction_id, self.account).call():
+        if self.multisig_contract.contract.functions.confirmations(transaction_id, self.account).call():
             return True
 
         return False
@@ -154,6 +165,6 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         Note: This operation costs gas
         """
         msg = message.Confirm(submission_id)
-        tx_hash = self.multisig_wallet.confirm_transaction(self.account, self.private_key, msg)
+        tx_hash = self.multisig_contract.confirm_transaction(self.account, self.private_key, msg)
         self.logger.info(msg=f"Signed transaction - signer: {self.account}, signed msg: {msg}, "
                              f"tx hash: {tx_hash.hex()}")

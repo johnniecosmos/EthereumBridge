@@ -13,8 +13,10 @@ from pytest import fixture
 
 from src.contracts.secret.secret_contract import change_admin
 from src.leader.erc20.leader import ERC20Leader
+from src.leader.eth.leader import EtherLeader
 from src.leader.secret20 import Secret20Leader
 from src.signer.erc20.signer import ERC20Signer
+from src.signer.eth.signer import EtherSigner
 from src.util.common import Token, SecretAccount
 from src.util.config import Config
 from src.contracts.ethereum.erc20 import Erc20
@@ -42,8 +44,8 @@ def make_project(db, configuration: Config):
     # copy contracts to brownie contract folder
     brownie_contracts = os.path.join(brownie_project_folder, 'contracts')
 
-    erc20_contract = os.path.join(contracts_folder, 'EIP20.sol')
-    copy(erc20_contract, os.path.join(brownie_contracts, 'EIP20.sol'))
+    erc20_contract = os.path.join(contracts_folder, 'USDT.sol')
+    copy(erc20_contract, os.path.join(brownie_contracts, 'USDT.sol'))
 
     multisig_contract = os.path.join(contracts_folder, 'MultiSigSwapWallet.sol')
     copy(multisig_contract, os.path.join(brownie_contracts, 'MultiSigSwapWallet.sol'))
@@ -67,9 +69,11 @@ def make_project(db, configuration: Config):
 def setup(make_project, configuration: Config, erc20_token):
     configuration['mint_token'] = True
     configuration['token_contract_addr'] = erc20_token.address
+    multisig_account = configuration["multisig_acc_addr"]
 
-    tx_data = {"admin": configuration['a_address'].decode(), "name": "Coin Name", "symbol": "ETHR", "decimals": 6,
-               "initial_balances": []}
+    tx_data = {"admin": configuration["a_address"].decode(), "name": "Coin Name", "symbol": "ETHR", "decimals": 6,
+               "initial_balances": [], "config": {}, "prng_seed": "YWE"}
+    print(f"{configuration['a_address'].decode()=}")
     cmd = f"docker exec secretdev secretcli tx compute instantiate 1 --label {rand_str(10)} '{json.dumps(tx_data)}'" \
           f" --from a -b block -y"
     res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
@@ -77,31 +81,40 @@ def setup(make_project, configuration: Config, erc20_token):
     res = subprocess.run("secretcli query compute list-contract-by-code 1 | jq '.[-1].address'",
                          shell=True, stdout=subprocess.PIPE)
     configuration['secret_token_address'] = res.stdout.decode().strip()[1:-1]
+    res = subprocess.run(f"secretcli q compute contract-hash {configuration['secret_token_address']}",
+                         shell=True, stdout=subprocess.PIPE).stdout.decode().strip()[2:]
+    configuration['secret_token_code_hash'] = res
 
-    res = subprocess.run(f"secretcli q compute contract-hash {configuration['secret_contract_address']}",
+    tx_data = {"owner": multisig_account, "token_address": configuration['secret_token_address'],
+               "code_hash": configuration['secret_token_code_hash']}
+
+    cmd = f"secretcli tx compute instantiate 2 --label {rand_str(10)} '{json.dumps(tx_data)}'" \
+          f" --from t1 -b block -y"
+    res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
+
+    res = subprocess.run("secretcli query compute list-contract-by-code 2 | jq '.[-1].address'",
+                         shell=True, stdout=subprocess.PIPE)
+    configuration['secret_swap_contract_address'] = res.stdout.decode().strip()[1:-1]
+
+    res = subprocess.run(f"secretcli q compute contract-hash {configuration['secret_swap_contract_address']}",
                          shell=True, stdout=subprocess.PIPE).stdout.decode().strip()[2:]
     configuration['code_hash'] = res
 
-
-    configuration['viewing_key'] = get_viewing_key(configuration['a_address'].decode(),
-                                                configuration['secret_contract_address'])
-
-    res = subprocess.run(f"secretcli q compute contract-hash {configuration['secret_contract_address']}",
-                         shell=True, stdout=subprocess.PIPE).stdout.decode().strip()[2:]
-    configuration['code_hash'] = res
-
+    tx_data = {"add_minters": {"minters": [configuration["secret_swap_contract_address"]]}}
+    cmd = f"docker exec secretdev secretcli tx compute execute {configuration['secret_token_address']} '{json.dumps(tx_data)}'" \
+          f" --from a -b block -y"
+    res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
 
 @fixture(scope="module")
 def erc20_token(make_project):
-    from brownie.project.IntegrationTests import EIP20
+    from brownie.project.IntegrationTests import TetherToken
     # solidity contract deploy params
     _initialAmount = 1000
-    _tokenName = 'TN'
-    _decimalUnits = 18
-    _tokenSymbol = 'TS'
+    _tokenName = 'Tether USD'
+    _decimalUnits = 6
+    _tokenSymbol = 'USDT'
 
-    erc20 = EIP20.deploy(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol,
-                         {'from': accounts[0]})
+    erc20 = TetherToken.deploy(_initialAmount, _tokenName, _tokenSymbol, _decimalUnits, {'from': accounts[0]})
     yield Token(erc20.address, _tokenSymbol)
 
 
@@ -111,22 +124,24 @@ def erc20_contract(multisig_wallet, web3_provider, erc20_token):
 
 
 @fixture(scope="module")
-def scrt_leader(multisig_account: SecretAccount, erc20_contract, configuration: Config):
+def scrt_leader(multisig_account: SecretAccount, multisig_wallet, erc20_contract, configuration: Config):
     # change_admin_q = f"docker exec secretdev secretcli tx compute execute " \
     #                  f"{configuration['secret_contract_address']}" \
     #                  f" '{change_admin(multisig_account.address)}' --from a -y"
     # _ = subprocess.run(change_admin_q, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    s20_contract = Token(configuration['secret_contract_address'], configuration['secret_contract_name'])
-    leader = Secret20Leader(multisig_account, s20_contract, erc20_contract, configuration)
+
+    token_map = {erc20_contract.address: Token(configuration['secret_swap_contract_address'], configuration['secret_token_name'])}
+
+    leader = Secret20Leader(multisig_account, multisig_wallet, token_map, configuration)
     yield leader
     leader.stop()
 
 
 @fixture(scope="module")
-def scrt_signers(scrt_accounts, erc20_contract, configuration) -> List[Secret20Signer]:
+def scrt_signers(scrt_accounts, multisig_wallet, configuration) -> List[Secret20Signer]:
     signers: List[Secret20Signer] = []
     for account in scrt_accounts:
-        s = Secret20Signer(erc20_contract, account, configuration)
+        s = Secret20Signer(multisig_wallet, account, configuration)
         signers.append(s)
 
     yield signers
@@ -141,7 +156,11 @@ def ethr_leader(multisig_account, configuration: Config, web3_provider, erc20_to
     configuration['leader_acc_addr'] = normalize_address(ether_accounts[0].address)
     configuration['eth_start_block'] = web3_provider.eth.blockNumber
 
-    leader = ERC20Leader(multisig_wallet, erc20_token, configuration)
+    # leader = ERC20Leader(multisig_wallet, erc20_token, ether_accounts[0].key, ether_accounts[0].address, configuration)
+    token_map = {configuration['secret_swap_contract_address']: Token(erc20_token.address, erc20_token.name)}
+
+    leader = EtherLeader(multisig_wallet, configuration['leader_key'], configuration['leader_acc_addr'], token_map, configuration)
+
     leader.start()
     yield leader
     leader.stop()
@@ -150,12 +169,16 @@ def ethr_leader(multisig_account, configuration: Config, web3_provider, erc20_to
 @fixture(scope="module")
 def ethr_signers(multisig_wallet, configuration: Config, ether_accounts, erc20_token) -> List[ERC20Signer]:
     res = []
+
+    token_map = {erc20_token.address: Token(configuration['secret_swap_contract_address'],
+                                               configuration['secret_token_name'])}
+
     # we will manually create the last signer in test_3
     for acc in ether_accounts[:]:
         private_key = acc.key
         address = acc.address
 
-        res.append(ERC20Signer(multisig_wallet, erc20_token, private_key, address, configuration))
+        res.append(EtherSigner(multisig_wallet, private_key, address, token_map, configuration))
 
     yield res
 

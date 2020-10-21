@@ -11,6 +11,7 @@
   "mint_token": false,
   "leader_acc_addr": "",
   "secret_token_name": "seth",
+  "secret_contract_name": "secret-usdt",
   "secret_token_address": "secret1k48x38gdrunurennpemt4ns45cphlvuvg9kfzs",
   "secret_swap_contract_address": "secret1k48x38gdrunurennpemt4ns45cphlvuvg9kfzs",
   "leader_key": "",

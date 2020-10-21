@@ -1,3 +1,4 @@
+import base64
 import json
 from decimal import Decimal
 from pathlib import Path
@@ -7,7 +8,7 @@ from time import sleep
 from web3 import Web3
 
 from src.db.collections.eth_swap import Swap, Status
-from src.db.collections.management import Source, Management
+from src.db.collections.swaptrackerobject import SwapTrackerObject
 from src.db.collections.signatures import Signatures
 
 from src.util.common import project_base_path
@@ -20,14 +21,33 @@ from tests.utils.keys import get_key_signer
 TRANSFER_AMOUNT = 100
 
 
+# Try to swap a token without the token being whitelisted -- should fail
+def test_fail_swap_token_not_whitelisted(setup, scrt_leader, scrt_signers, web3_provider, configuration: Config,
+                                         erc20_contract, multisig_wallet):
+
+    t1_address = get_key_signer("t1", Path.joinpath(project_base_path(), configuration['path_to_keys']))['address']
+
+    tx_hash = erc20_contract.contract.functions.approve(multisig_wallet.address,
+                                                         TRANSFER_AMOUNT). \
+        transact({'from': web3_provider.eth.coinbase}).hex().lower()
+
+    try:
+        tx_hash = multisig_wallet.contract.functions.swapToken(t1_address.encode(),
+                                                               TRANSFER_AMOUNT,
+                                                           erc20_contract.address). \
+                transact({'from': web3_provider.eth.coinbase}).hex().lower()
+    except ValueError:
+        pass
+    # assert
+
 # TL;DR: Covers from swap tx to multisig in db(tx ready to be sent to secret20)
 # Components tested:
 # 1. Event listener registration recognize contract events
 # 2. Manager status update and multisig creation.
 # 3. SecretSigners validation and signing.
 # 4. Smart Contract swap functionality.
-def test_1_swap_erc_to_s20(setup, scrt_leader, scrt_signers, web3_provider, configuration: Config,
-                           erc20_contract, multisig_wallet):
+def test_1_swap_erc_to_s20(scrt_leader, scrt_signers, web3_provider, configuration: Config,
+                           erc20_contract, multisig_wallet, ethr_leader):
 
     scrt_leader.start()
     for signer in scrt_signers:
@@ -36,9 +56,29 @@ def test_1_swap_erc_to_s20(setup, scrt_leader, scrt_signers, web3_provider, conf
     t1_address = get_key_signer("t1", Path.joinpath(project_base_path(), configuration['path_to_keys']))['address']
     # swap ethr for secret20 token, deliver tokens to address of 'a'.
     # (we will use 'a' later to check it received the money)
-    tx_hash = erc20_contract.contract.functions.transfer(multisig_wallet.address,
-                                                         TRANSFER_AMOUNT,
-                                                         t1_address.encode()). \
+
+    # add usdt to the whitelisted token list
+    account = web3_provider.eth.account.from_key(ethr_leader.private_key)
+
+    nonce = web3_provider.eth.getTransactionCount(account.address, "pending")
+    tx = multisig_wallet.contract.functions.addToken(erc20_contract.address)
+    raw_tx = tx.buildTransaction(transaction={'from': account.address, 'gas': 3000000, 'nonce': nonce})
+    signed_tx = account.sign_transaction(raw_tx)
+    tx_hash = web3_provider.eth.sendRawTransaction(signed_tx.rawTransaction)
+
+    # Get transaction hash from deployed contract
+    tx_receipt = web3_provider.eth.waitForTransactionReceipt(tx_hash)
+
+    # this will likely fail since the test before also allocates the allowance - just ignore if it fails
+    try:
+        _ = erc20_contract.contract.functions.approve(multisig_wallet.address, TRANSFER_AMOUNT). \
+            transact({'from': web3_provider.eth.coinbase})
+    except ValueError:
+        pass
+
+    tx_hash = multisig_wallet.contract.functions.swapToken(t1_address.encode(),
+                                                           TRANSFER_AMOUNT,
+                                                           erc20_contract.address). \
         transact({'from': web3_provider.eth.coinbase}).hex().lower()
     assert TRANSFER_AMOUNT == erc20_contract.contract.functions.balanceOf(multisig_wallet.address).call()
 
@@ -64,48 +104,53 @@ def test_1_swap_erc_to_s20(setup, scrt_leader, scrt_signers, web3_provider, conf
 
     # get tx details
     tx_hash = Swap.objects().get().src_tx_hash
-    _, log = event_log(tx_hash, ['Transfer'], web3_provider, erc20_contract.contract)
-    transfer_amount = erc20_contract.extract_amount(log)
-    dest = erc20_contract.extract_addr(log)
+    _, log = event_log(tx_hash, ['SwapToken'], web3_provider, multisig_wallet.contract)
+    transfer_amount = multisig_wallet.extract_amount(log)
+    dest = multisig_wallet.extract_addr(log)
 
     # validate swap tx on ethr delivers to the destination
-    balance_query = '{"balance": {}}'
-    tx_hash = run(f"secretcli tx compute execute {configuration['secret_contract_address']} "
-                  f"'{balance_query}' --from {dest} -b block -y | jq '.txhash'", shell=True, stdout=PIPE)
-    tx_hash = tx_hash.stdout.decode().strip()[1:-1]
+    viewing_key_set = '{"set_viewing_key": {"key": "lol"}}'
+    tx_hash = run(f"secretcli tx compute execute {configuration['secret_token_address']} "
+                  f"'{viewing_key_set}' --from {dest} -b block -y | jq '.txhash'", shell=True, stdout=PIPE)
+    sleep(6)
 
-    res = run(f"secretcli q compute tx {tx_hash} | jq '.output_log' | jq '.[0].attributes' "
-              f"| jq '.[3].value'", shell=True, stdout=PIPE).stdout.decode().strip()[1:-1]
-    end_index = res.find(' ')
-    amount = Decimal(res[:end_index])
+    balance = f'{{"balance": {{"key": "lol", "address": "{dest}"}} }}'
+    res = run(f"secretcli q compute query {configuration['secret_token_address']} "
+              f"'{balance}'", shell=True, stdout=PIPE)
 
-    print(f"tx amount: {transfer_amount}, swap amount: {amount}")
-    # assert abs(transfer_amount - amount) < 1  ??????????????????????
+    print(f"{res.stdout=}")
+
+    amount = json.loads(res.stdout)["balance"]["amount"]
+
+    print(f"swap amount: {transfer_amount}, dest balance amount: {amount}")
 
     # give scrt_leader time to multi-sign already existing signatures
-    sleep(configuration['sleep_interval'] + 3)
+    sleep(configuration['sleep_interval'] + 5)
     assert Swap.objects().get().status == Status.SWAP_CONFIRMED
 
 
 # covers EthrLeader tracking of swap events in secret20 and creating submission event in Ethereum
 # ethr_signers are here to respond for leader's submission
-def test_2_swap_s20_to_erc(ethr_leader, configuration: Config, ethr_signers):
+def test_2_swap_s20_to_erc(ethr_leader, configuration: Config, ethr_signers, erc20_contract):
 
     for signer in ethr_signers[:-1]:
         signer.start()
 
     # Generate swap tx on secret network
-    swap = {"swap": {"amount": str(TRANSFER_AMOUNT), "network": "Ethereum", "destination": ethr_leader.default_account}}
+    swap = {"send": {"amount": str(TRANSFER_AMOUNT),
+                     "msg": base64.b64encode(ethr_leader.default_account.encode()).decode(),
+                     "recipient": configuration["secret_token_address"]}}
     sleep(configuration['sleep_interval'])
-    last_nonce = Management.last_processed(Source.SCRT.value)
-    tx_hash = run(f"secretcli tx compute execute {configuration['secret_contract_address']} "
+
+    last_nonce = SwapTrackerObject.last_processed(src=configuration['secret_swap_contract_address'])
+    tx_hash = run(f"secretcli tx compute execute {configuration['secret_swap_contract_address']} "
                   f"'{json.dumps(swap)}' --from t1 -y", shell=True, stdout=PIPE, stderr=PIPE)
     tx_hash = json.loads(tx_hash.stdout)['txhash']
 
     # Verify that leader recognized the burn tx
     sleep(configuration['sleep_interval'] + 6)
 
-    assert last_nonce + 1 == Management.last_processed(Source.SCRT.value)
+    assert last_nonce + 1 == SwapTrackerObject.last_processed(src=configuration['secret_swap_contract_address'])
 
     # Give ethr signers time to handle the secret20 swap tx (will be verified in test_4
     sleep(configuration['sleep_interval'] + 1)
@@ -115,16 +160,18 @@ def test_2_swap_s20_to_erc(ethr_leader, configuration: Config, ethr_signers):
 # Components tested:
 # 1. EthrSigner - confirmation and offline catchup
 # 2. SmartContract multisig functionality
-def test_3_confirm_and_finalize_erc_tx(ethr_signers, configuration: Config):
+def test_3_confirm_and_finalize_erc_tx(ethr_signers, configuration: Config, erc20_contract, ethr_leader):
 
     # To allow the new EthrSigner to "catch up", we start it after the event submission event in Ethereum
     ethr_signers[-1].start()
 
     sleep(configuration['sleep_interval'] + 3)
     # Validate the tx is confirmed in the smart contract
-    last_nonce = Management.last_processed(Source.SCRT.value)
-    assert ethr_signers[-1].signer.multisig_wallet.contract.functions.confirmations(last_nonce,
-                                                                                    ethr_signers[-1].account).call()
+    last_nonce = SwapTrackerObject.last_processed(src=configuration['secret_swap_contract_address'])
+    assert last_nonce > 0
+    assert ethr_signers[-1].signer.multisig_contract.contract.functions.confirmations(last_nonce,
+                                                                                      ethr_signers[-1].account).call()
+    assert TRANSFER_AMOUNT == erc20_contract.contract.functions.balanceOf(ethr_leader.default_account).call()
 
 
 def increase_block_number(web3_provider: Web3, increment: int) -> True:

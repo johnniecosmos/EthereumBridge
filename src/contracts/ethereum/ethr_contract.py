@@ -1,6 +1,6 @@
 import json
 from abc import abstractmethod
-from typing import Optional
+from typing import Optional, List
 
 from web3 import Web3
 from web3.datastructures import AttributeDict
@@ -31,7 +31,7 @@ class EthereumContract:
 
         :param tx_id: a valid 32 byte hex string
         """
-        _, log = event_log(tx_id, [self.tracked_event()], self.provider, self.contract)
+        _, log = event_log(tx_id, self.tracked_event(), self.provider, self.contract)
 
         if not log:  # because for some reason event_log can return None???
             return None
@@ -73,6 +73,5 @@ class EthereumContract:
         raise NotImplementedError
 
     @classmethod
-    @abstractmethod
-    def tracked_event(cls) -> str:
-        raise NotImplementedError
+    def tracked_event(cls) -> List[str]:
+        return ['']

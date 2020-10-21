@@ -2,11 +2,12 @@ import json
 from datetime import datetime
 from threading import Thread, Event
 from time import sleep
-from typing import List
+from typing import List, Dict
 
 from mongoengine import OperationError
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
+from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.signatures import Signatures
 from src.leader.secret20.manager import SecretManager
@@ -25,13 +26,13 @@ class Secret20Leader(Thread):
 
     def __init__(self,
                  secret_multisig: SecretAccount,
-                 s20_contract: Token,
-                 contract: EthereumContract,
+                 contract: MultisigWallet,
+                 token_to_secret_map: Dict[str, Token],
                  config: Config, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.multisig_name = secret_multisig.name
         self.config = config
-        self.manager = SecretManager(contract, s20_contract, secret_multisig, config)
+        self.manager = SecretManager(contract, token_to_secret_map, secret_multisig, config)
         self.logger = get_logger(db_name=self.config['db_name'],
                                  logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.multisig_name}"))
         self.stop_event = Event()

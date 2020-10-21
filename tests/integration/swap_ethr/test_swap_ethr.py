@@ -8,7 +8,7 @@ from time import sleep
 from web3 import Web3
 
 from src.db.collections.eth_swap import Swap, Status
-from src.db.collections.management import Source, Management
+from src.db.collections.swaptrackerobject import Source, SwapTrackerObject
 from src.db.collections.signatures import Signatures
 from src.signer.eth.signer import EtherSigner
 from src.util.common import project_base_path
@@ -95,7 +95,7 @@ def test_2_swap_s20_to_eth(ethr_leader, configuration: Config, ethr_signers):
                      "recipient": configuration["secret_swap_contract_address"]}}
 
     sleep(configuration['sleep_interval'])
-    last_nonce = Management.last_processed(Source.SCRT.value)
+    last_nonce = SwapTrackerObject.last_processed(Source.SCRT.value)
     print(f"last processed before: {last_nonce}")
     tx_hash = run(f"secretcli tx compute execute {configuration['secret_token_address']} "
                   f"'{json.dumps(swap)}' --from t1 --gas 500000 -y", shell=True, stdout=PIPE, stderr=PIPE)
@@ -103,7 +103,7 @@ def test_2_swap_s20_to_eth(ethr_leader, configuration: Config, ethr_signers):
 
     # Verify that leader recognized the burn tx
     sleep(configuration['sleep_interval'] + 6)
-    last_nonce_after = Management.last_processed(Source.SCRT.value)
+    last_nonce_after = SwapTrackerObject.last_processed(Source.SCRT.value)
     print(f"last processed before: {last_nonce_after}")
     assert last_nonce + 1 == last_nonce_after
 
@@ -121,9 +121,9 @@ def test_3_confirm_and_finalize_eth_tx(ethr_signers, configuration: Config):
 
     sleep(configuration['sleep_interval'] + 3)
     # Validate the tx is confirmed in the smart contract
-    last_nonce = Management.last_processed(Source.SCRT.value)
-    assert ethr_signers[-1].signer.multisig_wallet.contract.functions.confirmations(last_nonce,
-                                                                                    ethr_signers[-1].account).call()
+    last_nonce = SwapTrackerObject.last_processed(Source.SCRT.value)
+    assert ethr_signers[-1].signer.multisig_contract.contract.functions.confirmations(last_nonce,
+                                                                                      ethr_signers[-1].account).call()
 
 
 def increase_block_number(web3_provider: Web3, increment: int) -> True:

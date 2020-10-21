@@ -64,7 +64,7 @@ def deploy_scrt():
     deployer = "secret1qcz0405jctqvar3e5wmlsj2q5vrehgudtv5nqd"
 
     tx_data = {"admin": multisig_account, "name": "Coin Name", "symbol": "ETHR", "decimals": 6,
-               "initial_balances": [], "config": {}, "prng_seed": "aa"}
+               "initial_balances": [], "config": {}, "prng_seed": "YWE"}
 
     cmd = f"secretcli tx compute instantiate 1 --label {rand_str(10)} '{json.dumps(tx_data)}'" \
           f" --from t1 -b block -y"

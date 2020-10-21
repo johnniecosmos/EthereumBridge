@@ -8,11 +8,12 @@ from src.util.common import project_base_path, Token
 
 
 class Erc20(EthereumContract):
-    def __init__(self, provider: Web3, token: Token, dest_address: str):
-        abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'ethereum', 'abi', 'EIP20.json')
+    def __init__(self, provider: Web3, token: Token, multisig_address: str):
+        abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'ethereum', 'abi', 'IERC20.json')
         self.token = token
         super().__init__(provider, token.address, abi_path)
-        self.dest_address = dest_address
+
+        self.dest_address = multisig_address
 
     def symbol(self):
         return self.token.name
@@ -40,7 +41,3 @@ class Erc20(EthereumContract):
             raise ValueError("Data in erc-20 transaction must be 139 bytes or more")
         _, dest, amount = data[:10], data[34:74], data[74:138]
         return '0x' + dest.decode(), int(amount, 16)  # convert amount from hex to decimal
-
-    @classmethod
-    def tracked_event(cls) -> str:
-        return 'Transfer'

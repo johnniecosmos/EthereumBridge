@@ -2,9 +2,13 @@
 
 pragma solidity ^0.6.8;
 
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/token/ERC20/SafeERC20.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/token/ERC20/IERC20.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/math/SafeMath.sol";
+import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/token/ERC20/SafeERC20.sol";
+import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/token/ERC20/IERC20.sol";
+import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/math/SafeMath.sol";
+
+//import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/token/ERC20/SafeERC20.sol";
+//import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/token/ERC20/IERC20.sol";
+//import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/math/SafeMath.sol";
 
 /// @title MultiSignature wallet - Allows multiple parties to agree on transactions before execution.
 /// @author Stefan George - <stefan.george@consensys.net>
@@ -19,7 +23,7 @@ contract MultiSigSwapWallet {
     event Submission(uint indexed transactionId);
     event Withdraw(uint indexed transactionId);
     event WithdrawFailure(uint indexed transactionId);
-    event Swap(uint value, bytes recipient);
+    event Swap(uint amount, bytes recipient);
     event OwnerAddition(address indexed owner);
     event OwnerRemoval(address indexed owner);
     event RequirementChange(uint required);
@@ -37,7 +41,8 @@ contract MultiSigSwapWallet {
     mapping(uint => Transaction) public transactions;
     mapping(uint => mapping(address => bool)) public confirmations;
     mapping(address => bool) public isOwner;
-    mapping(uint => bool) public scrtNonce;
+    // mapping(uint => bool) public scrtNonce;
+    mapping(address => uint) public secretTxNonce;
     address[] public owners;
     uint public required;
     uint public transactionCount;
@@ -49,6 +54,7 @@ contract MultiSigSwapWallet {
         bytes data;
         bool executed;
         uint nonce;
+        address token;
     }
 
     /*
@@ -89,8 +95,8 @@ contract MultiSigSwapWallet {
         _;
     }
 
-    modifier notSubmitted(uint nonce){
-        require(!scrtNonce[nonce]);
+    modifier notSubmitted(address token, uint nonce){
+        require(secretTxNonce[token] < nonce);
         _;
     }
 
@@ -272,13 +278,13 @@ contract MultiSigSwapWallet {
     /// @param value Transaction ether value.
     /// @param data Transaction data payload.
     /// @return transactionId - Returns transaction ID.
-    function submitTransaction(address destination, uint value, uint nonce, bytes memory data)
+    function submitTransaction(address destination, uint value, uint nonce, address token, bytes memory data)
     public
-    notSubmitted(nonce)
+    notSubmitted(token, nonce)
     returns (uint transactionId)
     {
-        transactionId = addTransaction(destination, value, nonce, data);
-        scrtNonce[nonce] = true;
+        transactionId = addTransaction(destination, value, nonce, token, data);
+        secretTxNonce[token] = nonce;
 
         confirmTransaction(transactionId);
     }
@@ -376,7 +382,7 @@ function external_call(address destination, uint value, bytes memory data, uint2
     /// @param value Transaction ether value.
     /// @param data Transaction data payload.
     /// @return transactionId - Returns transaction ID.
-    function addTransaction(address destination, uint value, uint nonce, bytes memory data)
+    function addTransaction(address destination, uint value, uint nonce, address token, bytes memory data)
     internal
     notNull(destination)
     returns (uint transactionId)
@@ -387,7 +393,8 @@ function external_call(address destination, uint value, bytes memory data, uint2
         value : value,
         data : data,
         executed : false,
-        nonce : nonce
+        nonce : nonce,
+        token : token
         });
         transactionCount += 1;
         emit Submission(transactionId);

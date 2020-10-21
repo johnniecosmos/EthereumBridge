@@ -60,6 +60,8 @@ NETWORK_PARAMS = {
 #     'sdai': chain_objects(Secret20Signer, Secret20Leader),
 #     'seth': chain_objects(Secret20Signer, Secret20Leader)
 # }
+tracked_tokens_eth = {"native": Token("secret1hx84ff3h4m8yuvey36g9590pw9mm2p55cwqnm6", "secret-eth")}
+tracked_tokens_scrt = {"secret1hx84ff3h4m8yuvey36g9590pw9mm2p55cwqnm6": Token("native", "eth")}
 
 
 def get_token(token_name: str, network: str):
@@ -72,12 +74,12 @@ def get_leader(coin_name: str, eth_contract: Union[Erc20, MultisigWallet], priva
         return ERC20Leader(eth_contract, token, private_key, account, config=cfg)
 
     if NETWORK_PARAMS[coin_name]['type'] == 'eth':
-        return EtherLeader(eth_contract, private_key, account, config=cfg)
+        return EtherLeader(eth_contract, private_key, account, tracked_tokens_scrt, config=cfg)
 
     if NETWORK_PARAMS[coin_name]['type'] == 's20':
         s20token = get_token(coin_name, cfg['chain_id'])
         account = SecretAccount(cfg['multisig_acc_addr'], cfg['multisig_key_name'])
-        return Secret20Leader(account, s20token, eth_contract, config=cfg)
+        return Secret20Leader(account, eth_contract, tracked_tokens_eth, config=cfg)
 
     raise TypeError
 

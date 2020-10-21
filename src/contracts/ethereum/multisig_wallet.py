@@ -1,7 +1,8 @@
 import os
-from typing import Dict
+from typing import Dict, List
 
 from web3 import Web3
+from web3.datastructures import AttributeDict
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.contracts.ethereum.message import Submit, Confirm
@@ -23,7 +24,7 @@ class MultisigWallet(EthereumContract):
         return tx_log.args.recipient.decode()
 
     def extract_amount(self, tx_log) -> int:
-        return tx_log.args.value
+        return tx_log.args.amount
 
     def verify_destination(self, tx_log) -> bool:
         # returns true if the Ethr was sent to the MultiSigWallet
@@ -47,6 +48,29 @@ class MultisigWallet(EthereumContract):
         return {'dest': data[0], 'value': data[1], 'data': data[2], 'executed': data[3], 'nonce': data[4],
                 'ethr_tx_hash': transaction_id}
 
+    def parse_swap_event(self, event: AttributeDict):
+        print(f"{event=}")
+        try:
+            block_number = event["blockNumber"]
+        except IndexError:
+            raise ValueError(f"Failed to decode block number for event {event}") from None
+
+        try:
+            tx_hash = event["transactionHash"].hex()
+        except (IndexError, AttributeError) as e:
+            raise ValueError(f"Failed to decode transaction hash for block {block_number}: {e}") from None
+
+        try:
+            recipient = event.args.recipient.decode()
+        except (ValueError, AttributeError):
+            raise ValueError(f"Failed to decode recipient for block {block_number}, transaction: {tx_hash}") from None
+
+        token = None
+        if event["event"] == "SwapToken":
+            token = event.args.tokenAddress
+
+        return block_number, tx_hash, recipient, token
+
     @classmethod
-    def tracked_event(cls) -> str:
-        return 'Swap'
+    def tracked_event(cls) -> List[str]:
+        return ['Swap', 'SwapToken']
