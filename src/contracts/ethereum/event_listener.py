@@ -63,10 +63,12 @@ class EthEventListener(EventProvider):
                     for evt in self.events_in_range(event_name, from_block=block, to_block=block):
                         self.logger.info(f"New event found {event_name}")
                         self.callbacks.trigger(event_name, evt)
-                    block += 1
                 except BlockNotFound:
-                    self.logger.error(f'Block not found on block {block}')
-                self.wait_for_block(block)
+                    self.logger.error(f'Block not found {block}')
+                    # block = self.wait_for_block(block)
+
+            block += 1
+            self.wait_for_block(block)
 
     def events_in_range(self, event: str, from_block: int, to_block: int = None):
         """ Returns a generator that yields all contract events in range"""

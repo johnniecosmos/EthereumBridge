@@ -37,6 +37,7 @@ class EtherSigner(Thread):
         self.signer = EthSignerImpl(contract, self.private_key, self.account, token_map, config)
 
         super().__init__(group=None, name=f"{self.__class__.__name__}-{self.account[0:5]}", target=self.run, **kwargs)
+        self.setDaemon(True)  # so tests don't hang
 
     def run(self):
         self.logger.info("Starting..")

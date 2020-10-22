@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{CanonicalAddr, ReadonlyStorage, StdError, StdResult, Storage, Uint128};
+use cosmwasm_std::{CanonicalAddr, ReadonlyStorage, StdError, StdResult, Storage, Uint128, HumanAddr};
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
 
@@ -64,6 +64,7 @@ pub struct Swap {
     pub destination: String,
     pub source: String,
     pub amount: Uint128,
+    pub token: HumanAddr,
     pub nonce: u32,
 }
 

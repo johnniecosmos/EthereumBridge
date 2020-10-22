@@ -121,12 +121,13 @@ fn burn_token<S: Storage, A: Api, Q: Querier>(
     let destination = msg.unwrap().to_string();
 
     let source = sender.to_string();
-
+    let token = env.message.sender;
     // store the swap details
     let mut swap_store = Swap {
         source,
         amount,
         destination,
+        token,
         nonce: 0, // gets automatically set by .store()
     };
     let nonce = swap_store.store(&mut deps.storage)?;

@@ -51,24 +51,26 @@ class EtherLeader(Thread):
 
     def _scan_swap(self):
         """ Scans secret network contract for swap events """
-
+        print(f'{self.token_map}')
         while not self.stop_event.is_set():
-            try:
-                for address in self.tracked_tokens:
+            for address in self.tracked_tokens:
+                try:
                     doc = SwapTrackerObject.get_or_create(src=address)
                     next_nonce = doc.nonce + 1
 
+                    self.logger.debug(f'Scanning address {address} for query #{next_nonce}')
+
                     swap_data = query_scrt_swap(next_nonce, address)
+
                     self._handle_swap(swap_data, self.token_map[address].address)
                     doc.nonce = next_nonce
                     doc.save()
                     next_nonce += 1
-                continue
 
-            except CalledProcessError as e:
-                if e.stderr != b'ERROR: query result: encrypted: AppendStorage access out of bounds\n':
-                    if b'ERROR: query result: encrypted: Failed to get swap for key' not in e.stderr:
-                        self.logger.error(f"Failed to query swap: stdout: {e.stdout} stderr: {e.stderr}")
+                except CalledProcessError as e:
+                    if e.stderr != b'ERROR: query result: encrypted: AppendStorage access out of bounds\n':
+                        if b'ERROR: query result: encrypted: Failed to get swap for key' not in e.stderr:
+                            self.logger.error(f"Failed to query swap: stdout: {e.stdout} stderr: {e.stderr}")
 
             self.stop_event.wait(self.config['sleep_interval'])
 

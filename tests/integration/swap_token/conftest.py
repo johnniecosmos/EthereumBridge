@@ -1,8 +1,8 @@
 import json
 import os
-import subprocess
-import string
 import random
+import string
+import subprocess
 from pathlib import Path
 from shutil import copy, rmtree
 from time import sleep
@@ -11,14 +11,13 @@ from typing import List
 from brownie import project, network, accounts
 from pytest import fixture
 
+from src.contracts.ethereum.erc20 import Erc20
 from src.leader.eth.leader import EtherLeader
 from src.leader.secret20 import Secret20Leader
-from src.signer.erc20.signer import ERC20Signer
 from src.signer.eth.signer import EtherSigner
+from src.signer.secret20 import Secret20Signer
 from src.util.common import Token, SecretAccount
 from src.util.config import Config
-from src.contracts.ethereum.erc20 import Erc20
-from src.signer.secret20 import Secret20Signer
 from src.util.web3 import normalize_address
 from tests.integration.conftest import contracts_folder, brownie_project_folder
 
@@ -140,10 +139,6 @@ def erc20_contract(multisig_wallet, web3_provider, erc20_token):
 
 @fixture(scope="module")
 def scrt_leader(multisig_account: SecretAccount, multisig_wallet, erc20_contract, configuration: Config):
-    # change_admin_q = f"docker exec secretdev secretcli tx compute execute " \
-    #                  f"{configuration['secret_contract_address']}" \
-    #                  f" '{change_admin(multisig_account.address)}' --from a -y"
-    # _ = subprocess.run(change_admin_q, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     token_map = configuration["token_map_eth"]
 
@@ -171,7 +166,6 @@ def ethr_leader(multisig_account, configuration: Config, web3_provider, erc20_to
     configuration['leader_acc_addr'] = normalize_address(ether_accounts[0].address)
     configuration['eth_start_block'] = web3_provider.eth.blockNumber
 
-    # leader = ERC20Leader(multisig_wallet, erc20_token, ether_accounts[0].key, ether_accounts[0].address, configuration)
     token_map = configuration["token_map_scrt"]
 
     leader = EtherLeader(multisig_wallet, configuration['leader_key'], configuration['leader_acc_addr'], token_map, configuration)
@@ -182,7 +176,7 @@ def ethr_leader(multisig_account, configuration: Config, web3_provider, erc20_to
 
 
 @fixture(scope="module")
-def ethr_signers(multisig_wallet, configuration: Config, ether_accounts, erc20_token) -> List[ERC20Signer]:
+def ethr_signers(multisig_wallet, configuration: Config, ether_accounts, erc20_token) -> List[EtherSigner]:
     res = []
 
     # token_map = {erc20_token.address: Token(configuration['secret_swap_contract_address'],

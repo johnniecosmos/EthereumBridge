@@ -102,6 +102,9 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
 
         from_block = self._choose_starting_block()
         to_block = w3.eth.blockNumber - self.config['eth_confirmations']
+
+        from_block = min(to_block, from_block)
+
         self.logger.info(f'starting to catch up from {from_block} to {to_block}..')
 
         for event in contract_event_in_range(self.multisig_contract, 'Submission',
@@ -110,6 +113,7 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
             self._update_last_block_processed(event.blockNumber)
             self._validate_and_sign(event)
 
+        self._update_last_block_processed(to_block)
         self.catch_up_complete = True
         self.logger.info('catch up complete')
 
