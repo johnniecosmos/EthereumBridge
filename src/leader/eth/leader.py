@@ -1,22 +1,17 @@
 import base64
-import json
-import os
 from subprocess import CalledProcessError
 from threading import Event, Thread
-from typing import Dict, Type
-
-from web3.contract import Contract
+from typing import Dict
 
 import src.contracts.ethereum.message as message
-from src.contracts.ethereum.erc20 import Erc20
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
 from src.db.collections.swaptrackerobject import SwapTrackerObject
-from src.util.common import Token, project_base_path
+from src.util.common import Token
+from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.secretcli import query_scrt_swap
-from src.util.config import Config
-from src.util.web3 import w3
+from src.util.web3 import erc20_contract
 
 
 class EtherLeader(Thread):
@@ -35,10 +30,7 @@ class EtherLeader(Thread):
         self.config = config
         self.multisig_wallet = multisig_wallet
 
-        abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'ethereum', 'abi', 'IERC20.json')
-        with open(abi_path, "r") as f:
-            abi = json.load(f)['abi']
-        self.erc20 = w3.eth.contract(abi=abi)
+        self.erc20 = erc20_contract()
 
         self.private_key = private_key
         self.default_account = account
@@ -76,7 +68,7 @@ class EtherLeader(Thread):
             except CalledProcessError as e:
                 if e.stderr != b'ERROR: query result: encrypted: AppendStorage access out of bounds\n':
                     if b'ERROR: query result: encrypted: Failed to get swap for key' not in e.stderr:
-                        self.logger.error(e.stdout + e.stderr)
+                        self.logger.error(f"Failed to query swap: stdout: {e.stdout} stderr: {e.stderr}")
 
             self.stop_event.wait(self.config['sleep_interval'])
 
@@ -99,12 +91,16 @@ class EtherLeader(Thread):
         else:
             # encodeABI(fn_name=fn_name, args=[*args]).encode()
             self.erc20.address = token
-            data = self.erc20.encodeABI(fn_name='transfer', args=[swap_json['destination'], int(swap_json['amount'])])
+            address = base64.standard_b64decode(swap_json['destination']).decode()
+            print(f"{swap_json=}")
+            data = self.erc20.encodeABI(fn_name='transfer', args=[address, int(swap_json['amount'])])
             msg = message.Submit(token,
                                  0,  # if we are swapping token, no ether should be rewarded
                                  int(swap_json['nonce']),
+                                 token,
                                  data)
 
+            print(f"{msg=}")
             self._broadcast_transaction(msg)
 
     def _broadcast_transaction(self, msg: message.Submit):

@@ -154,6 +154,9 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             ..
         } => try_send_from(deps, env, &owner, &recipient, amount, msg),
 
+        // Burn
+        HandleMsg::Burn { amount, .. } => try_burn(deps, env, amount),
+
         // Mint
         HandleMsg::Mint {
             amount, address, ..
@@ -177,6 +180,53 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
         QueryMsg::Minters { .. } => query_minters(deps),
         _ => authenticated_queries(deps, msg),
     }
+}
+
+/// Burn tokens
+///
+/// Remove `amount` tokens from the system irreversibly, from signer account
+///
+/// @param amount the amount of money to burn
+fn try_burn<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    amount: Uint128,
+) -> StdResult<HandleResponse> {
+    let sender_address = deps.api.canonical_address(&env.message.sender)?;
+    let amount = amount.u128();
+
+    let mut balances = Balances::from_storage(&mut deps.storage);
+    let mut account_balance = balances.balance(&sender_address);
+
+    if let Some(new_account_balance) = account_balance.checked_sub(amount) {
+        account_balance = new_account_balance;
+    } else {
+        return Err(StdError::generic_err(format!(
+            "insufficient funds to burn: balance={}, required={}",
+            account_balance, amount
+        )));
+    }
+
+    balances.set_account_balance(&sender_address, account_balance);
+
+    let mut config = Config::from_storage(&mut deps.storage);
+    let mut total_supply = config.total_supply();
+    if let Some(new_total_supply) = total_supply.checked_sub(amount) {
+        total_supply = new_total_supply;
+    } else {
+        return Err(StdError::generic_err(
+            "You're trying to burn more than is available in the total supply",
+        ));
+    }
+    config.set_total_supply(total_supply);
+
+    let res = HandleResponse {
+        messages: vec![],
+        log: vec![],
+        data: Some(to_binary(&HandleAnswer::Burn { status: Success })?),
+    };
+
+    Ok(res)
 }
 
 fn try_mint<S: Storage, A: Api, Q: Querier>(

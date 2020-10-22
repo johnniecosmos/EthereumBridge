@@ -40,6 +40,7 @@ def test_fail_swap_token_not_whitelisted(setup, scrt_leader, scrt_signers, web3_
         pass
     # assert
 
+
 # TL;DR: Covers from swap tx to multisig in db(tx ready to be sent to secret20)
 # Components tested:
 # 1. Event listener registration recognize contract events
@@ -48,6 +49,8 @@ def test_fail_swap_token_not_whitelisted(setup, scrt_leader, scrt_signers, web3_
 # 4. Smart Contract swap functionality.
 def test_1_swap_erc_to_s20(scrt_leader, scrt_signers, web3_provider, configuration: Config,
                            erc20_contract, multisig_wallet, ethr_leader):
+
+    secret_token_addr = configuration["sn_token_contracts"]['erc']
 
     scrt_leader.start()
     for signer in scrt_signers:
@@ -110,12 +113,12 @@ def test_1_swap_erc_to_s20(scrt_leader, scrt_signers, web3_provider, configurati
 
     # validate swap tx on ethr delivers to the destination
     viewing_key_set = '{"set_viewing_key": {"key": "lol"}}'
-    tx_hash = run(f"secretcli tx compute execute {configuration['secret_token_address']} "
+    tx_hash = run(f"secretcli tx compute execute {secret_token_addr} "
                   f"'{viewing_key_set}' --from {dest} -b block -y | jq '.txhash'", shell=True, stdout=PIPE)
     sleep(6)
 
     balance = f'{{"balance": {{"key": "lol", "address": "{dest}"}} }}'
-    res = run(f"secretcli q compute query {configuration['secret_token_address']} "
+    res = run(f"secretcli q compute query {secret_token_addr} "
               f"'{balance}'", shell=True, stdout=PIPE)
 
     print(f"{res.stdout=}")
@@ -133,44 +136,44 @@ def test_1_swap_erc_to_s20(scrt_leader, scrt_signers, web3_provider, configurati
 # ethr_signers are here to respond for leader's submission
 def test_2_swap_s20_to_erc(ethr_leader, configuration: Config, ethr_signers, erc20_contract):
 
+    swap_contract_addr = list(configuration['token_map_scrt'].keys())[0]
+    secret_token_addr = configuration["sn_token_contracts"]['erc']
+
     for signer in ethr_signers[:-1]:
         signer.start()
 
     # Generate swap tx on secret network
     swap = {"send": {"amount": str(TRANSFER_AMOUNT),
                      "msg": base64.b64encode(ethr_leader.default_account.encode()).decode(),
-                     "recipient": configuration["secret_token_address"]}}
-    sleep(configuration['sleep_interval'])
+                     "recipient": swap_contract_addr}}
 
-    last_nonce = SwapTrackerObject.last_processed(src=configuration['secret_swap_contract_address'])
-    tx_hash = run(f"secretcli tx compute execute {configuration['secret_swap_contract_address']} "
-                  f"'{json.dumps(swap)}' --from t1 -y", shell=True, stdout=PIPE, stderr=PIPE)
+    last_nonce = SwapTrackerObject.last_processed(src=swap_contract_addr)
+    tx_hash = run(f"secretcli tx compute execute {secret_token_addr} "
+                  f"'{json.dumps(swap)}' --from t1 -b block -y --gas 300000", shell=True, stdout=PIPE, stderr=PIPE)
     tx_hash = json.loads(tx_hash.stdout)['txhash']
-
+    print(f'{tx_hash=}')
     # Verify that leader recognized the burn tx
     sleep(configuration['sleep_interval'] + 6)
 
-    assert last_nonce + 1 == SwapTrackerObject.last_processed(src=configuration['secret_swap_contract_address'])
-
-    # Give ethr signers time to handle the secret20 swap tx (will be verified in test_4
-    sleep(configuration['sleep_interval'] + 1)
+    assert last_nonce + 1 == SwapTrackerObject.last_processed(src=swap_contract_addr)
 
 
 # EthrSigner event response and multisig logic
 # Components tested:
 # 1. EthrSigner - confirmation and offline catchup
 # 2. SmartContract multisig functionality
-def test_3_confirm_and_finalize_erc_tx(ethr_signers, configuration: Config, erc20_contract, ethr_leader):
+def test_3_confirm_tx(web3_provider, ethr_signers, configuration: Config, erc20_contract, ethr_leader):
 
+    swap_contract_addr = list(configuration['token_map_scrt'].keys())[0]
+
+    assert increase_block_number(web3_provider, configuration['eth_confirmations'])
     # To allow the new EthrSigner to "catch up", we start it after the event submission event in Ethereum
     ethr_signers[-1].start()
 
     sleep(configuration['sleep_interval'] + 3)
     # Validate the tx is confirmed in the smart contract
-    last_nonce = SwapTrackerObject.last_processed(src=configuration['secret_swap_contract_address'])
-    assert last_nonce > 0
-    assert ethr_signers[-1].signer.multisig_contract.contract.functions.confirmations(last_nonce,
-                                                                                      ethr_signers[-1].account).call()
+    last_nonce = SwapTrackerObject.last_processed(src=swap_contract_addr)
+    assert last_nonce > -1
     assert TRANSFER_AMOUNT == erc20_contract.contract.functions.balanceOf(ethr_leader.default_account).call()
 
 

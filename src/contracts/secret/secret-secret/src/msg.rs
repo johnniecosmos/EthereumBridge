@@ -131,6 +131,12 @@ pub enum HandleMsg {
         padding: Option<String>,
     },
 
+    // Burn
+    Burn {
+        amount: Uint128,
+        padding: Option<String>,
+    },
+
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
@@ -172,6 +178,10 @@ pub enum HandleAnswer {
         status: ResponseStatus,
     },
 
+    // Burn
+    Burn {
+        status: ResponseStatus,
+    },
     // Mint
     Mint {
         status: ResponseStatus,

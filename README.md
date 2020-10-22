@@ -55,6 +55,16 @@ secretcli status
 pip install -r requirements-dev.txt
 ```
 
+#### Install Solidity contract dependencies
+```
+brownie pm install OpenZeppelin/openzeppelin-contracts@3.2.0
+```
+
+#### Run setup script
+```
+user@pc:.../EthereumBridge/tests/utils$ ./setup_secret_keys.sh 3 ../../keys/
+```
+
 #### Run Tests
 
 ```sh

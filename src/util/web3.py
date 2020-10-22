@@ -1,3 +1,5 @@
+import json
+import os
 from threading import Lock
 from typing import List, Tuple, Optional, Generator
 
@@ -7,6 +9,7 @@ from web3.datastructures import AttributeDict
 from web3.logs import DISCARD
 from web3.types import BlockData
 
+from src.util.common import project_base_path
 from src.util.config import Config
 
 
@@ -140,3 +143,10 @@ def send_contract_tx(contract: Web3Contract, function_name: str, from_acc: str, 
         })
     signed_txn = w3.eth.account.sign_transaction(submit_tx, private_key)
     return w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+
+
+def erc20_contract():
+    abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'ethereum', 'abi', 'IERC20.json')
+    with open(abi_path, "r") as f:
+        abi = json.load(f)['abi']
+    return w3.eth.contract(abi=abi)

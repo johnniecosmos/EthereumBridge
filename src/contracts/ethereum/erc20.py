@@ -31,12 +31,13 @@ class Erc20(EthereumContract):
         return tx_log.args._to.lower() == self.dest_address.lower()    # pylint: disable=protected-access
 
     # noinspection PyPep8Naming
-    @staticmethod
-    def get_params_from_data(data: bytes) -> Tuple[str, int]:
+    def get_params_from_data(self, data: bytes) -> Tuple[str, int]:
         """
         This functions takes a chunk of data encoded by web3 contract encodeAbi func and extracts the params from it.
         :param data: an encodeAbi result
         """
+        result = self.contract.decode_function_input(data.hex())
+        print(f'{result=}')
         if len(data) < 139:
             raise ValueError("Data in erc-20 transaction must be 139 bytes or more")
         _, dest, amount = data[:10], data[34:74], data[74:138]

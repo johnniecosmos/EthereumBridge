@@ -96,7 +96,7 @@ contract MultiSigSwapWallet {
     }
 
     modifier notSubmitted(address token, uint nonce){
-        require(secretTxNonce[token] < nonce);
+        require(secretTxNonce[token] == 0 || secretTxNonce[token] < nonce, "Transaction already computed");
         _;
     }
 
