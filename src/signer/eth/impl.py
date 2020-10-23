@@ -10,6 +10,7 @@ from web3.datastructures import AttributeDict
 import src.contracts.ethereum.message as message
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
+from src.db.collections.token_map import TokenPairing
 from src.util.common import Token
 from src.util.config import Config
 from src.util.logger import get_logger
@@ -31,9 +32,10 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
 
     Todo: Naming sucks. This is mostly caused by bad design, and by me not having enough coffee
     """
+    network = "Ethereum"
 
     def __init__(self, multisig_contract: MultisigWallet, private_key: bytes, account: str,
-                 token_map: Dict[str, Token], config: Config):
+                 dst_network: str, config: Config):
         # todo: simplify this, pylint is right
         self.multisig_contract = multisig_contract
         self.private_key = private_key
@@ -47,8 +49,12 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         self.catch_up_complete = False
         self.cache = self._create_cache()
 
-        self.tracked_tokens = token_map.keys()
-        self.token_map = token_map
+        self.token_map = {}
+        pairs = TokenPairing.objects(dst_network=dst_network, src_network=self.network)
+        for pair in pairs:
+            self.token_map.update({pair.src_address: Token(pair.dst_address, pair.dst_coin)})
+
+        self.tracked_tokens = self.token_map.keys()
 
         self.thread_pool = ThreadPoolExecutor()
 
@@ -139,10 +145,10 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         try:
             if token == '0x0000000000000000000000000000000000000000':
                 self.logger.info("Testing secret-ETH to ETH swap")
-                swap = query_scrt_swap(nonce, self.token_map['native'].address)
+                swap = query_scrt_swap(nonce, self.config["scrt_swap_address"], self.token_map['native'].address)
             else:
                 self.logger.info(f"Testing {self.token_map[token].address} to {token} swap")
-                swap = query_scrt_swap(nonce, self.token_map[token].address)
+                swap = query_scrt_swap(nonce, self.config["scrt_swap_address"], self.token_map[token].address)
         except subprocess.CalledProcessError as e:
             self.logger.error(f'Error querying transaction: {e}')
             raise RuntimeError from None

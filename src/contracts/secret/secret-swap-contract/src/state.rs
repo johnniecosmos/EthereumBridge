@@ -1,14 +1,17 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{CanonicalAddr, ReadonlyStorage, StdError, StdResult, Storage, Uint128, HumanAddr};
+use cosmwasm_std::{
+    CanonicalAddr, HumanAddr, ReadonlyStorage, StdError, StdResult, Storage, Uint128,
+};
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
 
 use secret_toolkit::storage::{AppendStore, AppendStoreMut};
 
 pub static CONFIG_KEY: &[u8] = b"config";
-pub static TOKEN_CONTRACT_PARAMS_KEY: &[u8] = b"TokenContractParams";
+pub static TOKEN_NAMESPACE: &[u8] = b"TokenContractParams";
+pub static WHITELIST_KEY: &[u8] = b"Whitelist";
 pub static SWAP_KEY: &[u8] = b"swap";
 pub static MINT_KEY: &[u8] = b"mint";
 
@@ -70,7 +73,10 @@ pub struct Swap {
 
 impl Swap {
     pub fn store<S: Storage>(&mut self, store: &mut S) -> StdResult<u32> {
-        let mut store = PrefixedStorage::new(SWAP_KEY, store);
+        let mut store_name = SWAP_KEY.to_vec();
+        store_name.extend_from_slice(self.token.0.as_bytes());
+
+        let mut store = PrefixedStorage::new(&store_name, store);
         let mut store = AppendStoreMut::attach_or_create(&mut store)?;
 
         let nonce = store.len();
@@ -79,53 +85,144 @@ impl Swap {
         Ok(nonce)
     }
 
-    pub fn get<S: ReadonlyStorage>(storage: &S, key: u32) -> StdResult<Self> {
-        let store = ReadonlyPrefixedStorage::new(SWAP_KEY, storage);
+    pub fn get<S: ReadonlyStorage>(storage: &S, token: &HumanAddr, key: u32) -> StdResult<Self> {
+        let mut store_name = SWAP_KEY.to_vec();
+        store_name.extend_from_slice(token.0.as_bytes());
+
+        let store = ReadonlyPrefixedStorage::new(&store_name, storage);
 
         // Try to access the storage of txs for the account.
         // If it doesn't exist yet, return an empty list of transfers.
         let store = if let Some(result) = AppendStore::<Self, _>::attach(&store) {
             result?
         } else {
-            return Err(StdError::generic_err(format!(
-                "Failed to get swap for key: {}",
-                key
-            )));
+            return Err(StdError::generic_err(""));
         };
 
         store.get_at(key)
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct TokenContractParams {
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
+pub struct Contract {
     pub address: CanonicalAddr,
     pub code_hash: String,
 }
 
-impl TokenContractParams {
-    pub fn store<S: Storage>(&self, storage: &mut S) -> StdResult<()> {
-        let mut bucket: Singleton<S, TokenContractParams> =
-            singleton(storage, TOKEN_CONTRACT_PARAMS_KEY);
+impl PartialEq for Contract {
+    fn eq(&self, other: &Self) -> bool {
+        self.address == other.address
+    }
 
-        bucket.save(&self)?;
+    fn ne(&self, other: &Self) -> bool {
+        self.address != other.address
+    }
+}
+
+//
+#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, JsonSchema)]
+pub struct TokenWhiteList {
+    pub tokens: Vec<Contract>,
+}
+
+impl TokenWhiteList {
+    pub fn new<S: Storage>(store: &mut S) -> StdResult<()> {
+        let mut store = PrefixedStorage::new(TOKEN_NAMESPACE, store);
+
+        let whitelist = Self::default();
+
+        let bin_data =
+            bincode2::serialize(&whitelist).map_err(|e| StdError::serialize_err("", e))?;
+
+        store.set(WHITELIST_KEY, &bin_data);
+        Ok(())
+    }
+
+    pub fn add<S: Storage>(store: &mut S, token: &Contract) -> StdResult<()> {
+        let mut store = PrefixedStorage::new(TOKEN_NAMESPACE, store);
+
+        if let Some(bytes) = &store.get(WHITELIST_KEY) {
+            let mut whitelist: TokenWhiteList =
+                bincode2::deserialize(bytes).map_err(|e| StdError::serialize_err("", e))?;
+
+            if whitelist.tokens.contains(token) {
+                return Ok(());
+            }
+
+            whitelist.tokens.push(token.clone());
+
+            let bin_data =
+                bincode2::serialize(&whitelist).map_err(|e| StdError::serialize_err("", e))?;
+
+            store.set(WHITELIST_KEY, &bin_data);
+        }
+        Ok(())
+    }
+
+    pub fn remove<S: Storage>(store: &mut S, address: &CanonicalAddr) -> StdResult<()> {
+        let mut store = PrefixedStorage::new(TOKEN_NAMESPACE, store);
+
+        if let Some(bytes) = &store.get(WHITELIST_KEY) {
+            let mut whitelist: TokenWhiteList =
+                bincode2::deserialize(bytes).map_err(|e| StdError::serialize_err("", e))?;
+
+            if let Some(pos) = whitelist
+                .tokens
+                .iter()
+                .position(|x| &(*x).address == address)
+            {
+                whitelist.tokens.remove(pos);
+            }
+
+            let bin_data =
+                bincode2::serialize(&whitelist).map_err(|e| StdError::serialize_err("", e))?;
+
+            store.set(WHITELIST_KEY, &bin_data);
+        }
 
         Ok(())
     }
 
-    pub fn load<S: Storage>(storage: &S) -> StdResult<TokenContractParams> {
-        let params: ReadonlySingleton<S, TokenContractParams> =
-            singleton_read(storage, TOKEN_CONTRACT_PARAMS_KEY);
+    pub fn get<S: ReadonlyStorage>(storage: &S, address: &CanonicalAddr) -> StdResult<Contract> {
+        let store = ReadonlyPrefixedStorage::new(TOKEN_NAMESPACE, storage);
 
-        let res = params.load()?;
+        // Try to access the storage of txs for the account.
+        // If it doesn't exist yet, return an empty list of transfers.
+        if let Some(bytes) = &store.get(WHITELIST_KEY) {
+            let whitelist: TokenWhiteList =
+                bincode2::deserialize(bytes).map_err(|e| StdError::serialize_err("", e))?;
 
-        Ok(res)
+            if let Some(pos) = whitelist
+                .tokens
+                .iter()
+                .position(|x| &(*x).address == address)
+            {
+                return Ok(whitelist.tokens.get(pos).unwrap().clone());
+            }
+        }
+
+        Err(StdError::not_found("Token address not in whitelist"))
+    }
+
+    pub fn all<S: ReadonlyStorage>(storage: &S) -> StdResult<Vec<Contract>> {
+        let store = ReadonlyPrefixedStorage::new(TOKEN_NAMESPACE, storage);
+
+        // Try to access the storage of txs for the account.
+        // If it doesn't exist yet, return an empty list of transfers.
+
+        if let Some(bytes) = &store.get(WHITELIST_KEY) {
+            let whitelist: TokenWhiteList =
+                bincode2::deserialize(bytes).map_err(|e| StdError::serialize_err("", e))?;
+            return Ok(whitelist.tokens);
+        }
+        Ok(vec![])
     }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct State {
     pub owner: CanonicalAddr,
+    pub paused: bool,
 }
 
 pub fn config<S: Storage>(storage: &mut S) -> Singleton<S, State> {

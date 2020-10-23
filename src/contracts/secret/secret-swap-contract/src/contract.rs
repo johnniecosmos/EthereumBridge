@@ -5,8 +5,38 @@ use cosmwasm_std::{
 
 use crate::msg::ResponseStatus::Success;
 use crate::msg::{HandleAnswer, HandleMsg, InitMsg, QueryAnswer, QueryMsg};
-use crate::state::{config, Mint, State, Swap, TokenContractParams, config_read};
+use crate::state::{config, config_read, Contract, Mint, State, Swap, TokenWhiteList};
 use crate::token_messages::TokenMsgs;
+
+pub fn _add_token<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: &Env,
+    code_hash: &String,
+    token_address: &HumanAddr,
+) -> StdResult<TokenMsgs> {
+    let params = Contract {
+        address: deps.api.canonical_address(token_address)?,
+        code_hash: code_hash.clone(),
+    };
+
+    TokenWhiteList::add(&mut deps.storage, &params)?;
+
+    let callback = TokenMsgs::RegisterReceive {
+        code_hash: env.contract_code_hash.clone(),
+        padding: None,
+    };
+
+    Ok(callback)
+}
+
+pub fn _rm_token<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    token_address: &HumanAddr,
+) -> StdResult<()> {
+    let address = deps.api.canonical_address(token_address)?;
+
+    TokenWhiteList::remove(&mut deps.storage, &address)
+}
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -15,29 +45,21 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<InitResponse> {
     let state = State {
         owner: deps.api.canonical_address(&msg.owner)?,
+        paused: false,
     };
 
     config(&mut deps.storage).save(&state)?;
 
+    TokenWhiteList::new(&mut deps.storage)?;
+
     if let Some(address) = msg.token_address {
         if let Some(hash) = msg.code_hash {
-
             // it will be helpful to just do this here instead of after
 
-            let params = TokenContractParams {
-                address: deps.api.canonical_address(&address)?,
-                code_hash: hash,
-            };
-
-            params.store(&mut deps.storage)?;
-
-            let callback = TokenMsgs::RegisterReceive {
-                code_hash: env.contract_code_hash,
-                padding: None,
-            };
+            let callback = _add_token(deps, &env, &hash, &address)?;
 
             return Ok(InitResponse {
-                messages: vec![callback.to_cosmos_msg(address, params.code_hash)?],
+                messages: vec![callback.to_cosmos_msg(address, hash)?],
                 log: vec![],
             });
         }
@@ -52,16 +74,26 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
     match msg {
-        HandleMsg::SetTokenAddress {
+        HandleMsg::PauseSwap {} => pause_swap(deps, env),
+        HandleMsg::UnpauseSwap {} => unpause_swap(deps, env),
+        HandleMsg::ChangeOwner { owner } => change_owner(deps, env, owner),
+        HandleMsg::AddToken {
             address, code_hash, ..
-        } => set_token_contract(deps, env, address, code_hash),
+        } => add_token_contract(deps, env, address, code_hash),
+        HandleMsg::RemoveToken { address, .. } => remove_token_contract(deps, env, address),
         HandleMsg::MintFromExtChain {
             address,
             identifier,
             amount,
+            token,
             ..
-        } => mint_token(deps, env, address, identifier, amount),
-        HandleMsg::Receive { amount, msg, sender, .. } => burn_token(deps, env, sender, amount, msg),
+        } => mint_token(deps, env, address, identifier, amount, token),
+        HandleMsg::Receive {
+            amount,
+            msg,
+            sender,
+            ..
+        } => burn_token(deps, env, sender, amount, msg),
     }
 }
 
@@ -71,10 +103,18 @@ fn mint_token<S: Storage, A: Api, Q: Querier>(
     address: HumanAddr,
     identifier: String,
     amount: Uint128,
+    token: HumanAddr,
 ) -> StdResult<HandleResponse> {
-    let params = TokenContractParams::load(&deps.storage).map_err(|_e| {
-        StdError::generic_err("You fool you must set the token contract parameters first")
-    })?;
+    // let params = TokenContractParams::load(&deps.storage).map_err(|_e| {
+    //     StdError::generic_err("You fool you must set the token contract parameters first")
+    // })?;
+    let state = config(&mut deps.storage).load()?;
+    if state.paused {
+        return Err(StdError::generic_err("Swap contract is currently paused"));
+    }
+
+    let canonical = deps.api.canonical_address(&token)?;
+    let params = TokenWhiteList::get(&deps.storage, &canonical)?;
 
     let mint_store = Mint {
         address: deps.api.canonical_address(&address)?,
@@ -99,6 +139,52 @@ fn mint_token<S: Storage, A: Api, Q: Querier>(
     })
 }
 
+fn pause_swap<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+) -> StdResult<HandleResponse> {
+    let mut params = config(&mut deps.storage).load()?;
+
+    if params.owner != deps.api.canonical_address(&env.message.sender)? {
+        return Err(StdError::generic_err(
+            "Cannot add token from non owner address",
+        ));
+    }
+
+    params.paused = true;
+
+    config(&mut deps.storage).save(&params)?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![],
+        data: Some(to_binary(&HandleAnswer::PauseSwap { status: Success })?),
+    })
+}
+
+fn unpause_swap<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+) -> StdResult<HandleResponse> {
+    let mut params = config(&mut deps.storage).load()?;
+
+    if params.owner != deps.api.canonical_address(&env.message.sender)? {
+        return Err(StdError::generic_err(
+            "Cannot add token from non owner address",
+        ));
+    }
+
+    params.paused = false;
+
+    config(&mut deps.storage).save(&params)?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![],
+        data: Some(to_binary(&HandleAnswer::UnpauseSwap { status: Success })?),
+    })
+}
+
 fn burn_token<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -107,15 +193,19 @@ fn burn_token<S: Storage, A: Api, Q: Querier>(
     msg: Option<Binary>,
 ) -> StdResult<HandleResponse> {
     // validate that this is a callback from the token contract
-    let params = TokenContractParams::load(&deps.storage).map_err(|_e| {
-        StdError::generic_err("You fool you must set the token contract parameters first")
-    })?;
+    // let params = TokenContractParams::load(&deps.storage).map_err(|_e| {
+    //     StdError::generic_err("You fool you must set the token contract parameters first")
+    // })?;
 
-    if params.address != deps.api.canonical_address(&env.message.sender)? {
-        return Err(StdError::generic_err(
-            "Called receive function from invalid address",
-        ));
+    let state = config(&mut deps.storage).load()?;
+    if state.paused {
+        return Err(StdError::generic_err("Swap contract is currently paused"));
     }
+
+    let params = TokenWhiteList::get(
+        &deps.storage,
+        &deps.api.canonical_address(&env.message.sender)?,
+    )?;
 
     // get params from receive callback msg
     let destination = msg.unwrap().to_string();
@@ -150,39 +240,72 @@ fn burn_token<S: Storage, A: Api, Q: Querier>(
     })
 }
 
-pub fn set_token_contract<S: Storage, A: Api, Q: Querier>(
+pub fn remove_token_contract<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    address: HumanAddr,
+) -> StdResult<HandleResponse> {
+    let params = config_read(&deps.storage).load()?;
+
+    if params.owner != deps.api.canonical_address(&env.message.sender)? {
+        return Err(StdError::generic_err(
+            "Cannot remove token from non owner address",
+        ));
+    }
+
+    _rm_token(deps, &address)?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![],
+        data: Some(to_binary(&HandleAnswer::RemoveToken { status: Success })?),
+    })
+}
+
+pub fn change_owner<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    owner: HumanAddr,
+) -> StdResult<HandleResponse> {
+    let mut params = config(&mut deps.storage).load()?;
+
+    if params.owner != deps.api.canonical_address(&env.message.sender)? {
+        return Err(StdError::generic_err(
+            "Cannot add token from non owner address",
+        ));
+    }
+
+    params.owner = deps.api.canonical_address(&owner)?;
+
+    config(&mut deps.storage).save(&params)?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![],
+        data: Some(to_binary(&HandleAnswer::ChangeOwner { status: Success })?),
+    })
+}
+
+pub fn add_token_contract<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     address: HumanAddr,
     code_hash: String,
 ) -> StdResult<HandleResponse> {
-
     let params = config_read(&deps.storage).load()?;
 
     if params.owner != deps.api.canonical_address(&env.message.sender)? {
         return Err(StdError::generic_err(
-            "Cannot set token from non owner address",
+            "Cannot add token from non owner address",
         ));
     }
 
-    let params = TokenContractParams {
-        address: deps.api.canonical_address(&address)?,
-        code_hash,
-    };
-
-    params.store(&mut deps.storage)?;
-
-    let callback = TokenMsgs::RegisterReceive {
-        code_hash: env.contract_code_hash,
-        padding: None,
-    };
+    let callback = _add_token(deps, &env, &code_hash, &address)?;
 
     Ok(HandleResponse {
-        messages: vec![callback.to_cosmos_msg(address, params.code_hash)?],
+        messages: vec![callback.to_cosmos_msg(address, code_hash)?],
         log: vec![],
-        data: Some(to_binary(&HandleAnswer::SetTokenAddress {
-            status: Success,
-        })?),
+        data: Some(to_binary(&HandleAnswer::AddToken { status: Success })?),
     })
 }
 
@@ -191,16 +314,36 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Swap { nonce } => query_swap(deps, nonce),
+        QueryMsg::Swap { nonce, token } => query_swap(deps, nonce, token),
         QueryMsg::MintById { identifier } => query_mint(deps, identifier),
+        QueryMsg::Tokens {} => query_tokens(deps),
     }
+}
+
+pub fn query_tokens<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Binary> {
+    let tokens = TokenWhiteList::all(&deps.storage)?;
+
+    let token_names: Vec<HumanAddr> = tokens
+        .iter()
+        .map(|a| deps.api.human_address(&a.address).unwrap())
+        .collect();
+
+    Ok(to_binary(&QueryAnswer::Tokens {
+        result: token_names,
+    })?)
 }
 
 pub fn query_swap<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     nonce: u32,
+    token: HumanAddr,
 ) -> StdResult<Binary> {
-    let swap = Swap::get(&deps.storage, nonce)?;
+    let swap = Swap::get(&deps.storage, &token, nonce).map_err(|_| {
+        StdError::generic_err(format!(
+            "Failed to get swap for token {} for key: {}",
+            token.0, nonce
+        ))
+    })?;
 
     Ok(to_binary(&QueryAnswer::Swap { result: swap })?)
 }

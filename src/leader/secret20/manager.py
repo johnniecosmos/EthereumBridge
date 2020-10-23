@@ -102,11 +102,11 @@ class SecretManager(Thread):
         except ValueError:
             return
 
-        mint = mint_json(amount, tx_hash, recipient)
         try:
             s20 = self._get_s20(token)
-            unsigned_tx = create_unsigned_tx(s20.address, mint, self.config['chain_id'],
-                                             self.config['enclave_key'], s20.code_hash,
+            mint = mint_json(amount, tx_hash, recipient, s20.address)
+            unsigned_tx = create_unsigned_tx(self.config["scrt_swap_address"], mint, self.config['chain_id'],
+                                             self.config['enclave_key'], self.config["swap_code_hash"],
                                              self.multisig.address)
 
             # if ETHSwap.objects(tx_hash=tx_hash).count() == 0:  # TODO: exception because of force_insert?

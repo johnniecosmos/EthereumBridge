@@ -9,6 +9,7 @@ from mongoengine import OperationError
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.signatures import Signatures
+from src.db.collections.token_map import TokenPairing
 from src.leader.secret20.manager import SecretManager
 from src.signer.secret20.signer import SecretAccount
 from src.util.common import temp_file, temp_files, Token
@@ -22,16 +23,23 @@ SCRT_BLOCK_TIME = 7
 
 class Secret20Leader(Thread):
     """ Broadcasts signed Secret-20 minting tx after successful ETH or ERC20 swap event """
+    network = "Secret"
 
     def __init__(self,
                  secret_multisig: SecretAccount,
                  contract: MultisigWallet,
-                 token_to_secret_map: Dict[str, Token],
+                 src_network: str,
                  config: Config, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        token_map = {}
+        pairs = TokenPairing.objects(dst_network=self.network, src_network=src_network)
+        for pair in pairs:
+            token_map.update({pair.src_address: Token(pair.dst_address, pair.dst_coin)})
+
         self.multisig_name = secret_multisig.name
         self.config = config
-        self.manager = SecretManager(contract, token_to_secret_map, secret_multisig, config)
+        self.manager = SecretManager(contract, token_map, secret_multisig, config)
         self.logger = get_logger(db_name=self.config['db_name'],
                                  logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.multisig_name}"))
         self.stop_event = Event()

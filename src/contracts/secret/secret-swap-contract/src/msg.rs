@@ -13,11 +13,19 @@ pub struct InitMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleMsg {
-    SetTokenAddress {
+    AddToken {
         address: HumanAddr,
         code_hash: String,
     },
-    //Receive { destination: String, nonce: u64, amount: Uint128, padding: Option<String> },
+    RemoveToken {
+        address: HumanAddr,
+    },
+    ChangeOwner {
+        owner: HumanAddr,
+    },
+    PauseSwap {},
+    UnpauseSwap {},
+
     Receive {
         sender: HumanAddr,
         msg: Option<Binary>,
@@ -27,6 +35,7 @@ pub enum HandleMsg {
         address: HumanAddr,
         identifier: String,
         amount: Uint128,
+        token: HumanAddr,
         padding: Option<String>,
     },
 }
@@ -35,17 +44,22 @@ pub enum HandleMsg {
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     // GetCount returns the current count as a json-encoded number
-    Swap { nonce: u32 },
+    Swap { nonce: u32, token: HumanAddr },
     MintById { identifier: String },
+    Tokens {},
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleAnswer {
     // Native
-    SetTokenAddress { status: ResponseStatus },
+    AddToken { status: ResponseStatus },
+    RemoveToken { status: ResponseStatus },
     Receive { status: ResponseStatus, nonce: u32 },
     MintFromExtChain { status: ResponseStatus },
+    ChangeOwner { status: ResponseStatus },
+    UnpauseSwap { status: ResponseStatus },
+    PauseSwap { status: ResponseStatus },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
@@ -60,4 +74,5 @@ pub enum ResponseStatus {
 pub enum QueryAnswer {
     Swap { result: Swap },
     Mint { result: bool },
+    Tokens { result: Vec<HumanAddr> },
 }

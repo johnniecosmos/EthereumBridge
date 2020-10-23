@@ -30,12 +30,12 @@ from typing import Dict
 #     return int(swap_data['amount']) == int(submission_data['value'])
 
 
-def mint_json(amount, tx_hash, address: str) -> Dict:
-    return {"mint_from_ext_chain": {"amount": str(amount), "address": address, "identifier": tx_hash}}
+def mint_json(amount, tx_hash, address: str, token: str) -> Dict:
+    return {"mint_from_ext_chain": {"amount": str(amount), "address": address, "identifier": tx_hash, "token": token}}
 
 
-def swap_json(nonce: int) -> str:
-    return json.dumps({"swap": {"nonce": nonce}})
+def swap_json(nonce: int, token: str) -> str:
+    return json.dumps({"swap": {"nonce": nonce, "token": token}})
 
 
 def swap_query_res(res_json: str) -> dict:

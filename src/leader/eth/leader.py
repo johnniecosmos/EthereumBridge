@@ -7,11 +7,12 @@ import src.contracts.ethereum.message as message
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
 from src.db.collections.swaptrackerobject import SwapTrackerObject
+from src.db.collections.token_map import TokenPairing
 from src.util.common import Token
 from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.secretcli import query_scrt_swap
-from src.util.web3 import erc20_contract
+from src.util.web3 import erc20_contract, w3
 
 
 class EtherLeader(Thread):
@@ -23,14 +24,20 @@ class EtherLeader(Thread):
 
     The account set here must have enough ETH for all the transactions you're planning on doing
     """
+    network = "Ethereum"
 
     def __init__(self, multisig_wallet: MultisigWallet, private_key: bytes, account: str,
-                 token_map: Dict[str, Token],
+                 dst_network: str,
                  config: Config, **kwargs):
         self.config = config
         self.multisig_wallet = multisig_wallet
 
         self.erc20 = erc20_contract()
+
+        token_map = {}
+        pairs = TokenPairing.objects(dst_network=dst_network, src_network=self.network)
+        for pair in pairs:
+            token_map.update({pair.dst_address: Token(pair.src_address, pair.src_coin)})
 
         self.private_key = private_key
         self.default_account = account
@@ -53,24 +60,24 @@ class EtherLeader(Thread):
         """ Scans secret network contract for swap events """
         print(f'{self.token_map}')
         while not self.stop_event.is_set():
-            for address in self.tracked_tokens:
+            for token in self.tracked_tokens:
                 try:
-                    doc = SwapTrackerObject.get_or_create(src=address)
+                    doc = SwapTrackerObject.get_or_create(src=token)
                     next_nonce = doc.nonce + 1
 
-                    self.logger.debug(f'Scanning address {address} for query #{next_nonce}')
+                    self.logger.debug(f'Scanning token {token} for query #{next_nonce}')
 
-                    swap_data = query_scrt_swap(next_nonce, address)
+                    swap_data = query_scrt_swap(next_nonce, self.config["scrt_swap_address"], token)
 
-                    self._handle_swap(swap_data, self.token_map[address].address)
+                    self._handle_swap(swap_data, self.token_map[token].address)
                     doc.nonce = next_nonce
                     doc.save()
                     next_nonce += 1
 
                 except CalledProcessError as e:
-                    if e.stderr != b'ERROR: query result: encrypted: AppendStorage access out of bounds\n':
-                        if b'ERROR: query result: encrypted: Failed to get swap for key' not in e.stderr:
-                            self.logger.error(f"Failed to query swap: stdout: {e.stdout} stderr: {e.stderr}")
+                    if b'ERROR: query result: encrypted: Failed to get swap for token' not in e.stderr:
+                        self.logger.error(f"Failed to query swap: stdout: {e.stdout} stderr: {e.stderr}")
+                        # if b'ERROR: query result: encrypted: Failed to get swap for key' not in e.stderr:
 
             self.stop_event.wait(self.config['sleep_interval'])
 
@@ -107,4 +114,6 @@ class EtherLeader(Thread):
 
     def _broadcast_transaction(self, msg: message.Submit):
         tx_hash = self.multisig_wallet.submit_transaction(self.default_account, self.private_key, msg)
-        self.logger.info(msg=f"Submitted tx, tx hash: {tx_hash.hex()}, msg: {msg}")
+        receipt = w3.eth.getTransactionReceipt(tx_hash)
+        print(f'{receipt=}')
+        self.logger.info(msg=f"Submitted tx: hash: {tx_hash.hex()}, msg: {msg}")
