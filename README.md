@@ -46,7 +46,7 @@ In the future the bridge may also scale to other networks beyond Ethereum
 
 You should be able to run secretcli directly (copy it to /usr/bin/ or something)
 ```
-secretcli status
+secretcli status 
 ```
 
 #### Install dev dependencies
@@ -87,7 +87,7 @@ Use the example docker-compose file to customize your leader & signer parameters
 
 ### Secret20 -> Ethereum/ERC-20 
 
-Call the `send` method of the Secret20 token, with the recipient being our multisig address, and the `msg` field containing the
+Call the `send` method of the Secret20 token, with the recipient being the swap contract, and the `msg` field containing the
 __base64 encoded__ ethereum address
 
 ```
@@ -107,12 +107,24 @@ Python example (see: swap_eth.py):
 
 ### ERC20 -> Secret20
 
-Call the `transfer` function, with `to` being our MultiSig contract, `value` caontaining the amount of tokens, and `recipient` being the address on the secret network
+Give the multisig contract allowance, then call the `swapToken` function on our multisig contract, which has the signature
+`swapToken(bytes memory recipient, uint256 amount, address token)`. 
+The first parameter being the destination address, the second being the amount of tokens, and the 3rd the address of the ERC-20
+token we wish to transfer.
+
+Note that the transaction will fail if attempted to transfer from a token which is not on the token whitelist
 
 ```python
-    tx_hash = erc20_contract.contract.functions.transfer("0x913BD292C1fbd164Bb61436aa1B026C8131104fd",
-                                                         200,
-                                                         "secret13l72vhjngmg55ykajxdnlalktwglyqjqv9pkq4")...
+TRANSFER_AMOUNT = 100
+
+_ = erc20_contract.contract.functions.approve(multisig_wallet.address, TRANSFER_AMOUNT). \
+    transact({'from': address})
+
+
+tx_hash = multisig_wallet.contract.functions.swapToken(dest_address.encode(),
+                                                       TRANSFER_AMOUNT,
+                                                       erc20_contract.address). \
+    transact({'from': web3_provider.eth.coinbase}).hex().lower()
 ```
 
 
@@ -126,7 +138,7 @@ of the files in the ./config/ directory, and the rest by setting environment var
 * signatures_threshold - number of signatures required to authorize transaction 
 * eth_confirmations - number of blocks to wait on ethereum before confirming transactions
 * eth_start_block - block number to start scanning events from  
-* sleep_interval - time to sleep between 
+* sleep_interval - time between checks for new swaps
 * network - name of ethereum network
 * chain_id - secret network chain-id
 * multisig_wallet_address - Ethereum multisig contract address

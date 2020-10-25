@@ -64,11 +64,11 @@ class Secret20Leader(Thread):
 
     def _scan_swap(self):
         while not self.stop_event.is_set():
-            for tx in Swap.objects(status=Status.SWAP_SIGNED):
+            for tx in Swap.objects(status=Status.SWAP_SIGNED, src_network="Ethereum"):
                 self.logger.info(f"Found tx ready for broadcasting {tx.id}")
                 self._create_and_broadcast(tx)
                 sleep(SCRT_BLOCK_TIME)
-            for tx in Swap.objects(status=Status.SWAP_SUBMITTED):
+            for tx in Swap.objects(status=Status.SWAP_SUBMITTED, src_network="Ethereum"):
                 self._broadcast_validation(tx)
             self.logger.debug('done scanning for swaps. sleeping..')
             self.stop_event.wait(self.config['sleep_interval'])
@@ -111,7 +111,7 @@ class Secret20Leader(Thread):
 
         **kwargs needs to be here even if unused, because this function gets passed arguments from mongo internals
         """
-        if not document.status == Status.SWAP_SUBMITTED:
+        if not document.status == Status.SWAP_SUBMITTED or not document.src_network == "Ethereum":
             return
 
         tx_hash = document.dst_tx_hash

@@ -19,6 +19,7 @@ class MultisigWallet(EthereumContract):
         return self.send_transaction('submitTransaction', from_, private_key, *message.args())
 
     def confirm_transaction(self, from_: str, private_key: bytes, message: Confirm):
+        print("confirming yo")
         return self.send_transaction('confirmTransaction', from_, private_key, *message.args())
 
     def extract_addr(self, tx_log) -> str:

@@ -47,21 +47,14 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         self.erc20 = erc20_contract()
 
         self.catch_up_complete = False
-        self.cache = self._create_cache()
-
+        # self.cache = self._create_cache()
+        # print(f'{self.cache=}')
         self.token_map = {}
         pairs = TokenPairing.objects(dst_network=dst_network, src_network=self.network)
         for pair in pairs:
             self.token_map.update({pair.src_address: Token(pair.dst_address, pair.dst_coin)})
 
         self.tracked_tokens = self.token_map.keys()
-
-    def sign_all_historical_swaps(self):
-        self._submission_catch_up()
-
-    def handle_submission(self, submission_event: AttributeDict):
-        """ Validates submission event with secret20 network and sends confirmation if valid """
-        self.sign(submission_event)
 
     def _create_cache(self):
         # todo: db this shit
@@ -79,7 +72,7 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         self.logger.info(f'Got submission event with transaction id: {transaction_id}, checking status')
 
         data = self.multisig_contract.submission_data(transaction_id)
-
+        self.logger.info("hello")
         # placeholder - check how this looks for ETH transactions
         # check if submitted tx is an ERC-20 transfer tx
         if data['amount'] == 0 and data['data']:
@@ -87,6 +80,7 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
             data['amount'] = params['amount']
             data['dest'] = params['recipient']
 
+        self.logger.info("hello2")
         if not self._is_confirmed(transaction_id, data):
             self.logger.info(f'Transaction {transaction_id} is missing approvals. Checking validity..')
 
@@ -98,42 +92,6 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
                     self.logger.error(f'Failed to validate transaction: {data}')
             except ValueError as e:
                 self.logger.error(f"Error parsing secret-20 swap event {data}. Error: {e}")
-
-    def _submission_catch_up(self):
-        """ Used to sync the signer with the chain after downtime, utilize local file to keep track of last processed
-         block number.
-        """
-
-        from_block = self._choose_starting_block()
-        to_block = w3.eth.blockNumber - self.config['eth_confirmations']
-
-        if to_block < 0:
-            return
-
-        from_block = min(to_block, from_block)
-        # event = getattr(self.contract.contract.events, event_name)
-        evt_filter = self.multisig_contract.contract.events.Submission.createFilter(fromBlock=from_block, toBlock=to_block)
-        for event in evt_filter.get_all_entries():
-            self.logger.info(f'Got new Submission event on block: {event.blockNumber}')
-            self._update_last_block_processed(event.blockNumber)
-            self.sign(event)
-
-        self._update_last_block_processed(to_block)
-        self.catch_up_complete = True
-        self.logger.info('catch up complete')
-
-    def _choose_starting_block(self) -> int:
-        """Returns the block from which we start scanning Ethereum for new tx"""
-        from_block = self.cache.read()
-        if from_block:  # if we have a record, use it
-            return int(from_block)
-        return int(self.config.get('eth_start_block', 0))
-
-    def _update_last_block_processed(self, block_num: int):
-        self.cache.seek(0)
-        self.cache.write(str(block_num))
-        self.cache.truncate()
-        self.cache.flush()
 
     def _is_valid(self, submission_data: Dict[str, any]) -> bool:
         # lookup the tx hash in secret20, and validate it.
@@ -183,14 +141,19 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
     def _is_confirmed(self, transaction_id: int, submission_data: Dict[str, any]) -> bool:
         """Checks with the data on the contract if signer already added confirmation or if threshold already reached"""
 
+        self.logger.info("hello3")
         # check if already executed
         if submission_data['executed']:
             return True
 
+        self.logger.info("hello4")
         # check if signer already signed the tx
-        if self.multisig_contract.contract.functions.confirmations(transaction_id, self.account).call():
+        res = self.multisig_contract.contract.functions.confirmations(transaction_id, self.account).call()
+        if res:
+            self.logger.error(f"aww6: {res=}")
             return True
 
+        self.logger.info("hello5")
         return False
 
     def _approve_and_sign(self, submission_id: int):

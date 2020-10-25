@@ -2,7 +2,7 @@ from collections.abc import MutableMapping
 from itertools import count
 from threading import Event
 from time import sleep
-from typing import List, Callable, Iterator, Generator, Dict, Tuple
+from typing import List, Callable, Iterator, Generator, Dict, Tuple, Union
 
 from asyncio import Queue
 
@@ -30,7 +30,7 @@ class EthEventListener(EventProvider):
         self.logger = get_logger(db_name=config['db_name'],
                                  logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.id}"))
         self.events = []
-        self.pending_events: List [Tuple[str, LogReceipt]] = []
+        self.pending_events: List[Tuple[str, LogReceipt]] = []
         self.filters: Dict[str, LogFilter] = {}
         self.stop_event = Event()
         self.queue = Queue()
@@ -38,7 +38,7 @@ class EthEventListener(EventProvider):
         super().__init__(group=None, name=f"EventListener-{config.get('logger_name', '')}", target=self.run, **kwargs)
         self.setDaemon(True)
 
-    def register(self, callback: Callable, events: List[str]):
+    def register(self, callback: Callable, events: List[str], from_block = "latest"):
         """
         Allows registration to certain event of contract with confirmations threshold
         Note: events are Case Sensitive
@@ -56,8 +56,10 @@ class EthEventListener(EventProvider):
 
             event = getattr(self.contract.contract.events, event_name)
             evt_filter = event.createFilter(fromBlock="latest")
-
             self.filters[event_name] = evt_filter
+
+            if from_block != "latest":
+                self.add_events_in_range(event_name, from_block=from_block, to_block=w3.eth.blockNumber)
 
     def stop(self):
         self.logger.info("Stopping..")
@@ -95,6 +97,16 @@ class EthEventListener(EventProvider):
         """ Returns a generator that yields all contract events in range"""
         return contract_event_in_range(self.contract, event, from_block=from_block,
                                        to_block=to_block)
+
+    def add_events_in_range(self, event_name, from_block: Union[int, str], to_block: int):
+        """
+        Used to catch up for all the events from when we wanted to start, and where we are now.
+        Todo: check on ropsten and mainnet if this behaves the same way
+        """
+        event = getattr(self.contract.contract.events, event_name)
+        evt_filter = event.createFilter(fromBlock=from_block, toBlock=to_block)
+        for event in evt_filter.get_all_entries():
+            self.pending_events.append((event_name, event))
 
     def wait_for_block(self, number: int) -> int:
         while True:
