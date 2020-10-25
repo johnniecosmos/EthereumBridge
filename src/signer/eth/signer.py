@@ -1,11 +1,9 @@
 from threading import Thread, Event
 from time import sleep
-from typing import Dict
 
 from src.contracts.ethereum.event_listener import EthEventListener
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.signer.eth.impl import EthSignerImpl
-from src.util.common import Token
 from src.util.config import Config
 from src.util.logger import get_logger
 
@@ -33,7 +31,7 @@ class EtherSigner(Thread):
         self.stop_event = Event()
         self.logger = get_logger(db_name=config['db_name'],
                                  logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.account[0:5]}"))
-
+        self.config = config
         self.signer = EthSignerImpl(contract, self.private_key, self.account, dst_network, config)
 
         super().__init__(group=None, name=f"{self.__class__.__name__}-{self.account[0:5]}", target=self.run, **kwargs)
@@ -41,9 +39,11 @@ class EtherSigner(Thread):
 
     def run(self):
         self.logger.info("Starting..")
-        self.signer.sign_all_historical_swaps()
-        # then we can start signing new transactions
-        self.event_listener.register(self.signer.handle_submission, ['Submission'])
+
+        from_block = self.choose_starting_block()
+
+        self.logger.error(f'{from_block=}')
+        self.event_listener.register(self.signer.sign, ['Submission'], from_block=from_block)
         self.event_listener.start()
         while not self.stop_event.is_set():
             if not self.event_listener.is_alive():
@@ -55,3 +55,7 @@ class EtherSigner(Thread):
         self.logger.info("Stopping..")
         self.event_listener.stop()
         self.stop_event.set()
+
+    def choose_starting_block(self) -> int:
+        """Returns the block from which we start scanning Ethereum for new tx"""
+        return int(self.config.get('eth_start_block', 0))

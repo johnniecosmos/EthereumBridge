@@ -225,7 +225,7 @@ def ethr_signers(multisig_wallet, configuration: Config, ether_accounts, erc20_t
     #                                         configuration['secret_token_name'])}
     # token_map = configuration["token_map_eth"]
     # we will manually create the last signer in test_3
-    for acc in ether_accounts[:]:
+    for acc in ether_accounts[1:]:
         private_key = acc.key
         address = acc.address
 

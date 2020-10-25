@@ -1,6 +1,4 @@
-from enum import Enum, auto
-
-from mongoengine import Document, IntField, DoesNotExist, MultipleObjectsReturned, StringField
+from mongoengine import Document, StringField
 
 
 class TokenRecord(Document):
@@ -26,4 +24,3 @@ class TokenPairing(Document):
     dst_network = StringField(required=True)
     dst_address = StringField(required=True)
     dst_coin = StringField(required=True)
-

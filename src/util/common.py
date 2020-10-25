@@ -1,11 +1,11 @@
 import sys
 from collections import namedtuple
 from contextlib import contextmanager
+from dataclasses import dataclass
 from os import remove
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import List, Generator
-from dataclasses import dataclass
 
 import src
 

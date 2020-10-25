@@ -1,11 +1,11 @@
 import base64
 from subprocess import CalledProcessError
 from threading import Event, Thread
-from typing import Dict
 
 import src.contracts.ethereum.message as message
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
-from src.contracts.secret.secret_contract import swap_query_res
+from src.contracts.secret.secret_contract import swap_query_res, get_swap_id
+from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.swaptrackerobject import SwapTrackerObject
 from src.db.collections.token_map import TokenPairing
 from src.util.common import Token
@@ -27,8 +27,7 @@ class EtherLeader(Thread):
     network = "Ethereum"
 
     def __init__(self, multisig_wallet: MultisigWallet, private_key: bytes, account: str,
-                 dst_network: str,
-                 config: Config, **kwargs):
+                 dst_network: str, config: Config, **kwargs):
         self.config = config
         self.multisig_wallet = multisig_wallet
 
@@ -41,7 +40,6 @@ class EtherLeader(Thread):
 
         self.private_key = private_key
         self.default_account = account
-        self.tracked_tokens = token_map.keys()
         self.token_map = token_map
         self.logger = get_logger(db_name=self.config['db_name'],
                                  logger_name=config.get('logger_name', self.__class__.__name__))
@@ -60,7 +58,7 @@ class EtherLeader(Thread):
         """ Scans secret network contract for swap events """
         print(f'{self.token_map}')
         while not self.stop_event.is_set():
-            for token in self.tracked_tokens:
+            for token in self.token_map:
                 try:
                     doc = SwapTrackerObject.get_or_create(src=token)
                     next_nonce = doc.nonce + 1
@@ -82,38 +80,35 @@ class EtherLeader(Thread):
             self.stop_event.wait(self.config['sleep_interval'])
 
     def _handle_swap(self, swap_data: str, token: str):
-        # Note: This operation costs Ethr
-        # disabling this for now till I get a feeling for what can fail
-        # try:
         swap_json = swap_query_res(swap_data)
+        # this is an id, and not the TX hash since we don't actually know where the TX happened, only the id of the
+        # swap reported by the contract
+        swap_id = get_swap_id(swap_json)
+        dest_address = base64.b64decode(swap_json['destination']).decode()
+        data = b""
 
         if token == 'native':
-            data = b""
-
-            dest_address = base64.b64decode(swap_json['destination']).decode()
-
             # use address(0) for native ethereum
             msg = message.Submit(dest_address, int(swap_json['amount']), int(swap_json['nonce']),
                                  '0x0000000000000000000000000000000000000000', data)
 
-            self._broadcast_transaction(msg)
         else:
-            # encodeABI(fn_name=fn_name, args=[*args]).encode()
             self.erc20.address = token
-            address = base64.standard_b64decode(swap_json['destination']).decode()
-            print(f"{swap_json=}")
-            data = self.erc20.encodeABI(fn_name='transfer', args=[address, int(swap_json['amount'])])
+            data = self.erc20.encodeABI(fn_name='transfer', args=[dest_address, int(swap_json['amount'])])
             msg = message.Submit(token,
                                  0,  # if we are swapping token, no ether should be rewarded
                                  int(swap_json['nonce']),
                                  token,
                                  data)
-
-            print(f"{msg=}")
-            self._broadcast_transaction(msg)
+        # todo: check we have enough ETH
+        receipt = self._broadcast_transaction(msg)
+        Swap(src_network="Secret", src_tx_hash=swap_id, status=Status.SWAP_CONFIRMED, unsigned_tx=data, src_coin=token,
+             dst_coin=token, dst_address=dest_address,
+             dst_network="Ethereum", dst_tx_hash=str(receipt['transactionHash'])).save()
 
     def _broadcast_transaction(self, msg: message.Submit):
         tx_hash = self.multisig_wallet.submit_transaction(self.default_account, self.private_key, msg)
         receipt = w3.eth.getTransactionReceipt(tx_hash)
-        print(f'{receipt=}')
+        # print(f'{receipt=}')
         self.logger.info(msg=f"Submitted tx: hash: {tx_hash.hex()}, msg: {msg}")
+        return receipt

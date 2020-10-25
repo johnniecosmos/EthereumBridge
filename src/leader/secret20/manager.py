@@ -73,15 +73,22 @@ class SecretManager(Thread):
             from_block = int(self.config['eth_start_block'])
             SwapTrackerObject.update_last_processed('Ethereum', from_block)
 
-        if to_block <= 0:
+        if to_block <= 0 or to_block < from_block:
             return
 
         self.logger.debug(f'Catching up to current block: {to_block}')
 
-        for event_name in self.contract.tracked_event():
-            for event in self.event_listener.events_in_range(event_name, from_block, to_block):
-                self.logger.info(f'Found new event at block: {event["blockNumber"]}')
-                self._handle(event)
+        evt_filter = self.contract.contract.events.Swap.createFilter(fromBlock=from_block, toBlock=to_block)
+        for event in evt_filter.get_all_entries():
+            self._handle(event)
+
+        evt_filter = self.contract.contract.events.SwapToken.createFilter(fromBlock=from_block, toBlock=to_block)
+        for event in evt_filter.get_all_entries():
+            self._handle(event)
+
+        # for event_name in self.contract.tracked_event():
+        #     for event in self.event_listener.events_in_range(event_name, from_block, to_block):
+        #         self.logger.info(f'Found new event at block: {event["blockNumber"]}')
 
         SwapTrackerObject.update_last_processed('Ethereum', to_block)
 

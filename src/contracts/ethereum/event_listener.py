@@ -2,9 +2,9 @@ from collections.abc import MutableMapping
 from itertools import count
 from threading import Event
 from time import sleep
-from typing import List, Callable, Iterator
+from typing import List, Callable, Iterator, Dict, Tuple, Union
 
-from web3.exceptions import BlockNotFound
+from web3.contract import LogFilter, LogReceipt
 
 from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.contracts.event_provider import EventProvider
@@ -21,24 +21,27 @@ class EthEventListener(EventProvider):
     def __init__(self, contract: EthereumContract, config: Config, **kwargs):
         # Note: each event listener can listen to one contract at a time
         self.id = next(self._ids)
-        self.contract = contract
+        self.tracked_contract = contract
         self.config = config
         self.callbacks = Callbacks()
         self.logger = get_logger(db_name=config['db_name'],
                                  logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.id}"))
         self.events = []
-        self.stop_event = Event()
+        self.pending_events: List[Tuple[str, LogReceipt]] = []
+        self.filters: Dict[str, LogFilter] = {}
         self.confirmations = config['eth_confirmations']
+        self.stop_event = Event()
         super().__init__(group=None, name=f"EventListener-{config.get('logger_name', '')}", target=self.run, **kwargs)
+        self.setDaemon(True)
 
-    def register(self, callback: Callable, events: List[str]):
+    def register(self, callback: Callable, events: List[str], from_block="latest"):
         """
         Allows registration to certain event of contract with confirmations threshold
         Note: events are Case Sensitive
 
         :param callback: callback function that will be invoked upon event
         :param events: list of events the caller wants to register to
-        :param kwargs: ['confirmations'] number of confirmations to wait before triggering the event (default: 12)
+        :param from_block: Starting block
         """
 
         for event_name in events:
@@ -46,6 +49,13 @@ class EthEventListener(EventProvider):
             self.logger.info(f"registering event {event_name}")
             self.events.append(event_name)
             self.callbacks[event_name] = callback
+
+            event = getattr(self.tracked_contract.contract.events, event_name)
+            evt_filter = event.createFilter(fromBlock="latest")
+            self.filters[event_name] = evt_filter
+
+            if from_block != "latest":
+                self.add_events_in_range(event_name, from_block=from_block, to_block=w3.eth.blockNumber)
 
     def stop(self):
         self.logger.info("Stopping..")
@@ -55,25 +65,44 @@ class EthEventListener(EventProvider):
         """Notify registered callbacks upon event occurrence"""
         self.logger.info("Starting..")
 
-        block = w3.eth.blockNumber - self.confirmations
+        # block = w3.eth.blockNumber - self.confirmations
         while not self.stop_event.is_set():
-            for event_name in self.events:
-                self.logger.debug(f'Searching for event {event_name} in block #{block}..')
-                try:
-                    for evt in self.events_in_range(event_name, from_block=block, to_block=block):
-                        self.logger.info(f"New event found {event_name}")
-                        self.callbacks.trigger(event_name, evt)
-                except BlockNotFound:
-                    self.logger.error(f'Block not found {block}')
-                    # block = self.wait_for_block(block)
+            self.logger.debug('Scanning for new events')
+            for name, event in self.get_new_events():
+                self.logger.info(f"New event found {name}, adding to confirmation handler")
+                # self.callbacks.trigger(name, event)
+                self.pending_events.append((name, event))
+            for name, event in self.confirmation_handler():
+                self.logger.info(f"Event {name} passed confirmation limit, executing callback")
+                self.callbacks.trigger(name, event)
+            # except BlockNotFound:
+            #     self.logger.error(f'Block not found {block}')
+            #     # block = self.wait_for_block(block)
 
-            block += 1
-            self.wait_for_block(block)
+            sleep(self.config['sleep_interval'])
+
+    def confirmation_handler(self):
+        blockNum = w3.eth.blockNumber
+        # this creates a copy of the list, so we can remove from the original one while still iterating
+        for item in list(self.pending_events):
+            if item[1].blockNumber <= (blockNum - self.confirmations):
+                self.pending_events.remove(item)
+                yield item[0], item[1]
 
     def events_in_range(self, event: str, from_block: int, to_block: int = None):
         """ Returns a generator that yields all contract events in range"""
-        return contract_event_in_range(self.contract, event, from_block=from_block,
+        return contract_event_in_range(self.tracked_contract, event, from_block=from_block,
                                        to_block=to_block)
+
+    def add_events_in_range(self, event_name, from_block: Union[int, str], to_block: int):
+        """
+        Used to catch up for all the events from when we wanted to start, and where we are now.
+        Todo: check on ropsten and mainnet if this behaves the same way
+        """
+        event = getattr(self.tracked_contract.contract.events, event_name)
+        evt_filter = event.createFilter(fromBlock=from_block, toBlock=to_block)
+        for event in evt_filter.get_all_entries():
+            self.pending_events.append((event_name, event))
 
     def wait_for_block(self, number: int) -> int:
         while True:
@@ -81,6 +110,17 @@ class EthEventListener(EventProvider):
             if block >= number:
                 return block
             sleep(self.config['sleep_interval'])
+
+    def confirmation_manager(self):
+        pass
+
+    def get_new_events(self):
+        """
+        Return new events from the filters (starting from events that were generated after the filters were created)
+        """
+        for name, log_filter in self.filters.items():
+            for event in log_filter.get_new_entries():
+                yield name, event
 
 
 class Callbacks(MutableMapping):

@@ -101,16 +101,16 @@ def contract_event_in_range(contract, event_name: str, from_block: int = 0,
                 if not contract_transactions:
                     continue
                 for tx in contract_transactions:
-                    _, log = event_log(tx_hash=tx.hash, events=[event_name], provider=w3, contract=contract.contract)
+                    _, log = event_log(tx_hash=tx.hash, events=[event_name], provider=w3, contract=contract.tracked_contract)
                     if log is None:
                         continue
                     yield log
         else:
-            event = getattr(contract.contract.events, event_name)
+            event = getattr(contract.tracked_contract.events, event_name)
             event_filter = event.createFilter(fromBlock=from_block, toBlock=to_block)
 
             for tx in event_filter.get_new_entries():
-                _, log = event_log(tx_hash=tx.hash, events=[event_name], provider=w3, contract=contract.contract)
+                _, log = event_log(tx_hash=tx.hash, events=[event_name], provider=w3, contract=contract.tracked_contract)
 
                 if log is None:
                     continue
@@ -138,7 +138,7 @@ def send_contract_tx(contract: Web3Contract, function_name: str, from_acc: str, 
             'from': from_acc,
             'chainId': w3.eth.chainId,
             'gasPrice': w3.eth.gasPrice if not gas else gas,
-            'nonce': w3.eth.getTransactionCount(from_acc),
+            'nonce': w3.eth.getTransactionCount(from_acc, block_identifier='pending'),
             'value': value
         })
     signed_txn = w3.eth.account.sign_transaction(submit_tx, private_key)

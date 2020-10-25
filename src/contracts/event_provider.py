@@ -1,6 +1,6 @@
 from abc import ABC
 from threading import Thread
-from typing import Callable, List, Generator
+from typing import Callable, List, Generator, Union
 
 
 class EventProvider(ABC, Thread):
@@ -12,8 +12,8 @@ class EventProvider(ABC, Thread):
             raise NotImplementedError
         return self._chain
 
-    def register(self, callback: Callable, events: List[str]):
+    def register(self, callback: Callable, events: List[str], from_block: Union[str, int]):
         raise NotImplementedError
 
-    def events_in_range(self, event: str, from_block: int, to_block: int = None) -> Generator:
+    def run(self) -> Generator:
         raise NotImplementedError

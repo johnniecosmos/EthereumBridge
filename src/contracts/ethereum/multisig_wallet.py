@@ -4,7 +4,6 @@ from typing import Dict, List
 from web3 import Web3
 from web3.datastructures import AttributeDict
 
-from src.contracts.ethereum.erc20 import Erc20
 from src.contracts.ethereum.ethr_contract import EthereumContract
 from src.contracts.ethereum.message import Submit, Confirm
 from src.util.common import project_base_path
@@ -19,6 +18,7 @@ class MultisigWallet(EthereumContract):
         return self.send_transaction('submitTransaction', from_, private_key, *message.args())
 
     def confirm_transaction(self, from_: str, private_key: bytes, message: Confirm):
+        print("confirming yo")
         return self.send_transaction('confirmTransaction', from_, private_key, *message.args())
 
     def extract_addr(self, tx_log) -> str:
@@ -50,7 +50,8 @@ class MultisigWallet(EthereumContract):
         return {'dest': data[0], 'amount': data[1], 'data': data[2], 'executed': data[3], 'nonce': data[4],
                 'ethr_tx_hash': transaction_id, 'token': data[5]}
 
-    def parse_swap_event(self, event: AttributeDict):
+    @staticmethod
+    def parse_swap_event(event: AttributeDict):
         print(f"{event=}")
         try:
             block_number = event["blockNumber"]

@@ -24,6 +24,7 @@ def multisig_wallet(web3_provider, configuration: Config, ether_accounts):
                                               configuration['signatures_threshold'],
                                               {'from': accounts[0]})
     contract_address = str(swap_contract.address)
+    print(f"{contract_address=}")
     return MultisigWallet(web3_provider, contract_address)
 
 
