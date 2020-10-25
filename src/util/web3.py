@@ -138,7 +138,7 @@ def send_contract_tx(contract: Web3Contract, function_name: str, from_acc: str, 
             'from': from_acc,
             'chainId': w3.eth.chainId,
             'gasPrice': w3.eth.gasPrice if not gas else gas,
-            'nonce': w3.eth.getTransactionCount(from_acc),
+            'nonce': w3.eth.getTransactionCount(from_acc, block_identifier='pending'),
             'value': value
         })
     signed_txn = w3.eth.account.sign_transaction(submit_tx, private_key)

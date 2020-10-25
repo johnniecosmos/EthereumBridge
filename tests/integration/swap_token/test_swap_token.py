@@ -150,10 +150,10 @@ def test_3_confirm_and_finalize_eth_tx(web3_provider, ethr_signers, configuratio
     prev_bal = web3_provider.eth.getBalance(zero_address, "latest")
 
     ethr_signers[-1].start()
-
+    sleep(1)
     assert increase_block_number(web3_provider, configuration['eth_confirmations'])
 
-    sleep(configuration['sleep_interval'])
+    sleep(configuration['sleep_interval'] * 5)
     # Validate the tx is confirmed in the smart contract
     last_nonce = SwapTrackerObject.last_processed(secret_token_addr)
     # ethr_signers[-1].signer.multisig_contract.contract.functions.confirmations(last_nonce,

@@ -56,14 +56,12 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
 
         self.tracked_tokens = self.token_map.keys()
 
-        self.thread_pool = ThreadPoolExecutor()
-
     def sign_all_historical_swaps(self):
         self._submission_catch_up()
 
     def handle_submission(self, submission_event: AttributeDict):
         """ Validates submission event with secret20 network and sends confirmation if valid """
-        self._validate_and_sign(submission_event)
+        self.sign(submission_event)
 
     def _create_cache(self):
         # todo: db this shit
@@ -74,7 +72,7 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         return open(file_path, "a+")
 
     # noinspection PyUnresolvedReferences
-    def _validate_and_sign(self, submission_event: AttributeDict):
+    def sign(self, submission_event: AttributeDict):
         """Tries to validate the transaction corresponding to submission id on the smart contract,
         confirms and signs if valid"""
         transaction_id = submission_event.args.transactionId
@@ -109,15 +107,16 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         from_block = self._choose_starting_block()
         to_block = w3.eth.blockNumber - self.config['eth_confirmations']
 
+        if to_block < 0:
+            return
+
         from_block = min(to_block, from_block)
-
-        self.logger.info(f'starting to catch up from {from_block} to {to_block}..')
-
-        for event in contract_event_in_range(self.multisig_contract, 'Submission',
-                                             from_block, to_block):
+        # event = getattr(self.contract.contract.events, event_name)
+        evt_filter = self.multisig_contract.contract.events.Submission.createFilter(fromBlock=from_block, toBlock=to_block)
+        for event in evt_filter.get_all_entries():
             self.logger.info(f'Got new Submission event on block: {event.blockNumber}')
             self._update_last_block_processed(event.blockNumber)
-            self._validate_and_sign(event)
+            self.sign(event)
 
         self._update_last_block_processed(to_block)
         self.catch_up_complete = True

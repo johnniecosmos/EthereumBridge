@@ -15,5 +15,5 @@ class EventProvider(ABC, Thread):
     def register(self, callback: Callable, events: List[str]):
         raise NotImplementedError
 
-    def events_in_range(self, event: str, from_block: int, to_block: int = None) -> Generator:
+    def run(self) -> Generator:
         raise NotImplementedError
