@@ -101,16 +101,16 @@ def contract_event_in_range(contract, event_name: str, from_block: int = 0,
                 if not contract_transactions:
                     continue
                 for tx in contract_transactions:
-                    _, log = event_log(tx_hash=tx.hash, events=[event_name], provider=w3, contract=contract.contract)
+                    _, log = event_log(tx_hash=tx.hash, events=[event_name], provider=w3, contract=contract.tracked_contract)
                     if log is None:
                         continue
                     yield log
         else:
-            event = getattr(contract.contract.events, event_name)
+            event = getattr(contract.tracked_contract.events, event_name)
             event_filter = event.createFilter(fromBlock=from_block, toBlock=to_block)
 
             for tx in event_filter.get_new_entries():
-                _, log = event_log(tx_hash=tx.hash, events=[event_name], provider=w3, contract=contract.contract)
+                _, log = event_log(tx_hash=tx.hash, events=[event_name], provider=w3, contract=contract.tracked_contract)
 
                 if log is None:
                     continue

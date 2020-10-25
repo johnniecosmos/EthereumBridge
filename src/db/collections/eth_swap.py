@@ -2,7 +2,6 @@ from datetime import datetime
 from enum import Enum, auto
 
 from mongoengine import Document, StringField, DateTimeField, signals
-from mongoengine.base import BaseField
 
 from src.db.collections.common import EnumField
 

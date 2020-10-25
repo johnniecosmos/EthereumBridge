@@ -1,6 +1,5 @@
 import base64
 import subprocess
-from concurrent.futures import ThreadPoolExecutor
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Dict
@@ -15,7 +14,7 @@ from src.util.common import Token
 from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.secretcli import query_scrt_swap
-from src.util.web3 import contract_event_in_range, w3, erc20_contract
+from src.util.web3 import erc20_contract
 
 
 class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-arguments
@@ -76,7 +75,7 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         # placeholder - check how this looks for ETH transactions
         # check if submitted tx is an ERC-20 transfer tx
         if data['amount'] == 0 and data['data']:
-            fn_name, params = self.erc20.decode_function_input(data['data'].hex())
+            _, params = self.erc20.decode_function_input(data['data'].hex())
             data['amount'] = params['amount']
             data['dest'] = params['recipient']
 
@@ -116,9 +115,9 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         except (AttributeError, JSONDecodeError) as e:
             raise ValueError from e
         if self._validate_tx_data(swap_data, submission_data):
-            self.logger.info(f'Validated successfully')
+            self.logger.info('Validated successfully')
             return True
-        self.logger.info(f'Failed to validate')
+        self.logger.info('Failed to validate')
         return False
 
     def _validate_tx_data(self, swap_data: dict, submission_data: dict) -> bool:

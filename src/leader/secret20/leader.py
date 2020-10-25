@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from threading import Thread, Event
 from time import sleep
-from typing import List, Dict
+from typing import List
 
 from mongoengine import OperationError
 

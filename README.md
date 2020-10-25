@@ -100,7 +100,7 @@ Call the method `swap` on our MultiSig contract, specifying the amount sent in t
 Python example (see: swap_eth.py):
 ```python
     ...
-    tx_hash = send_contract_tx(multisig_wallet.contract, 'swap',
+    tx_hash = send_contract_tx(multisig_wallet.tracked_contract, 'swap',
                                account, bytes.fromhex(private_key), "secret13l72vhjngmg55ykajxdnlalktwglyqjqv9pkq4", value=200)
     ...
 ```
@@ -117,11 +117,11 @@ Note that the transaction will fail if attempted to transfer from a token which 
 ```python
 TRANSFER_AMOUNT = 100
 
-_ = erc20_contract.contract.functions.approve(multisig_wallet.address, TRANSFER_AMOUNT). \
+_ = erc20_contract.tracked_contract.functions.approve(multisig_wallet.address, TRANSFER_AMOUNT). \
     transact({'from': address})
 
 
-tx_hash = multisig_wallet.contract.functions.swapToken(dest_address.encode(),
+tx_hash = multisig_wallet.tracked_contract.functions.swapToken(dest_address.encode(),
                                                        TRANSFER_AMOUNT,
                                                        erc20_contract.address). \
     transact({'from': web3_provider.eth.coinbase}).hex().lower()

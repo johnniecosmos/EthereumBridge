@@ -1,11 +1,9 @@
 from threading import Thread, Event
 from time import sleep
-from typing import Dict
 
 from src.contracts.ethereum.event_listener import EthEventListener
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.signer.eth.impl import EthSignerImpl
-from src.util.common import Token
 from src.util.config import Config
 from src.util.logger import get_logger
 

@@ -1,7 +1,6 @@
 import base64
 from subprocess import CalledProcessError
 from threading import Event, Thread
-from typing import Dict
 
 import src.contracts.ethereum.message as message
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
@@ -28,8 +27,7 @@ class EtherLeader(Thread):
     network = "Ethereum"
 
     def __init__(self, multisig_wallet: MultisigWallet, private_key: bytes, account: str,
-                 dst_network: str,
-                 config: Config, **kwargs):
+                 dst_network: str, config: Config, **kwargs):
         self.config = config
         self.multisig_wallet = multisig_wallet
 
@@ -42,7 +40,6 @@ class EtherLeader(Thread):
 
         self.private_key = private_key
         self.default_account = account
-        self.tracked_tokens = token_map.keys()
         self.token_map = token_map
         self.logger = get_logger(db_name=self.config['db_name'],
                                  logger_name=config.get('logger_name', self.__class__.__name__))
@@ -61,7 +58,7 @@ class EtherLeader(Thread):
         """ Scans secret network contract for swap events """
         print(f'{self.token_map}')
         while not self.stop_event.is_set():
-            for token in self.tracked_tokens:
+            for token in self.token_map:
                 try:
                     doc = SwapTrackerObject.get_or_create(src=token)
                     next_nonce = doc.nonce + 1
