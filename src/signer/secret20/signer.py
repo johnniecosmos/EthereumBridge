@@ -19,7 +19,7 @@ SecretAccount = namedtuple('SecretAccount', ['address', 'name'])
 class Secret20Signer(Thread):
     """Signs on the SCRT side, after verifying Ethereum tx stored in the db"""
 
-    def __init__(self, contract: MultisigWallet, multisig: SecretAccount, config: Config, **kwargs):
+    def __init__(self, multisig: SecretAccount, contract: MultisigWallet, config: Config, **kwargs):
         self.multisig = multisig
         self.contract = contract
         self.config = config

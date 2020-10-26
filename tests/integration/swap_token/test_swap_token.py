@@ -186,8 +186,6 @@ def test_11_swap_erc_to_s20(scrt_leader, scrt_signers, web3_provider, configurat
 
     # add usdt to the whitelisted token list
     account = web3_provider.eth.account.from_key(ethr_leader.private_key)
-
-    # swap usdt
     nonce = web3_provider.eth.getTransactionCount(account.address, "pending")
     tx = multisig_wallet.tracked_contract.functions.addToken(erc20_contract.address)
     raw_tx = tx.buildTransaction(transaction={'from': account.address, 'gas': 3000000, 'nonce': nonce})

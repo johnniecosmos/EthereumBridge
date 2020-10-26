@@ -43,6 +43,7 @@ contract MultiSigSwapWallet {
     mapping(address => bool) public isOwner;
     // mapping(uint => bool) public scrtNonce;
     mapping(address => uint) public secretTxNonce;
+    address[] public tokens;
     address[] public owners;
     uint public required;
     uint public transactionCount;
@@ -95,7 +96,7 @@ contract MultiSigSwapWallet {
         _;
     }
 
-    modifier notSubmitted(address token, uint nonce){
+    modifier notSubmitted(address token, uint nonce) {
         require(secretTxNonce[token] == 0 || secretTxNonce[token] < nonce, "Transaction already computed");
         _;
     }
@@ -149,12 +150,27 @@ contract MultiSigSwapWallet {
         paused = false;
     }
 
+    function SupportedTokens()
+    public
+    view
+    returns (address[] memory)
+    {
+        return tokens;
+    }
+
     function addToken(address _tokenAddress) public ownerExists(msg.sender) {
         tokenWhitelist[_tokenAddress] = true;
+        tokens.push(_tokenAddress);
     }
 
     function removeToken(address _tokenAddress) public ownerExists(msg.sender) {
         delete tokenWhitelist[_tokenAddress];
+    }
+
+    function getTokenNonce(address _tokenAddress) public view
+    returns (uint memory)
+    {
+        return secretTxNonce[_tokenAddress];
     }
 
     /*
@@ -280,6 +296,7 @@ contract MultiSigSwapWallet {
     /// @return transactionId - Returns transaction ID.
     function submitTransaction(address destination, uint value, uint nonce, address token, bytes memory data)
     public
+    ownerExists(msg.sender)
     notSubmitted(token, nonce)
     returns (uint transactionId)
     {
@@ -337,24 +354,24 @@ contract MultiSigSwapWallet {
         }
     }
 
-// call has been separated into its own function in order to take advantage
-// of the Solidity's code generator to produce a loop that copies tx.data into memory.
-function external_call(address destination, uint value, bytes memory data, uint256 txGas)
-    internal
-    returns (bool success) {
-    // solium-disable-next-line security/no-inline-assembly
-    assembly {
-        success := call(
-            txGas,
-            destination,
-            value,
-            add(data, 0x20),     // First 32 bytes are the padded length of data, so exclude that
-            mload(data),       // Size of the input (in bytes) - this is what fixes the padding problem
-            0,
-            0                  // Output is ignored, therefore the output size is zero
-        )
+    // call has been separated into its own function in order to take advantage
+    // of the Solidity's code generator to produce a loop that copies tx.data into memory.
+    function external_call(address destination, uint value, bytes memory data, uint256 txGas)
+        internal
+        returns (bool success) {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            success := call(
+                txGas,
+                destination,
+                value,
+                add(data, 0x20),     // First 32 bytes are the padded length of data, so exclude that
+                mload(data),       // Size of the input (in bytes) - this is what fixes the padding problem
+                0,
+                0                  // Output is ignored, therefore the output size is zero
+            )
+        }
     }
-}
 
     /// @dev Returns the confirmation status of a transaction.
     /// @param transactionId Transaction ID.

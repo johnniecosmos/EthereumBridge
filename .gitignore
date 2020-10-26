@@ -149,3 +149,5 @@ cython_debug/
 tkeys/*
 docker-compose.yaml
 secretcli
+testnet_config.json
+mainnet_config.json

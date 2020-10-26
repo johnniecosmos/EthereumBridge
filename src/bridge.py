@@ -55,8 +55,7 @@ tracked_tokens_scrt = {"secret1hx84ff3h4m8yuvey36g9590pw9mm2p55cwqnm6": Token("n
 
 def run_bridge():  # pylint: disable=too-many-statements
     runners = []
-    required_configs = ['SRC_COIN', 'DST_COIN', 'MODE', 'private_key', 'account', 'secret_node', 'multisig_acc_addr',
-                        'chain_id']
+    required_configs = ['MODE', 'private_key', 'account', 'secret_node', 'multisig_acc_addr', 'chain_id']
     cfg = Config(required=required_configs)
     try:
         configure_secretcli(cfg)
@@ -75,15 +74,18 @@ def run_bridge():  # pylint: disable=too-many-statements
 
         secret_account = SecretAccount(cfg['multisig_acc_addr'], cfg['secret_key_name'])
 
-        eth_signer = EtherSigner(eth_wallet, private_key, account, tracked_tokens_scrt, cfg)
-        s20_signer = Secret20Signer(eth_wallet, secret_account, cfg)
+        eth_signer = EtherSigner(eth_wallet, private_key, account, dst_network="Secret", config=cfg)
+        s20_signer = Secret20Signer(secret_account, eth_wallet, cfg)
 
         runners.append(eth_signer)
         runners.append(s20_signer)
 
         if cfg['MODE'].lower() == 'leader':
-            eth_leader = EtherLeader(eth_wallet, private_key, account, tracked_tokens_eth, config=cfg)
-            s20_leader = Secret20Leader(account, eth_wallet, tracked_tokens_eth, config=cfg)
+            eth_leader = EtherLeader(eth_wallet, private_key, account, dst_network="Secret", config=cfg)
+
+            secret_leader = SecretAccount(cfg['multisig_acc_addr'], cfg['multisig_key_name'])
+            s20_leader = Secret20Leader(secret_leader, eth_wallet, src_network="Ethereum", config=cfg)
+
             runners.append(eth_leader)
             runners.append(s20_leader)
 

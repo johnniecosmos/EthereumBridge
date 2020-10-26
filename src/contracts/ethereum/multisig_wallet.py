@@ -9,17 +9,21 @@ from src.contracts.ethereum.message import Submit, Confirm
 from src.util.common import project_base_path
 
 
+SUBMIT_GAS = 4000000
+CONFIRM_GAS = 4000000
+
+
 class MultisigWallet(EthereumContract):
     def __init__(self, provider: Web3, contract_address: str):
         abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'ethereum', 'abi', 'MultiSigSwapWallet.json')
         super().__init__(provider, contract_address, abi_path)
 
     def submit_transaction(self, from_: str, private_key: bytes, message: Submit):
-        return self.send_transaction('submitTransaction', from_, private_key, *message.args())
+        return self.send_transaction('submitTransaction', from_, private_key, SUBMIT_GAS, *message.args())
 
     def confirm_transaction(self, from_: str, private_key: bytes, message: Confirm):
         print("confirming yo")
-        return self.send_transaction('confirmTransaction', from_, private_key, *message.args())
+        return self.send_transaction('confirmTransaction', from_, private_key, CONFIRM_GAS, *message.args())
 
     def extract_addr(self, tx_log) -> str:
         return tx_log.args.recipient.decode()

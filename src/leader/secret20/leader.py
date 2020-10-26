@@ -125,9 +125,9 @@ class Secret20Leader(Thread):
                 if (datetime.utcnow() - document.updated_on).total_seconds() < BROADCAST_VALIDATION_COOLDOWN:
                     return
                 document.update(status=Status.SWAP_FAILED)
-                self.logger.critical(f"Failed confirming broadcast for tx: {document}")
+                self.logger.critical(f"Failed confirming broadcast for tx: {repr(document)}")
         except (IndexError, json.JSONDecodeError, RuntimeError) as e:
-            self.logger.critical(f"Failed confirming broadcast for tx: {document}. Error: {e}")
+            self.logger.critical(f"Failed confirming broadcast for tx: {repr(document)}. Error: {e}")
             # This can fail, but if it does we want to crash - this can lead to duplicate amounts and confusion
             # Better to just stop and make sure everything is kosher before continuing
             document.update(status=Status.SWAP_FAILED)

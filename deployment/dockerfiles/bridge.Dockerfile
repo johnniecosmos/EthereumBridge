@@ -15,7 +15,7 @@ RUN apt-get -qq -y update && \
     rm -rf /var/lib/apt-get/lists/*
 
 
-RUN wget -O secretcli https://github.com/enigmampc/SecretNetwork/releases/download/v1.0.2/secretcli-linux-amd64
+RUN wget -O secretcli https://github.com/enigmampc/SecretNetwork/releases/download/v1.0.3/secretcli-linux-amd64
 RUN chmod +x ./secretcli
 RUN cp ./secretcli /usr/bin
 

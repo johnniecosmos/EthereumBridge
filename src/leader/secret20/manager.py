@@ -2,6 +2,7 @@ from threading import Thread, Event
 from typing import Dict
 
 from web3.datastructures import AttributeDict
+from mongoengine.errors import NotUniqueError
 
 from src.contracts.ethereum.event_listener import EthEventListener
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
@@ -127,5 +128,7 @@ class SecretManager(Thread):
                               f"due to missing config: {e}")
         except RuntimeError as e:
             self.logger.error(f"Failed to create swap tx for eth hash {tx_hash}, block {block_number}. Error: {e}")
-
+        except NotUniqueError as e:
+            self.logger.error(f"Tried to save duplicate TX, might be a catch up issue - {e}")
         # return block_number, tx_hash, recipient, s20
+        SwapTrackerObject.update_last_processed('Ethereum', block_number)

@@ -257,7 +257,7 @@ impl<'a, S: Storage> Config<'a, S> {
             .set(KEY_CONTRACT_STATUS, &status_u8.to_be_bytes());
     }
 
-        pub fn set_minters(&mut self, minters_to_set: Vec<HumanAddr>) -> StdResult<()> {
+    pub fn set_minters(&mut self, minters_to_set: Vec<HumanAddr>) -> StdResult<()> {
         set_bin_data(&mut self.storage, KEY_MINTERS, &minters_to_set)
     }
 

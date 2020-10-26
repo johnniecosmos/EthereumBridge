@@ -117,31 +117,27 @@ def contract_event_in_range(contract, event_name: str, from_block: int = 0,
 
                 yield log
 
-    # for block_num in range(from_block, to_block + 1):
-    #     block = provider.eth.getBlock(block_num, full_transactions=True)
-    #     contract_transactions = extract_tx_by_address(contract.address, block)
-    #
-    #     if not contract_transactions:
-    #         continue
 
-    # raise StopIteration()
+def estimate_gas_price():
+    return w3.eth.gasPrice
 
 
 def send_contract_tx(contract: Web3Contract, function_name: str, from_acc: str, private_key: bytes,
-                     *args, gas: int = 0, value: int = 0):
+                     gas: int = 0, *args, gas_price: int = 0, value: int = 0):
     """
     Creates the contract tx and signs it with private_key to be transmitted as raw tx
     """
-    submit_tx = getattr(contract.functions, function_name)(*args). \
+    tx = getattr(contract.functions, function_name)(*args). \
         buildTransaction(
         {
             'from': from_acc,
             'chainId': w3.eth.chainId,
-            'gasPrice': w3.eth.gasPrice if not gas else gas,
+            'gasPrice': gas_price or estimate_gas_price(),
+            'gas': gas or None,
             'nonce': w3.eth.getTransactionCount(from_acc, block_identifier='pending'),
             'value': value
         })
-    signed_txn = w3.eth.account.sign_transaction(submit_tx, private_key)
+    signed_txn = w3.eth.account.sign_transaction(tx, private_key)
     return w3.eth.sendRawTransaction(signed_txn.rawTransaction)
 
 
