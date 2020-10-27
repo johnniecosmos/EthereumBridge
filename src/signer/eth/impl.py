@@ -71,7 +71,6 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         self.logger.info(f'Got submission event with transaction id: {transaction_id}, checking status')
 
         data = self.multisig_contract.submission_data(transaction_id)
-        self.logger.info("hello")
         # placeholder - check how this looks for ETH transactions
         # check if submitted tx is an ERC-20 transfer tx
         if data['amount'] == 0 and data['data']:
@@ -79,7 +78,6 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
             data['amount'] = params['amount']
             data['dest'] = params['recipient']
 
-        self.logger.info("hello2")
         if not self._is_confirmed(transaction_id, data):
             self.logger.info(f'Transaction {transaction_id} is missing approvals. Checking validity..')
 
@@ -140,19 +138,16 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
     def _is_confirmed(self, transaction_id: int, submission_data: Dict[str, any]) -> bool:
         """Checks with the data on the contract if signer already added confirmation or if threshold already reached"""
 
-        self.logger.info("hello3")
         # check if already executed
         if submission_data['executed']:
             return True
 
-        self.logger.info("hello4")
         # check if signer already signed the tx
         res = self.multisig_contract.contract.functions.confirmations(transaction_id, self.account).call()
         if res:
             self.logger.error(f"aww6: {res=}")
             return True
 
-        self.logger.info("hello5")
         return False
 
     def _approve_and_sign(self, submission_id: int):

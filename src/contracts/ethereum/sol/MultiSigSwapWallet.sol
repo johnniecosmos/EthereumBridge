@@ -2,13 +2,13 @@
 
 pragma solidity ^0.6.8;
 
-import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/token/ERC20/SafeERC20.sol";
-import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/token/ERC20/IERC20.sol";
-import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/math/SafeMath.sol";
+// import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/token/ERC20/SafeERC20.sol";
+// import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/token/ERC20/IERC20.sol";
+// import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/math/SafeMath.sol";
 
-//import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/token/ERC20/SafeERC20.sol";
-//import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/token/ERC20/IERC20.sol";
-//import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/math/SafeMath.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/token/ERC20/SafeERC20.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/token/ERC20/IERC20.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/math/SafeMath.sol";
 
 /// @title MultiSignature wallet - Allows multiple parties to agree on transactions before execution.
 /// @author Stefan George - <stefan.george@consensys.net>
@@ -168,7 +168,7 @@ contract MultiSigSwapWallet {
     }
 
     function getTokenNonce(address _tokenAddress) public view
-    returns (uint memory)
+    returns (uint)
     {
         return secretTxNonce[_tokenAddress];
     }
