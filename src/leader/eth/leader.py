@@ -12,9 +12,11 @@ from src.contracts.secret.secret_contract import swap_query_res, get_swap_id
 from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.swaptrackerobject import SwapTrackerObject
 from src.db.collections.token_map import TokenPairing
+from src.util.coins import Erc20Info, Coin
 from src.util.common import Token
 from src.util.config import Config
 from src.util.logger import get_logger
+from src.util.oracle.oracle import Oracle, BridgeOracle
 from src.util.secretcli import query_scrt_swap
 from src.util.web3 import erc20_contract, w3
 
@@ -34,7 +36,6 @@ class EtherLeader(Thread):
                  dst_network: str, config: Config, **kwargs):
         self.config = config
         self.multisig_wallet = multisig_wallet
-
         self.erc20 = erc20_contract()
 
         token_map = {}
@@ -99,10 +100,20 @@ class EtherLeader(Thread):
         else:
             self.erc20.address = dst_token
             data = self.erc20.encodeABI(fn_name='transfer', args=[dest_address, amount])
+            decimals = Erc20Info.decimals(dst_token)
+            x_rate = BridgeOracle.x_rate(Coin.Ethereum, Erc20Info.coin(dst_token))
+            gas_price = BridgeOracle.gas_prices()
+            fee = BridgeOracle.calculate_fee(self.multisig_wallet.SUBMIT_GAS,
+                                             gas_price,
+                                             decimals,
+                                             x_rate,
+                                             amount)
+
             msg = message.Submit(dst_token,
                                  0,  # if we are swapping token, no ether should be rewarded
                                  int(swap_json['nonce']),
                                  dst_token,
+                                 fee,
                                  data)
         # todo: check we have enough ETH
         swap = Swap(src_network="Secret", src_tx_hash=swap_id, unsigned_tx=data, src_coin=src_token,
@@ -121,6 +132,7 @@ class EtherLeader(Thread):
                 pass
 
     def _broadcast_transaction(self, msg: message.Submit):
-        tx_hash = self.multisig_wallet.submit_transaction(self.default_account, self.private_key, msg)
+        gas_price = BridgeOracle.gas_prices()
+        tx_hash = self.multisig_wallet.submit_transaction(self.default_account, self.private_key, gas_price, msg)
         self.logger.info(msg=f"Submitted tx: hash: {tx_hash.hex()}, msg: {msg}")
         return tx_hash.hex()

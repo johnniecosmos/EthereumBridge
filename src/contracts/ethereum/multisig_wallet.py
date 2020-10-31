@@ -9,21 +9,23 @@ from src.contracts.ethereum.message import Submit, Confirm
 from src.util.common import project_base_path
 
 
-SUBMIT_GAS = 4000000
-CONFIRM_GAS = 4000000
-
-
 class MultisigWallet(EthereumContract):
+    SUBMIT_GAS = 400000
+    CONFIRM_GAS = 400000
+
     def __init__(self, provider: Web3, contract_address: str):
         abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'ethereum', 'abi', 'MultiSigSwapWallet.json')
         super().__init__(provider, contract_address, abi_path)
 
-    def submit_transaction(self, from_: str, private_key: bytes, message: Submit):
-        return self.send_transaction('submitTransaction', from_, private_key, SUBMIT_GAS, *message.args())
+    def submit_transaction(self, from_: str, private_key: bytes, gas_price, message: Submit):
+        return self.send_transaction('submitTransaction', from_, private_key, self.SUBMIT_GAS,
+                                     *message.args(), gas_price=gas_price)
 
-    def confirm_transaction(self, from_: str, private_key: bytes, message: Confirm):
+    def confirm_transaction(self, from_: str, private_key: bytes,
+                            gas_price, message: Confirm):
         print("confirming yo")
-        return self.send_transaction('confirmTransaction', from_, private_key, CONFIRM_GAS, *message.args())
+        return self.send_transaction('confirmTransaction', from_, private_key,
+                                     self.CONFIRM_GAS, *message.args(), gas_price=gas_price)
 
     def extract_addr(self, tx_log) -> str:
         return tx_log.args.recipient.decode()
@@ -39,13 +41,15 @@ class MultisigWallet(EthereumContract):
     def verify_confirmation(self, transaction_id, account: str) -> bool:
         return self.contract.functions.confirmations(transaction_id, account).call()
 
-    def approve_and_sign(self, key: bytes, account: str, submission_id: int) -> str:
+    def approve_and_sign(self, key: bytes, account: str, submission_id: int, gas_price: int) -> str:
         """
         Sign the transaction with the signer's private key and then broadcast
         Note: This operation costs gas
+
+        :param: gas_price - price in gwei
         """
         msg = Confirm(submission_id)
-        tx_hash = self.confirm_transaction(account, key, msg)
+        tx_hash = self.confirm_transaction(account, key, gas_price, msg)
         return tx_hash
 
     def submission_data(self, transaction_id) -> Dict[str, any]:

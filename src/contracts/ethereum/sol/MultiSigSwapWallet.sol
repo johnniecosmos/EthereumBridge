@@ -2,13 +2,14 @@
 
 pragma solidity ^0.6.8;
 
-// import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/token/ERC20/SafeERC20.sol";
-// import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/token/ERC20/IERC20.sol";
-// import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/math/SafeMath.sol";
+import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/token/ERC20/SafeERC20.sol";
+import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/token/ERC20/IERC20.sol";
+import "OpenZeppelin/openzeppelin-contracts@3.2.0/contracts/math/SafeMath.sol";
 
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/token/ERC20/SafeERC20.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/token/ERC20/IERC20.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/math/SafeMath.sol";
+//
+//import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/token/ERC20/SafeERC20.sol";
+//import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/token/ERC20/IERC20.sol";
+//import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.2.0/contracts/math/SafeMath.sol";
 
 /// @title MultiSignature wallet - Allows multiple parties to agree on transactions before execution.
 /// @author Stefan George - <stefan.george@consensys.net>
@@ -25,6 +26,7 @@ contract MultiSigSwapWallet {
     event WithdrawFailure(uint indexed transactionId);
     event Swap(uint amount, bytes recipient);
     event OwnerAddition(address indexed owner);
+    event FeeCollectorChange(address indexed collector);
     event OwnerRemoval(address indexed owner);
     event RequirementChange(uint required);
     event SwapToken(address sender, bytes recipient, uint256 amount, address tokenAddress);
@@ -41,10 +43,12 @@ contract MultiSigSwapWallet {
     mapping(uint => Transaction) public transactions;
     mapping(uint => mapping(address => bool)) public confirmations;
     mapping(address => bool) public isOwner;
-    // mapping(uint => bool) public scrtNonce;
     mapping(address => uint) public secretTxNonce;
+
     address[] public tokens;
     address[] public owners;
+    address public feeCollector;
+
     uint public required;
     uint public transactionCount;
     bool public paused = false;
@@ -56,6 +60,7 @@ contract MultiSigSwapWallet {
         bool executed;
         uint nonce;
         address token;
+        uint fee;
     }
 
     /*
@@ -142,11 +147,18 @@ contract MultiSigSwapWallet {
         revert();
     }
 
-    function pauseSwaps() public ownerExists(msg.sender) {
+    function pauseSwaps()
+    public
+    OnlyWallet
+    {
         paused = true;
     }
 
-    function unPauseSwaps() public ownerExists(msg.sender) {
+    function unPauseSwaps()
+    public
+    //ownerExists(msg.sender) // todo: remove before production
+    OnlyWallet
+    {
         paused = false;
     }
 
@@ -158,16 +170,26 @@ contract MultiSigSwapWallet {
         return tokens;
     }
 
-    function addToken(address _tokenAddress) public ownerExists(msg.sender) {
+    function addToken(address _tokenAddress)
+    public
+    ownerExists(msg.sender)
+    // OnlyWallet todo: consider this as OnlyWallet
+    {
         tokenWhitelist[_tokenAddress] = true;
         tokens.push(_tokenAddress);
     }
 
-    function removeToken(address _tokenAddress) public ownerExists(msg.sender) {
+    function removeToken(address _tokenAddress)
+    public
+    ownerExists(msg.sender)
+    // OnlyWallet todo: consider this as OnlyWallet
+    {
         delete tokenWhitelist[_tokenAddress];
     }
 
-    function getTokenNonce(address _tokenAddress) public view
+    function getTokenNonce(address _tokenAddress)
+    public
+    view
     returns (uint)
     {
         return secretTxNonce[_tokenAddress];
@@ -185,7 +207,6 @@ contract MultiSigSwapWallet {
     tokenWhitelisted(_tokenAddress)
     isSecretAddress(_recipient)
     {
-
         IERC20 token = IERC20(_tokenAddress);
         token.safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -212,9 +233,11 @@ contract MultiSigSwapWallet {
     /// @dev Contract constructor sets initial owners and required number of confirmations.
     /// @param _owners List of initial owners.
     /// @param _required Number of required confirmations.
-    constructor (address[] memory _owners, uint _required)
+    // todo: list of supported tokens?
+    constructor (address[] memory _owners, uint _required, address _feeCollector)
     public
     validRequirement(_owners.length, _required)
+    notNull(_feeCollector)
     {
         for (uint i = 0; i < _owners.length; i++) {
             require(!isOwner[_owners[i]] && _owners[i] != address(0));
@@ -222,6 +245,18 @@ contract MultiSigSwapWallet {
         }
         owners = _owners;
         required = _required;
+        feeCollector = _feeCollector;
+    }
+
+    /// @dev Allows change of the fee collector address. Transaction has to be sent by wallet.
+    /// @param owner Address of new owner.
+    function replaceFeeCollector(address _feeCollector)
+    public
+    onlyWallet
+    notNull(_feeCollector)
+    {
+        feeCollector = _feeCollector;
+        emit FeeCollectorChange(_feeCollector);
     }
 
     /// @dev Allows to add a new owner. Transaction has to be sent by wallet.
@@ -331,6 +366,18 @@ contract MultiSigSwapWallet {
         emit Revocation(msg.sender, transactionId);
     }
 
+    function collectFee(uint transactionId)
+    notExecuted(transactionId)
+    {
+        Transaction storage txn = transactions[transactionId];
+        if (txn.token == address(0)) {
+            feeCollector.transfer(amount);
+        } else {
+            IERC20 token = IERC20(_tokenAddress);
+            token.safeTransfer(address(this), feeCollector, txn.fee);
+        }
+    }
+
     /// @dev Allows anyone to execute a confirmed transaction.
     /// @param transactionId Transaction ID.
     function executeTransaction(uint transactionId)
@@ -342,6 +389,10 @@ contract MultiSigSwapWallet {
         if (isConfirmed(transactionId)) {
             Transaction storage txn = transactions[transactionId];
             txn.executed = true;
+
+            if (txn.fee > 0) {
+                collectFee(txn);
+            }
 
             require(gasleft() >= 3000);
 

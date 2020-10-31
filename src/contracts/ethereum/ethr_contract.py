@@ -37,7 +37,7 @@ class EthereumContract:
             return None
         return log
 
-    def send_transaction(self, func_name: str, from_: str, private_key: bytes, gas, *args):
+    def send_transaction(self, func_name: str, from_: str, private_key: bytes, gas, *args, gas_price=None):
         """
         Used for sending contract transactions (executing @func_name  on a ethr contract)
         :param func_name: name of the function to invoke in the contract
@@ -45,7 +45,7 @@ class EthereumContract:
         :param private_key: private key matching the from_ account
         :param args: see 'send_contract_tx' for more details
         """
-        return send_contract_tx(self.contract, func_name, from_, private_key, gas, *args)
+        return send_contract_tx(self.contract, func_name, from_, private_key, gas, *args, gas_price=gas_price)
 
     def transaction_raw_bytes(self, fn_name: str, *args):
         """

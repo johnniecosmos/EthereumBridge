@@ -14,7 +14,7 @@ from src.signer.secret20.signer import SecretAccount
 from src.util.common import Token
 from src.util.config import Config
 from src.util.logger import get_logger
-from src.util.secretcli import create_unsigned_tx
+from src.util.secretcli import create_unsigned_tx, account_info
 from src.util.web3 import w3
 
 
@@ -34,7 +34,9 @@ class SecretManager(Thread):
                                  logger_name=config.get('logger_name',
                                                         f"{self.__class__.__name__}-{self.multisig.name}"))
         self.stop_signal = Event()
-
+        self.account_num = 0
+        self.sequence = 0
+        self.update_sequence()
         self.event_listener.register(self._handle, contract.tracked_event(),)
         super().__init__(group=None, name="SecretManager", target=self.run, **kwargs)
 
@@ -115,7 +117,9 @@ class SecretManager(Thread):
             mint = mint_json(amount, tx_hash, recipient, s20.address)
             unsigned_tx = create_unsigned_tx(self.config["scrt_swap_address"], mint, self.config['chain_id'],
                                              self.config['enclave_key'], self.config["swap_code_hash"],
-                                             self.multisig.address)
+                                             self.multisig.address, self.account_num, self.sequence)
+
+            self.sequence += 1
 
             # if ETHSwap.objects(tx_hash=tx_hash).count() == 0:  # TODO: exception because of force_insert?
             tx = Swap(src_tx_hash=tx_hash, status=Status.SWAP_UNSIGNED, unsigned_tx=unsigned_tx, src_coin=token,
@@ -132,3 +136,10 @@ class SecretManager(Thread):
             self.logger.error(f"Tried to save duplicate TX, might be a catch up issue - {e}")
         # return block_number, tx_hash, recipient, s20
         SwapTrackerObject.update_last_processed('Ethereum', block_number)
+
+    def _account_details(self):
+        details = account_info(self.multisig.address)
+        return details["value"]["account_number"], details["value"]["sequence_number"]
+
+    def update_sequence(self):
+        self.account_num, self.sequence = self._account_details()
