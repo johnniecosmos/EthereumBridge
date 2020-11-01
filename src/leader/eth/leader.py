@@ -84,48 +84,78 @@ class EtherLeader(Thread):
 
             self.stop_event.wait(self.config['sleep_interval'])
 
+    @staticmethod
+    def _validate_fee(fee: int, amount: int):
+        return fee > amount
+
+    def _tx_native_params(self, amount, dest_address):
+        if self.config["network"] == "mainnet":
+            gas_price = BridgeOracle.gas_prices()
+            fee = gas_price * 1e9 * self.multisig_wallet.SUBMIT_GAS
+        else:
+            fee = 1
+
+        tx_dest = dest_address
+        # use address(0) for native ethereum swaps
+        tx_token = '0x0000000000000000000000000000000000000000'
+        tx_amount = amount
+        data = b''
+
+        return data, tx_dest, tx_amount, tx_token, fee
+
+    def _tx_erc20_params(self, amount, dest_address, dst_token):
+        if self.config["network"] == "mainnet":
+            decimals = Erc20Info.decimals(dst_token)
+            x_rate = BridgeOracle.x_rate(Coin.Ethereum, Erc20Info.coin(dst_token))
+            gas_price = BridgeOracle.gas_prices()
+            fee = BridgeOracle.calculate_fee(self.multisig_wallet.SUBMIT_GAS,
+                                             gas_price,
+                                             decimals,
+                                             x_rate,
+                                             amount)
+        # for testing mostly
+        else:
+            fee = 1
+
+        data = self.erc20.encodeABI(fn_name='transfer', args=[dest_address, amount - fee])
+        tx_dest = dst_token
+        tx_token = dst_token
+        tx_amount = 0
+
+        return data, tx_dest, tx_amount, tx_token, fee
+
     def _handle_swap(self, swap_data: str, src_token: str, dst_token: str):
         swap_json = swap_query_res(swap_data)
         # this is an id, and not the TX hash since we don't actually know where the TX happened, only the id of the
         # swap reported by the contract
         swap_id = get_swap_id(swap_json)
         dest_address = base64.b64decode(swap_json['destination']).decode()
-        data = b""
-        amount = int(swap_json['amount'])
-        if dst_token == 'native':
-            # use address(0) for native ethereum
-            if self.config["network"] == "mainnet":
-                gas_price = BridgeOracle.gas_prices()
-                fee = gas_price * 1e9 * self.multisig_wallet.SUBMIT_GAS
-            else:
-                fee = 1
-            msg = message.Submit(dest_address, amount, int(swap_json['nonce']),
-                                 '0x0000000000000000000000000000000000000000', fee, data)
 
+        amount = int(swap_json['amount'])
+
+        if dst_token == 'native':
+            data, tx_dest, tx_amount, tx_token, fee = self._tx_native_params(amount, dest_address)
         else:
             self.erc20.address = dst_token
+            data, tx_dest, tx_amount, tx_token, fee = self._tx_erc20_params(amount, dest_address, dst_token)
 
-            data = self.erc20.encodeABI(fn_name='transfer', args=[dest_address, amount])
+        if not self._validate_fee(amount, fee):
+            self.logger.error(f"Tried to swap an amount too low to cover fee")
+            swap = Swap(src_network="Secret", src_tx_hash=swap_id, unsigned_tx=data, src_coin=src_token,
+                        dst_coin=dst_token, dst_address=dest_address, amount=str(amount), dst_network="Ethereum",
+                        status=Status.SWAP_FAILED)
+            try:
+                swap.save()
+            except (DuplicateKeyError, NotUniqueError):
+                pass
+            return
 
-            if self.config["network"] == "mainnet":
-                decimals = Erc20Info.decimals(dst_token)
-                x_rate = BridgeOracle.x_rate(Coin.Ethereum, Erc20Info.coin(dst_token))
-                gas_price = BridgeOracle.gas_prices()
-                fee = BridgeOracle.calculate_fee(self.multisig_wallet.SUBMIT_GAS,
-                                                 gas_price,
-                                                 decimals,
-                                                 x_rate,
-                                                 amount)
-            # for testing mostly
-            else:
-                fee = 1
-
-            msg = message.Submit(dst_token,
-                                 0,  # if we are swapping token, no ether should be rewarded
-                                 int(swap_json['nonce']),
-                                 dst_token,
-                                 fee,
-                                 data)
+        msg = message.Submit(tx_dest,
+                             tx_amount,  # if we are swapping token, no ether should be rewarded
+                             int(swap_json['nonce']),
+                             tx_token,
+                             fee,
+                             data)
         # todo: check we have enough ETH
         swap = Swap(src_network="Secret", src_tx_hash=swap_id, unsigned_tx=data, src_coin=src_token,
                     dst_coin=dst_token, dst_address=dest_address, amount=str(amount), dst_network="Ethereum",

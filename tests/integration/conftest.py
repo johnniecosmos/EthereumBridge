@@ -14,7 +14,7 @@ from src.util.web3 import normalize_address
 contracts_folder = os.path.join(module_dir(contracts_package), 'sol')
 brownie_project_folder = os.path.join(module_dir(integration_package), 'brownie_project')
 
-PAYABLE_ADDRESS = "0x0000000000000000000000000000000000000001"
+PAYABLE_ADDRESS = "0x1111111111111111111111111111111111111111"
 
 
 @fixture(scope="module")

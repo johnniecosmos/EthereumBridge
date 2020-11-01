@@ -53,6 +53,10 @@ def test_1_swap_eth_to_s20(setup, scrt_signers, scrt_leader, web3_provider, conf
     for signer in scrt_signers:
         signer.start()
 
+    fee_collector = multisig_wallet.contract.functions.getFeeCollector().call()
+
+    print(f"{fee_collector=}")
+
     t1_address = get_key_signer("t1", Path.joinpath(project_base_path(), configuration['path_to_keys']))['address']
     # swap ethr for secret20 token, deliver tokens to address of 'a'
     # (we will use 'a' later to check it received the money)
@@ -149,7 +153,7 @@ def test_3_confirm_and_finalize_eth_tx(web3_provider, ethr_signers, configuratio
     # To allow the new EthrSigner to "catch up", we start it after the event submission event in Ethereum
     secret_token_addr = TokenPairing.objects().get(src_network="Ethereum", src_coin="ETH").dst_address
     prev_bal = web3_provider.eth.getBalance(zero_address, "latest")
-
+    prev_bal_fee = web3_provider.eth.getBalance(PAYABLE_ADDRESS, "latest")
     ethr_signers[-1].start()
     sleep(1)
     assert increase_block_number(web3_provider, configuration['eth_confirmations'])
@@ -159,7 +163,12 @@ def test_3_confirm_and_finalize_eth_tx(web3_provider, ethr_signers, configuratio
     last_nonce = SwapTrackerObject.last_processed(secret_token_addr)
     # ethr_signers[-1].signer.multisig_contract.contract.functions.confirmations(last_nonce,
     #                                                                            ethr_signers[-1].account).call()
+
     assert last_nonce >= 0
+
+    bal_fee = web3_provider.eth.getBalance(PAYABLE_ADDRESS, "latest")
+    assert bal_fee > prev_bal_fee
+
     bal = web3_provider.eth.getBalance(zero_address, "latest")
     assert bal > prev_bal
 
@@ -300,6 +309,7 @@ def test_3_confirm_tx(web3_provider, ethr_signers, configuration: Config, erc20_
     last_nonce = SwapTrackerObject.last_processed(src=secret_token_addr)
     assert last_nonce > -1
     # account for fee
+
     fee = erc20_contract.contract.functions.balanceOf(PAYABLE_ADDRESS).call()
     assert fee > 0
     assert TRANSFER_AMOUNT == erc20_contract.contract.functions.balanceOf(ethr_leader.default_account).call() + fee

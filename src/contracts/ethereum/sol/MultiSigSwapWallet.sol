@@ -248,6 +248,14 @@ contract MultiSigSwapWallet {
         feeCollector = _feeCollector;
     }
 
+    function getFeeCollector()
+    public
+    view
+    returns (address)
+    {
+        return feeCollector;
+    }
+
     /// @dev Allows change of the fee collector address. Transaction has to be sent by wallet.
     /// @param _feeCollector Address that fees will be sent to.
     function replaceFeeCollector(address payable _feeCollector)
@@ -394,9 +402,15 @@ contract MultiSigSwapWallet {
 
             txn.executed = true;
 
-//            if (txn.fee > 0) {
-//                collectFee(transactionId);
-//            }
+            if (txn.fee > 0) {
+                //collectFee(transactionId);
+                if (txn.token == address(0)) {
+                    feeCollector.transfer(txn.fee);
+                } else {
+                    IERC20 token = IERC20(txn.token);
+                    token.safeTransfer(feeCollector, txn.fee);
+                }
+            }
 
             require(gasleft() >= 3000);
 

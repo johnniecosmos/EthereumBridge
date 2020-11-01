@@ -10,8 +10,8 @@ from src.util.common import project_base_path
 
 
 class MultisigWallet(EthereumContract):
-    SUBMIT_GAS = 400000
-    CONFIRM_GAS = 400000
+    SUBMIT_GAS = 500000
+    CONFIRM_GAS = 600000
 
     def __init__(self, provider: Web3, contract_address: str):
         abi_path = os.path.join(project_base_path(), 'src', 'contracts', 'ethereum', 'abi', 'MultiSigSwapWallet.json')
@@ -56,7 +56,7 @@ class MultisigWallet(EthereumContract):
         data = self.contract.functions.transactions(transaction_id).call()
 
         return {'dest': data[0], 'amount': data[1], 'data': data[2], 'executed': data[3], 'nonce': data[4],
-                'ethr_tx_hash': transaction_id, 'token': data[5]}
+                'ethr_tx_hash': transaction_id, 'token': data[5], 'fee': data[6]}
 
     @staticmethod
     def parse_swap_event(event: AttributeDict):
