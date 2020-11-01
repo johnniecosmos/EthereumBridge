@@ -2,10 +2,10 @@ import aiohttp
 
 
 class GasSourceBase:
-    __API_URL = ""
+    API_URL = ""
 
     def _base_url(self):
-        return f'{self.__API_URL}'
+        return self.API_URL
 
     async def _base_request(self) -> dict:
         url = self._base_url()

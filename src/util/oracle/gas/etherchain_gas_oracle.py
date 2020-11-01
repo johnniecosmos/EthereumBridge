@@ -2,7 +2,7 @@ from src.util.oracle.gas_source_base import GasSourceBase
 
 
 class EtherchainGasOracle(GasSourceBase):
-    __API_URL = "https://www.etherchain.org/api/gasPriceOracle"
+    API_URL = "https://www.etherchain.org/api/gasPriceOracle"
 
     # pylint: disable=duplicate-code
     async def gas_price(self) -> int:

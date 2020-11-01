@@ -2,7 +2,7 @@ from src.util.oracle.gas_source_base import GasSourceBase
 
 
 class POAGasOracle(GasSourceBase):
-    __API_URL = "https://gasprice.poa.network/"
+    API_URL = "https://gasprice.poa.network/"
 
     async def gas_price(self) -> int:
         resp = await self._base_request()

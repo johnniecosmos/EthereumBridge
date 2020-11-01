@@ -9,7 +9,8 @@ from src.util.oracle.price_source_base import PriceSourceBase
 
 
 class CoinGecko(PriceSourceBase):
-    __API_URL = "https://api.coingecko.com/api/v3/simple/"
+
+    API_URL = "https://api.coingecko.com/api/v3/simple/"
 
     coin_map = {Coin.Secret: "secret",
                 Coin.Ethereum: "ethereum",
@@ -19,7 +20,7 @@ class CoinGecko(PriceSourceBase):
     currency_map = {Currency.USD: "usd"}
 
     def _base_url(self):
-        return f'{self.__API_URL}price'
+        return f'{self.API_URL}price'
 
     @staticmethod
     def _price_params(coin: str, currency: str):

@@ -4,15 +4,17 @@ from src.util.coins import Coin, Currency
 
 
 class PriceSourceBase:
-    __API_URL = ""
+
+    API_URL = ""
 
     coin_map: Dict[Coin, str]
     currency_map: Dict[Currency, str]
-    # def __init__(self, api_base_url=__API_URL):
-    #     self.session =
+
+    def __init__(self, api_base_url=API_URL):
+        self.api_url = api_base_url
 
     def _base_url(self):
-        return f'{self.__API_URL}'
+        return self.API_URL
 
     async def price(self, coin: Coin, currency: Currency) -> float:
         raise NotImplementedError

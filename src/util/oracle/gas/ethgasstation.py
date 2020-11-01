@@ -5,7 +5,7 @@ from src.util.config import Config
 
 
 class EthGasStation(GasSourceBase):
-    __API_URL = "https://ethgasstation.info/api/ethgasAPI.json"
+    API_URL = "https://ethgasstation.info/api/ethgasAPI.json"
 
     @staticmethod
     def _api_key():

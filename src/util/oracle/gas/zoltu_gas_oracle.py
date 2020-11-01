@@ -2,7 +2,7 @@ from src.util.oracle.gas_source_base import GasSourceBase
 
 
 class ZoltuGasOracle(GasSourceBase):
-    __API_URL = "https://gas-oracle.zoltu.io/"
+    API_URL = "https://gas-oracle.zoltu.io/"
 
     async def gas_price(self) -> int:
         resp = await self._base_request()

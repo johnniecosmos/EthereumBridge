@@ -9,7 +9,7 @@ from src.util.oracle.price_source_base import PriceSourceBase
 
 class CompoundPriceOracle(PriceSourceBase):
 
-    __API_URL = "https://prices.compound.finance/"
+    API_URL = "https://prices.compound.finance/"
 
     coin_map = {Coin.Zrx: "ZRX",
                 Coin.Compound: "COMP",
