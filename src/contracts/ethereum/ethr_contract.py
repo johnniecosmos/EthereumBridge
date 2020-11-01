@@ -44,6 +44,7 @@ class EthereumContract:
         :param from_: the account from which gas payment will be taken
         :param private_key: private key matching the from_ account
         :param args: see 'send_contract_tx' for more details
+        :param gas_price:
         """
         return send_contract_tx(self.contract, func_name, from_, private_key, gas, *args, gas_price=gas_price)
 

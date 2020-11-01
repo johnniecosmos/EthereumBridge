@@ -65,7 +65,7 @@ def query_tx(tx_hash: str):
 
 def account_info(account: str):
     cmd = ['secretcli', 'query', 'account', account]
-    return run_secret_cli(cmd)
+    return json.loads(run_secret_cli(cmd))
 
 def query_data_success(tx_hash: str):
     """ This command is used to test success of transactions - so we can safely ignore any errors and assume in any case

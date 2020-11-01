@@ -135,7 +135,7 @@ def send_contract_tx(contract: Web3Contract, function_name: str, from_acc: str, 
             'from': from_acc,
             'chainId': w3.eth.chainId,
             # gas_price is in gwei
-            'gasPrice': gas_price * 1e9 or estimate_gas_price(),
+            'gasPrice': gas_price * 1e9 if gas_price else estimate_gas_price(),
             'gas': gas or None,
             'nonce': w3.eth.getTransactionCount(from_acc, block_identifier='pending'),
             'value': value

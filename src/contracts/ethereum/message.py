@@ -26,7 +26,7 @@ class Submit(Message):
         self.fee = fee
 
     def args(self) -> Tuple:
-        return self.dest, self.amount, self.nonce, self.token, self.data
+        return self.dest, self.amount, self.nonce, self.token, self.fee, self.data
 
 
 class Confirm(Message):

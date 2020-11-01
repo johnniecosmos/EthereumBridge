@@ -192,7 +192,7 @@ def scrt_leader(multisig_account: SecretAccount, multisig_wallet, erc20_contract
 def scrt_signers(scrt_accounts, multisig_wallet, configuration) -> List[Secret20Signer]:
     signers: List[Secret20Signer] = []
     for account in scrt_accounts:
-        s = Secret20Signer(multisig_wallet, account, configuration)
+        s = Secret20Signer(account, multisig_wallet, configuration)
         signers.append(s)
 
     yield signers

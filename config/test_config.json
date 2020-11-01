@@ -15,6 +15,7 @@
   "secret_token_address": "secret1k48x38gdrunurennpemt4ns45cphlvuvg9kfzs",
   "secret_swap_contract_address": "secret1k48x38gdrunurennpemt4ns45cphlvuvg9kfzs",
   "leader_key": "",
+  "network": "local",
   "provider_address": "",
   "multisig_key_name": "ms1",
   "path_to_keys": "keys/keys",

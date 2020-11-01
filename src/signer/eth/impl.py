@@ -156,7 +156,10 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         Sign the transaction with the signer's private key and then broadcast
         Note: This operation costs gas
         """
-        gas_prices = BridgeOracle.gas_price()
+        if self.config["network"] == "mainnet":
+            gas_prices = BridgeOracle.gas_price()
+        else:
+            gas_prices = None
         msg = message.Confirm(submission_id)
         tx_hash = self.multisig_contract.confirm_transaction(self.account, self.private_key, gas_prices, msg)
         self.logger.info(msg=f"Signed transaction - signer: {self.account}, signed msg: {msg}, "

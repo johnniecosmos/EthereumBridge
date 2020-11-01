@@ -47,7 +47,7 @@ contract MultiSigSwapWallet {
 
     address[] public tokens;
     address[] public owners;
-    address public feeCollector;
+    address payable public feeCollector;
 
     uint public required;
     uint public transactionCount;
@@ -149,7 +149,7 @@ contract MultiSigSwapWallet {
 
     function pauseSwaps()
     public
-    OnlyWallet
+    onlyWallet
     {
         paused = true;
     }
@@ -157,7 +157,7 @@ contract MultiSigSwapWallet {
     function unPauseSwaps()
     public
     //ownerExists(msg.sender) // todo: remove before production
-    OnlyWallet
+    onlyWallet
     {
         paused = false;
     }
@@ -234,7 +234,7 @@ contract MultiSigSwapWallet {
     /// @param _owners List of initial owners.
     /// @param _required Number of required confirmations.
     // todo: list of supported tokens?
-    constructor (address[] memory _owners, uint _required, address _feeCollector)
+    constructor (address[] memory _owners, uint _required, address payable _feeCollector)
     public
     validRequirement(_owners.length, _required)
     notNull(_feeCollector)
@@ -249,8 +249,8 @@ contract MultiSigSwapWallet {
     }
 
     /// @dev Allows change of the fee collector address. Transaction has to be sent by wallet.
-    /// @param owner Address of new owner.
-    function replaceFeeCollector(address _feeCollector)
+    /// @param _feeCollector Address that fees will be sent to.
+    function replaceFeeCollector(address payable _feeCollector)
     public
     onlyWallet
     notNull(_feeCollector)
@@ -327,15 +327,16 @@ contract MultiSigSwapWallet {
     /// @dev Allows an owner to submit and confirm a transaction.
     /// @param destination Transaction target address.
     /// @param value Transaction ether value.
+    /// @param fee amount of token or ether to transfer to fee collector
     /// @param data Transaction data payload.
     /// @return transactionId - Returns transaction ID.
-    function submitTransaction(address destination, uint value, uint nonce, address token, bytes memory data)
+    function submitTransaction(address destination, uint value, uint nonce, address token, uint fee, bytes memory data)
     public
     ownerExists(msg.sender)
     notSubmitted(token, nonce)
     returns (uint transactionId)
     {
-        transactionId = addTransaction(destination, value, nonce, token, data);
+        transactionId = addTransaction(destination, value, nonce, token, fee, data);
         secretTxNonce[token] = nonce;
 
         confirmTransaction(transactionId);
@@ -366,15 +367,17 @@ contract MultiSigSwapWallet {
         emit Revocation(msg.sender, transactionId);
     }
 
+    /// @dev Transfers the amount in tnx.fee to the fee collector
+    /// @param transactionId Transaction ID.
     function collectFee(uint transactionId)
-    notExecuted(transactionId)
+    internal
     {
         Transaction storage txn = transactions[transactionId];
         if (txn.token == address(0)) {
-            feeCollector.transfer(amount);
+            feeCollector.transfer(txn.fee);
         } else {
-            IERC20 token = IERC20(_tokenAddress);
-            token.safeTransfer(address(this), feeCollector, txn.fee);
+            IERC20 token = IERC20(txn.token);
+            token.safeTransfer(feeCollector, txn.fee);
         }
     }
 
@@ -388,11 +391,12 @@ contract MultiSigSwapWallet {
     {
         if (isConfirmed(transactionId)) {
             Transaction storage txn = transactions[transactionId];
+
             txn.executed = true;
 
-            if (txn.fee > 0) {
-                collectFee(txn);
-            }
+//            if (txn.fee > 0) {
+//                collectFee(transactionId);
+//            }
 
             require(gasleft() >= 3000);
 
@@ -450,7 +454,7 @@ contract MultiSigSwapWallet {
     /// @param value Transaction ether value.
     /// @param data Transaction data payload.
     /// @return transactionId - Returns transaction ID.
-    function addTransaction(address destination, uint value, uint nonce, address token, bytes memory data)
+    function addTransaction(address destination, uint value, uint nonce, address token, uint fee, bytes memory data)
     internal
     notNull(destination)
     returns (uint transactionId)
@@ -462,7 +466,8 @@ contract MultiSigSwapWallet {
         data : data,
         executed : false,
         nonce : nonce,
-        token : token
+        token : token,
+        fee: fee
         });
         transactionCount += 1;
         emit Submission(transactionId);
