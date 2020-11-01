@@ -11,10 +11,10 @@ class PriceSourceBase:
     # def __init__(self, api_base_url=__API_URL):
     #     self.session =
 
-    async def price(self, coin: Coin, currency: Currency) -> float:
-        raise NotImplementedError
+    def _base_url(self):
+        return f'{self.__API_URL}'
 
-    async def x_rate(self, coin1: Coin, coin2: Coin):
+    async def price(self, coin: Coin, currency: Currency) -> float:
         raise NotImplementedError
 
     def supported_tokens(self):

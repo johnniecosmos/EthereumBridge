@@ -123,7 +123,7 @@ def estimate_gas_price():
 
 
 def send_contract_tx(contract: Web3Contract, function_name: str, from_acc: str, private_key: bytes,
-                     gas: int = 0, *args, gas_price: int = 0, value: int = 0):
+                     gas: int = 0, gas_price: int = 0, value: int = 0, args: Tuple = ()):
     """
     Creates the contract tx and signs it with private_key to be transmitted as raw tx
 

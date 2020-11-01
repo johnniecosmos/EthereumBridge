@@ -126,7 +126,8 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         :param submission_data: the data from the proposed tx on the smart contract
         """
         if int(swap_data['amount']) != int(submission_data['amount'] + submission_data['fee']):
-            self.logger.error(f'Invalid transaction - {swap_data["amount"]} does not match {submission_data["amount"]} + {submission_data["fee"]}')
+            self.logger.error(f'Invalid transaction - {swap_data["amount"]} does not match '
+                              f'{submission_data["amount"]} + {submission_data["fee"]}')
             return False
 
         dest = base64.standard_b64decode(swap_data['destination']).decode()

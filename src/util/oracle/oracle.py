@@ -3,16 +3,17 @@ from typing import List
 
 from src.util.oracle.gas.etherchain_gas_oracle import EtherchainGasOracle
 from src.util.oracle.gas.ethgasstation import EthGasStation
-from .gas_source_base import GasSourceBase
 from src.util.oracle.gas.poa_gas_oracle import POAGasOracle
-from .price_source_base import PriceSourceBase
-from src.util.oracle.price.coingecko import CoinGecko
 from src.util.oracle.gas.zoltu_gas_oracle import ZoltuGasOracle
+from src.util.oracle.price.coingecko import CoinGecko
+from .gas_source_base import GasSourceBase
+from .price.compound_price import CompoundPriceOracle
+from .price_source_base import PriceSourceBase
 from ..coins import Currency, Coin
 
 
 class Oracle:
-    price_sources: List[PriceSourceBase] = [CoinGecko()]
+    price_sources: List[PriceSourceBase] = [CoinGecko(), CompoundPriceOracle()]
     gas_sources: List[GasSourceBase] = [EtherchainGasOracle(), EthGasStation(), ZoltuGasOracle(), POAGasOracle()]
 
     @staticmethod
@@ -55,17 +56,17 @@ class Oracle:
         try:
             return self.price(coin_primary, Currency.USD) / self.price(coin_secondary, Currency.USD)
         except ZeroDivisionError:
-            raise ValueError("Cannot get price for secondary")
+            raise ValueError("Cannot get price for secondary") from None
 
     @staticmethod
     def calculate_fee(gas: int, gas_price: int, token_decimals: int, xrate: float, amount_sent: int):
 
-        ### flat fee:
+        # flat fee:
         #              Gwei         -> ETH -> Token -> Token Decimals
         flat_fee = (float(gas_price) / 1e9) / xrate * pow(10, token_decimals) * gas
 
-        ### variable fee tbd
-        # _ = amount_sent * 0.1
+        # variable fee tbd
+        _ = amount_sent
 
         return flat_fee
 

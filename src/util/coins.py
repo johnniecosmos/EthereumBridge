@@ -11,6 +11,8 @@ class Coin(Enum):
     Ethereum = auto()
     Tether = auto()
     Dai = auto()
+    Zrx = auto()
+    Compound = auto()
 
 
 erc20_db = {

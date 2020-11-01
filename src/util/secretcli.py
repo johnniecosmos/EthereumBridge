@@ -37,7 +37,8 @@ def create_unsigned_tx(secret_contract_addr: str, transaction_data: Dict, chain_
                        code_hash: str, multisig_acc_addr: str, account: int, sequence: int) -> str:
     cmd = ['secretcli', 'tx', 'compute', 'execute', secret_contract_addr, f"{json.dumps(transaction_data)}",
            '--generate-only', '--chain-id', f"{chain_id}", '--enclave-key', enclave_key, '--code-hash',
-           code_hash, '--from', multisig_acc_addr, '--gas', '250000']
+           code_hash, '--from', multisig_acc_addr, '--gas', '250000', '--account-number', str(account),
+           '--sequence', str(sequence)]
     return run_secret_cli(cmd)
 
 
@@ -66,6 +67,7 @@ def query_tx(tx_hash: str):
 def account_info(account: str):
     cmd = ['secretcli', 'query', 'account', account]
     return json.loads(run_secret_cli(cmd))
+
 
 def query_data_success(tx_hash: str):
     """ This command is used to test success of transactions - so we can safely ignore any errors and assume in any case

@@ -14,9 +14,6 @@ class EthGasStation(GasSourceBase):
     def _params(self):
         return self._api_key()
 
-    def _base_url(self):
-        return f'{self.__API_URL}'
-
     async def gas_price(self) -> int:
         url = self._base_url()
         # this opens a new connection each time. It's possible to restructure with sessions, but then the session needs

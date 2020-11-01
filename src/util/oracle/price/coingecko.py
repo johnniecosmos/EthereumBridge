@@ -18,7 +18,7 @@ class CoinGecko(PriceSourceBase):
 
     currency_map = {Currency.USD: "usd"}
 
-    def _price_base_url(self):
+    def _base_url(self):
         return f'{self.__API_URL}price'
 
     @staticmethod
@@ -27,7 +27,7 @@ class CoinGecko(PriceSourceBase):
 
     async def _price_request(self, coin: str, currency: str) -> dict:
 
-        url = self._price_base_url()
+        url = self._base_url()
         # this opens a new connection each time. It's possible to restructure with sessions, but then the session needs
         # to live inside an async context, and I don't think it's necessary right now
         async with aiohttp.ClientSession().get(url, params=self._price_params(coin, currency), raise_for_status=True) as resp:
@@ -37,17 +37,12 @@ class CoinGecko(PriceSourceBase):
         try:
             coin_str = self._coin_to_str(coin)
             currency_str = self._currency_to_str(currency)
-        except IndexError:
+        except IndexError as e:
             # log not found
-            raise ValueError
+            raise ValueError from e
 
         try:
             result = await self._price_request(coin_str, currency_str)
             return result[coin_str][currency_str]
         except (ConnectionError, ClientConnectionError, HTTPError, json.JSONDecodeError):
             pass
-
-    def x_rate(self, coin1: Coin, coin2: Coin):
-        pass
-
-

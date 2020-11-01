@@ -85,12 +85,12 @@ class EtherLeader(Thread):
             self.stop_event.wait(self.config['sleep_interval'])
 
     @staticmethod
-    def _validate_fee(fee: int, amount: int):
+    def _validate_fee(amount: int, fee: int):
         return fee > amount
 
     def _tx_native_params(self, amount, dest_address):
         if self.config["network"] == "mainnet":
-            gas_price = BridgeOracle.gas_prices()
+            gas_price = BridgeOracle.gas_price()
             fee = gas_price * 1e9 * self.multisig_wallet.SUBMIT_GAS
         else:
             fee = 1
@@ -98,7 +98,7 @@ class EtherLeader(Thread):
         tx_dest = dest_address
         # use address(0) for native ethereum swaps
         tx_token = '0x0000000000000000000000000000000000000000'
-        tx_amount = amount
+        tx_amount = amount - fee
         data = b''
 
         return data, tx_dest, tx_amount, tx_token, fee
@@ -107,7 +107,7 @@ class EtherLeader(Thread):
         if self.config["network"] == "mainnet":
             decimals = Erc20Info.decimals(dst_token)
             x_rate = BridgeOracle.x_rate(Coin.Ethereum, Erc20Info.coin(dst_token))
-            gas_price = BridgeOracle.gas_prices()
+            gas_price = BridgeOracle.gas_price()
             fee = BridgeOracle.calculate_fee(self.multisig_wallet.SUBMIT_GAS,
                                              gas_price,
                                              decimals,
@@ -140,7 +140,7 @@ class EtherLeader(Thread):
             data, tx_dest, tx_amount, tx_token, fee = self._tx_erc20_params(amount, dest_address, dst_token)
 
         if not self._validate_fee(amount, fee):
-            self.logger.error(f"Tried to swap an amount too low to cover fee")
+            self.logger.error("Tried to swap an amount too low to cover fee")
             swap = Swap(src_network="Secret", src_tx_hash=swap_id, unsigned_tx=data, src_coin=src_token,
                         dst_coin=dst_token, dst_address=dest_address, amount=str(amount), dst_network="Ethereum",
                         status=Status.SWAP_FAILED)
@@ -174,7 +174,7 @@ class EtherLeader(Thread):
 
     def _broadcast_transaction(self, msg: message.Submit):
         if self.config["network"] == "mainnet":
-            gas_price = BridgeOracle.gas_prices()
+            gas_price = BridgeOracle.gas_price()
         else:
             gas_price = None
         tx_hash = self.multisig_wallet.submit_transaction(self.default_account, self.private_key, gas_price, msg)

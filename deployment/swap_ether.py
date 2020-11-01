@@ -26,7 +26,7 @@ def swap_eth():
 
     m = SwapMessage()
     tx_hash = send_contract_tx(multisig_wallet.contract, 'swap',
-                               account, bytes.fromhex(private_key), *m.args(), value=200)
+                               account, bytes.fromhex(private_key), value=200, args=m.args())
     print(repr(tx_hash))
 
 
@@ -97,7 +97,7 @@ def swap_erc():
     #print(tokens)
     m = SwapMessage()
     tx_hash = send_contract_tx(multisig_wallet.contract, 'swapToken',
-                               address, bytes.fromhex(private_key), 1000000, *m.args(), value=0)
+                               address, bytes.fromhex(private_key), 1000000, value=0, args=m.args())
     print(repr(tx_hash))
 
 
