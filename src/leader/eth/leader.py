@@ -86,7 +86,7 @@ class EtherLeader(Thread):
 
     @staticmethod
     def _validate_fee(amount: int, fee: int):
-        return fee > amount
+        return amount > fee
 
     def _tx_native_params(self, amount, dest_address):
         if self.config["network"] == "mainnet":
