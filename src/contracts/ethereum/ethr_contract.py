@@ -1,6 +1,6 @@
 import json
 from abc import abstractmethod
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 from web3 import Web3
 from web3.datastructures import AttributeDict
@@ -37,15 +37,17 @@ class EthereumContract:
             return None
         return log
 
-    def send_transaction(self, func_name: str, from_: str, private_key: bytes, gas, *args):
+    def send_transaction(self, func_name: str, from_: str, private_key: bytes, gas, gas_price=None, args: Tuple = None):
         """
         Used for sending contract transactions (executing @func_name  on a ethr contract)
         :param func_name: name of the function to invoke in the contract
         :param from_: the account from which gas payment will be taken
         :param private_key: private key matching the from_ account
         :param args: see 'send_contract_tx' for more details
+        :param gas_price: Gas price in GWei per gas unit used
+        :param gas: Gas limit per transaction. Any leftover will be refunded
         """
-        return send_contract_tx(self.contract, func_name, from_, private_key, gas, *args)
+        return send_contract_tx(self.contract, func_name, from_, private_key, gas, gas_price=gas_price, args=args)
 
     def transaction_raw_bytes(self, fn_name: str, *args):
         """

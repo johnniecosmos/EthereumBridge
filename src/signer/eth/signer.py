@@ -42,7 +42,6 @@ class EtherSigner(Thread):
 
         from_block = self.choose_starting_block()
 
-        self.logger.error(f'{from_block=}')
         self.event_listener.register(self.signer.sign, ['Submission'], from_block=from_block)
         self.event_listener.start()
         while not self.stop_event.is_set():

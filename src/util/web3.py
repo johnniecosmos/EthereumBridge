@@ -123,16 +123,19 @@ def estimate_gas_price():
 
 
 def send_contract_tx(contract: Web3Contract, function_name: str, from_acc: str, private_key: bytes,
-                     gas: int = 0, *args, gas_price: int = 0, value: int = 0):
+                     gas: int = 0, gas_price: int = 0, value: int = 0, args: Tuple = ()):
     """
     Creates the contract tx and signs it with private_key to be transmitted as raw tx
+
     """
+
     tx = getattr(contract.functions, function_name)(*args). \
         buildTransaction(
         {
             'from': from_acc,
             'chainId': w3.eth.chainId,
-            'gasPrice': gas_price or estimate_gas_price(),
+            # gas_price is in gwei
+            'gasPrice': gas_price * 1e9 if gas_price else estimate_gas_price(),
             'gas': gas or None,
             'nonce': w3.eth.getTransactionCount(from_acc, block_identifier='pending'),
             'value': value

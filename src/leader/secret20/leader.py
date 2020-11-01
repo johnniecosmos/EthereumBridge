@@ -91,6 +91,7 @@ class Secret20Leader(Thread):
             self.logger.info(f"Changed status of tx {tx.id} to submitted")
         except (RuntimeError, OperationError) as e:
             self.logger.error(msg=f"Failed to create multisig and broadcast, error: {e}")
+            self.manager.update_sequence()
 
     def _create_multisig(self, unsigned_tx: str, signatures: List[str]) -> str:
         """Takes all the signatures of the signers from the db and generates the signed tx with them."""
@@ -131,3 +132,4 @@ class Secret20Leader(Thread):
             # This can fail, but if it does we want to crash - this can lead to duplicate amounts and confusion
             # Better to just stop and make sure everything is kosher before continuing
             document.update(status=Status.SWAP_FAILED)
+            self.manager.update_sequence()

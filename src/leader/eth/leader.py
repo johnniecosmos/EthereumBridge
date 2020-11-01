@@ -2,9 +2,9 @@ import base64
 from subprocess import CalledProcessError
 from threading import Event, Thread
 
-from web3.exceptions import TransactionNotFound
-from pymongo.errors import DuplicateKeyError
 from mongoengine.errors import NotUniqueError
+from pymongo.errors import DuplicateKeyError
+from web3.exceptions import TransactionNotFound
 
 import src.contracts.ethereum.message as message
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
@@ -12,11 +12,13 @@ from src.contracts.secret.secret_contract import swap_query_res, get_swap_id
 from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.swaptrackerobject import SwapTrackerObject
 from src.db.collections.token_map import TokenPairing
+from src.util.coins import Erc20Info, Coin
 from src.util.common import Token
 from src.util.config import Config
 from src.util.logger import get_logger
+from src.util.oracle.oracle import BridgeOracle
 from src.util.secretcli import query_scrt_swap
-from src.util.web3 import erc20_contract, w3
+from src.util.web3 import erc20_contract
 
 
 class EtherLeader(Thread):
@@ -34,7 +36,6 @@ class EtherLeader(Thread):
                  dst_network: str, config: Config, **kwargs):
         self.config = config
         self.multisig_wallet = multisig_wallet
-
         self.erc20 = erc20_contract()
 
         token_map = {}
@@ -83,27 +84,78 @@ class EtherLeader(Thread):
 
             self.stop_event.wait(self.config['sleep_interval'])
 
+    @staticmethod
+    def _validate_fee(amount: int, fee: int):
+        return amount > fee
+
+    def _tx_native_params(self, amount, dest_address):
+        if self.config["network"] == "mainnet":
+            gas_price = BridgeOracle.gas_price()
+            fee = gas_price * 1e9 * self.multisig_wallet.SUBMIT_GAS
+        else:
+            fee = 1
+
+        tx_dest = dest_address
+        # use address(0) for native ethereum swaps
+        tx_token = '0x0000000000000000000000000000000000000000'
+        tx_amount = amount - fee
+        data = b''
+
+        return data, tx_dest, tx_amount, tx_token, fee
+
+    def _tx_erc20_params(self, amount, dest_address, dst_token):
+        if self.config["network"] == "mainnet":
+            decimals = Erc20Info.decimals(dst_token)
+            x_rate = BridgeOracle.x_rate(Coin.Ethereum, Erc20Info.coin(dst_token))
+            gas_price = BridgeOracle.gas_price()
+            fee = BridgeOracle.calculate_fee(self.multisig_wallet.SUBMIT_GAS,
+                                             gas_price,
+                                             decimals,
+                                             x_rate,
+                                             amount)
+        # for testing mostly
+        else:
+            fee = 1
+
+        data = self.erc20.encodeABI(fn_name='transfer', args=[dest_address, amount - fee])
+        tx_dest = dst_token
+        tx_token = dst_token
+        tx_amount = 0
+
+        return data, tx_dest, tx_amount, tx_token, fee
+
     def _handle_swap(self, swap_data: str, src_token: str, dst_token: str):
         swap_json = swap_query_res(swap_data)
         # this is an id, and not the TX hash since we don't actually know where the TX happened, only the id of the
         # swap reported by the contract
         swap_id = get_swap_id(swap_json)
         dest_address = base64.b64decode(swap_json['destination']).decode()
-        data = b""
-        amount = int(swap_json['amount'])
-        if dst_token == 'native':
-            # use address(0) for native ethereum
-            msg = message.Submit(dest_address, amount, int(swap_json['nonce']),
-                                 '0x0000000000000000000000000000000000000000', data)
 
+        amount = int(swap_json['amount'])
+
+        if dst_token == 'native':
+            data, tx_dest, tx_amount, tx_token, fee = self._tx_native_params(amount, dest_address)
         else:
             self.erc20.address = dst_token
-            data = self.erc20.encodeABI(fn_name='transfer', args=[dest_address, amount])
-            msg = message.Submit(dst_token,
-                                 0,  # if we are swapping token, no ether should be rewarded
-                                 int(swap_json['nonce']),
-                                 dst_token,
-                                 data)
+            data, tx_dest, tx_amount, tx_token, fee = self._tx_erc20_params(amount, dest_address, dst_token)
+
+        if not self._validate_fee(amount, fee):
+            self.logger.error("Tried to swap an amount too low to cover fee")
+            swap = Swap(src_network="Secret", src_tx_hash=swap_id, unsigned_tx=data, src_coin=src_token,
+                        dst_coin=dst_token, dst_address=dest_address, amount=str(amount), dst_network="Ethereum",
+                        status=Status.SWAP_FAILED)
+            try:
+                swap.save()
+            except (DuplicateKeyError, NotUniqueError):
+                pass
+            return
+
+        msg = message.Submit(tx_dest,
+                             tx_amount,  # if we are swapping token, no ether should be rewarded
+                             int(swap_json['nonce']),
+                             tx_token,
+                             fee,
+                             data)
         # todo: check we have enough ETH
         swap = Swap(src_network="Secret", src_tx_hash=swap_id, unsigned_tx=data, src_coin=src_token,
                     dst_coin=dst_token, dst_address=dest_address, amount=str(amount), dst_network="Ethereum",
@@ -121,6 +173,10 @@ class EtherLeader(Thread):
                 pass
 
     def _broadcast_transaction(self, msg: message.Submit):
-        tx_hash = self.multisig_wallet.submit_transaction(self.default_account, self.private_key, msg)
+        if self.config["network"] == "mainnet":
+            gas_price = BridgeOracle.gas_price()
+        else:
+            gas_price = None
+        tx_hash = self.multisig_wallet.submit_transaction(self.default_account, self.private_key, gas_price, msg)
         self.logger.info(msg=f"Submitted tx: hash: {tx_hash.hex()}, msg: {msg}")
         return tx_hash.hex()

@@ -45,7 +45,6 @@ class EthEventListener(EventProvider):
         """
 
         for event_name in events:
-            # event = getattr(self.contract.contract.events, event_name)
             self.logger.info(f"registering event {event_name}")
             self.events.append(event_name)
             self.callbacks[event_name] = callback
@@ -65,19 +64,14 @@ class EthEventListener(EventProvider):
         """Notify registered callbacks upon event occurrence"""
         self.logger.info("Starting..")
 
-        # block = w3.eth.blockNumber - self.confirmations
         while not self.stop_event.is_set():
             self.logger.debug('Scanning for new events')
             for name, event in self.get_new_events():
                 self.logger.info(f"New event found {name}, adding to confirmation handler")
-                # self.callbacks.trigger(name, event)
                 self.pending_events.append((name, event))
             for name, event in self.confirmation_handler():
                 self.logger.info(f"Event {name} passed confirmation limit, executing callback")
                 self.callbacks.trigger(name, event)
-            # except BlockNotFound:
-            #     self.logger.error(f'Block not found {block}')
-            #     # block = self.wait_for_block(block)
 
             sleep(self.config['sleep_interval'])
 

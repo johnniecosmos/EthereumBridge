@@ -14,6 +14,8 @@ from src.util.web3 import normalize_address
 contracts_folder = os.path.join(module_dir(contracts_package), 'sol')
 brownie_project_folder = os.path.join(module_dir(integration_package), 'brownie_project')
 
+PAYABLE_ADDRESS = "0x1111111111111111111111111111111111111111"
+
 
 @fixture(scope="module")
 def multisig_wallet(web3_provider, configuration: Config, ether_accounts):
@@ -22,6 +24,7 @@ def multisig_wallet(web3_provider, configuration: Config, ether_accounts):
     # normalize_accounts = [normalize_address(acc.address) for acc in ether_accounts]
     swap_contract = MultiSigSwapWallet.deploy([acc.address for acc in ether_accounts],
                                               configuration['signatures_threshold'],
+                                              PAYABLE_ADDRESS,
                                               {'from': accounts[0]})
     contract_address = str(swap_contract.address)
     print(f"{contract_address=}")

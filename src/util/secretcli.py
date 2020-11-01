@@ -34,10 +34,11 @@ def multisig_tx(unsigned_tx_path: str, multi_sig_account_name: str, *signed_tx):
 
 
 def create_unsigned_tx(secret_contract_addr: str, transaction_data: Dict, chain_id: str, enclave_key: str,
-                       code_hash: str, multisig_acc_addr: str) -> str:
+                       code_hash: str, multisig_acc_addr: str, account: int, sequence: int) -> str:
     cmd = ['secretcli', 'tx', 'compute', 'execute', secret_contract_addr, f"{json.dumps(transaction_data)}",
            '--generate-only', '--chain-id', f"{chain_id}", '--enclave-key', enclave_key, '--code-hash',
-           code_hash, '--from', multisig_acc_addr, '--gas', '250000']
+           code_hash, '--from', multisig_acc_addr, '--gas', '250000', '--account-number', str(account),
+           '--sequence', str(sequence)]
     return run_secret_cli(cmd)
 
 
@@ -61,6 +62,11 @@ def query_scrt_swap(nonce: int, scrt_swap_address: str, token: str) -> str:
 def query_tx(tx_hash: str):
     cmd = ['secretcli', 'query', 'tx', tx_hash]
     return run_secret_cli(cmd)
+
+
+def account_info(account: str):
+    cmd = ['secretcli', 'query', 'account', account]
+    return json.loads(run_secret_cli(cmd))
 
 
 def query_data_success(tx_hash: str):

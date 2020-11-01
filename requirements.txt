@@ -3,3 +3,5 @@ mongoengine~=0.20.0
 blinker
 hexbytes~=0.2.1
 pymongo[srv]
+requests~=2.24.0
+aiohttp~=3.7.2

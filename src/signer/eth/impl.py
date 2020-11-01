@@ -13,6 +13,7 @@ from src.db.collections.token_map import TokenPairing
 from src.util.common import Token
 from src.util.config import Config
 from src.util.logger import get_logger
+from src.util.oracle.oracle import BridgeOracle
 from src.util.secretcli import query_scrt_swap
 from src.util.web3 import erc20_contract
 
@@ -44,10 +45,8 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
                                  logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.account[0:5]}"))
 
         self.erc20 = erc20_contract()
-
         self.catch_up_complete = False
-        # self.cache = self._create_cache()
-        # print(f'{self.cache=}')
+
         self.token_map = {}
         pairs = TokenPairing.objects(dst_network=dst_network, src_network=self.network)
         for pair in pairs:
@@ -96,6 +95,8 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         nonce = submission_data['nonce']
         token = submission_data['token']
 
+        # todo: validate fee
+
         try:
             if token == '0x0000000000000000000000000000000000000000':
                 self.logger.info("Testing secret-ETH to ETH swap")
@@ -124,8 +125,9 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         :param swap_data: the data from secret20 contract query
         :param submission_data: the data from the proposed tx on the smart contract
         """
-        if int(swap_data['amount']) != int(submission_data['amount']):
-            self.logger.error(f'Invalid transaction - {swap_data["amount"]} does not match {submission_data["amount"]}')
+        if int(swap_data['amount']) != int(submission_data['amount'] + submission_data['fee']):
+            self.logger.error(f'Invalid transaction - {swap_data["amount"]} does not match '
+                              f'{submission_data["amount"]} + {submission_data["fee"]}')
             return False
 
         dest = base64.standard_b64decode(swap_data['destination']).decode()
@@ -155,7 +157,11 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         Sign the transaction with the signer's private key and then broadcast
         Note: This operation costs gas
         """
+        if self.config["network"] == "mainnet":
+            gas_prices = BridgeOracle.gas_price()
+        else:
+            gas_prices = None
         msg = message.Confirm(submission_id)
-        tx_hash = self.multisig_contract.confirm_transaction(self.account, self.private_key, msg)
+        tx_hash = self.multisig_contract.confirm_transaction(self.account, self.private_key, gas_prices, msg)
         self.logger.info(msg=f"Signed transaction - signer: {self.account}, signed msg: {msg}, "
                              f"tx hash: {tx_hash.hex()}")
