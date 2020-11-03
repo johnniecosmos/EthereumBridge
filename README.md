@@ -68,7 +68,7 @@ user@pc:.../EthereumBridge/tests/utils$ ./setup_secret_keys.sh 3 ../../keys/
 #### Run Tests
 
 ```sh
-
+export SGX_MODE=SW
 python -m pytest tests/
 ```
 
