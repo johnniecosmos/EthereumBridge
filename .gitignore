@@ -145,6 +145,7 @@ cython_debug/
 /tests/integration/brownie_project/
 /tests/deployment/
 /tests/keys/
+/keys/
 *.der
 tkeys/*
 docker-compose.yaml
