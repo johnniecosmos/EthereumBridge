@@ -185,6 +185,14 @@ contract MultiSigSwapWallet {
     // OnlyWallet todo: consider this as OnlyWallet
     {
         delete tokenWhitelist[_tokenAddress];
+
+        for (uint i = 0; i < tokens.length - 1; i++) {
+            if (tokens[i] == _tokenAddress) {
+                tokens[i] = tokens[tokens.length - 1];
+                break;
+            }
+        }
+        tokens.pop();
     }
 
     function getTokenNonce(address _tokenAddress)
@@ -475,13 +483,13 @@ contract MultiSigSwapWallet {
     {
         transactionId = transactionCount;
         transactions[transactionId] = Transaction({
-        destination : destination,
-        value : value,
-        data : data,
-        executed : false,
-        nonce : nonce,
-        token : token,
-        fee: fee
+            destination : destination,
+            value : value,
+            data : data,
+            executed : false,
+            nonce : nonce,
+            token : token,
+            fee: fee
         });
         transactionCount += 1;
         emit Submission(transactionId);
