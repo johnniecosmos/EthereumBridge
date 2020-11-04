@@ -142,7 +142,7 @@ class EtherLeader(Thread):
         if not self._validate_fee(amount, fee):
             self.logger.error("Tried to swap an amount too low to cover fee")
             swap = Swap(src_network="Secret", src_tx_hash=swap_id, unsigned_tx=data, src_coin=src_token,
-                        dst_coin=dst_token, dst_address=dest_address, amount=str(amount), dst_network="Ethereum",
+                        dst_coin=dst_token, dst_address=dest_address, amount=amount, dst_network="Ethereum",
                         status=Status.SWAP_FAILED)
             try:
                 swap.save()
@@ -158,7 +158,7 @@ class EtherLeader(Thread):
                              data)
         # todo: check we have enough ETH
         swap = Swap(src_network="Secret", src_tx_hash=swap_id, unsigned_tx=data, src_coin=src_token,
-                    dst_coin=dst_token, dst_address=dest_address, amount=str(amount), dst_network="Ethereum",
+                    dst_coin=dst_token, dst_address=dest_address, amount=amount, dst_network="Ethereum",
                     status=Status.SWAP_FAILED)
         try:
             tx_hash = self._broadcast_transaction(msg)

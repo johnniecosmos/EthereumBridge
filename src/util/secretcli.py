@@ -20,30 +20,31 @@ def query_encrypted_error(tx_hash: str):
     return resp_json["output_error"]
 
 
-def sign_tx(unsigned_tx_path: str, multi_sig_account_addr: str, account_name: str):
+def sign_tx(unsigned_tx_path: str, multi_sig_account_addr: str, account_name: str, account: int, sequence: int):
     cmd = ['secretcli', 'tx', 'sign', unsigned_tx_path, '--signature-only', '--multisig',
-           multi_sig_account_addr, '--from', account_name]
+           multi_sig_account_addr, '--from', account_name, '--offline', '--account-number', str(account),
+           '--sequence', str(sequence)]
 
     return run_secret_cli(cmd)
 
 
-def multisig_tx(unsigned_tx_path: str, multi_sig_account_name: str, *signed_tx):
+def multisig_tx(unsigned_tx_path: str, multi_sig_account_name: str, account: int, sequence: int, *signed_tx):
     cmd = ['secretcli', 'tx', 'multisign', unsigned_tx_path, multi_sig_account_name] + list(signed_tx)
-
+    cmd += ['--offline', '--account-number', str(account), '--sequence', str(sequence)]
     return run_secret_cli(cmd)
 
 
 def create_unsigned_tx(secret_contract_addr: str, transaction_data: Dict, chain_id: str, enclave_key: str,
-                       code_hash: str, multisig_acc_addr: str, account: int, sequence: int) -> str:
+                       code_hash: str, multisig_acc_addr: str) -> str:
     cmd = ['secretcli', 'tx', 'compute', 'execute', secret_contract_addr, f"{json.dumps(transaction_data)}",
            '--generate-only', '--chain-id', f"{chain_id}", '--enclave-key', enclave_key, '--code-hash',
-           code_hash, '--from', multisig_acc_addr, '--gas', '250000', '--account-number', str(account),
-           '--sequence', str(sequence)]
+           code_hash, '--from', multisig_acc_addr, '--gas', '250000']
     return run_secret_cli(cmd)
 
 
 def broadcast(signed_tx_path: str) -> str:
-    cmd = ['secretcli', 'tx', 'broadcast', signed_tx_path]
+    # async mode allows sending more than 1 tx per block
+    cmd = ['secretcli', 'tx', 'broadcast', signed_tx_path, '-b', 'async']
     return run_secret_cli(cmd)
 
 
@@ -69,16 +70,28 @@ def account_info(account: str):
     return json.loads(run_secret_cli(cmd))
 
 
-def query_data_success(tx_hash: str):
-    """ This command is used to test success of transactions - so we can safely ignore any errors and assume in any case
-    that means the tx isn't on-chain
+def query_data_success(tx_hash: str) -> Dict:
+    """ This command is used to test success of transactions. Raise if transaction failed, or return empty dict if
+    transaction isn't on-chain yet
+
+    :raises ValueError: On any bad response
+
     """
     cmd = ['secretcli', 'query', 'compute', 'tx', tx_hash]
     try:
         resp = run_secret_cli(cmd)
-        return json.loads(json.loads(resp)["output_data_as_string"])
-    except (RuntimeError, json.JSONDecodeError, KeyError):
+    except RuntimeError:
         return {}
+    try:
+        as_json = json.loads(resp)
+        output_error = as_json["output_error"]
+        if output_error:
+            raise ValueError(f"Failed to execute transaction: {output_error}")
+        return json.loads(json.loads(resp)["output_data_as_string"])
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Failed to decode response as valid json: {e}, {resp}")
+    except KeyError as e:
+        raise ValueError(f"Failed to decode response {e}")
 
 
 def run_secret_cli(cmd: List[str]) -> str:

@@ -55,7 +55,7 @@ def swap_erc():
         tx_hash = w3.eth.sendRawTransaction(signed_tx.rawTransaction)
 
         # Get transaction hash from deployed contract
-        tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+        # tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
     except Exception:
         pass
 

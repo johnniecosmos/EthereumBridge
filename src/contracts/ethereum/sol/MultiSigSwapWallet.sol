@@ -403,13 +403,7 @@ contract MultiSigSwapWallet {
             txn.executed = true;
 
             if (txn.fee > 0) {
-                //collectFee(transactionId);
-                if (txn.token == address(0)) {
-                    feeCollector.transfer(txn.fee);
-                } else {
-                    IERC20 token = IERC20(txn.token);
-                    token.safeTransfer(feeCollector, txn.fee);
-                }
+                collectFee(transactionId);
             }
 
             require(gasleft() >= 3000);

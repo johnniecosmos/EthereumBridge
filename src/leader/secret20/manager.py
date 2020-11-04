@@ -1,4 +1,4 @@
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from typing import Dict
 
 from web3.datastructures import AttributeDict
@@ -35,10 +35,20 @@ class SecretManager(Thread):
                                                         f"{self.__class__.__name__}-{self.multisig.name}"))
         self.stop_signal = Event()
         self.account_num = 0
+        self.sequence_lock = Lock()
         self.sequence = 0
         self.update_sequence()
         self.event_listener.register(self._handle, contract.tracked_event(),)
         super().__init__(group=None, name="SecretManager", target=self.run, **kwargs)
+
+    @property
+    def _sequence(self):
+        return self.sequence
+
+    @_sequence.setter
+    def _sequence(self, val):
+        with self.sequence_lock:
+            self.sequence = val
 
     def stop(self):
         self.logger.info("Stopping..")
@@ -57,6 +67,9 @@ class SecretManager(Thread):
         self.logger.info("Done catching up")
 
         while not self.stop_signal.is_set():
+            for transaction in Swap.objects(status=Status.SWAP_RETRY):
+                self._retry(transaction)
+
             for transaction in Swap.objects(status=Status.SWAP_UNSIGNED):
                 self.logger.debug(f"Checking unsigned tx {transaction.id}")
                 if Signatures.objects(tx_id=transaction.id).count() >= self.config['signatures_threshold']:
@@ -98,6 +111,14 @@ class SecretManager(Thread):
     def _get_s20(self, foreign_token_addr: str) -> Token:
         return self.s20_map[foreign_token_addr]
 
+    def _retry(self, tx: Swap):
+        for signature in Signatures.objects(tx_id=tx.id):
+            signature.delete()
+        tx.status = Status.SWAP_UNSIGNED
+        tx.sequence = self.sequence
+        tx.save()
+        self.sequence = self.sequence + 1
+
     def _handle(self, event: AttributeDict):
         """Extracts tx data from @event and add unsigned_tx to db"""
         if not self.contract.verify_destination(event):
@@ -117,14 +138,13 @@ class SecretManager(Thread):
             mint = mint_json(amount, tx_hash, recipient, s20.address)
             unsigned_tx = create_unsigned_tx(self.config["scrt_swap_address"], mint, self.config['chain_id'],
                                              self.config['enclave_key'], self.config["swap_code_hash"],
-                                             self.multisig.address, self.account_num, self.sequence)
-
-            self.sequence += 1
-
+                                             self.multisig.address)
             # if ETHSwap.objects(tx_hash=tx_hash).count() == 0:  # TODO: exception because of force_insert?
             tx = Swap(src_tx_hash=tx_hash, status=Status.SWAP_UNSIGNED, unsigned_tx=unsigned_tx, src_coin=token,
-                      dst_coin=s20.name, dst_address=s20.address, src_network="Ethereum")
+                      dst_coin=s20.name, dst_address=s20.address, src_network="Ethereum", sequence=self.sequence,
+                      amount=amount)
             tx.save(force_insert=True)
+            self.sequence = self.sequence + 1
             self.logger.info(f"saved new Ethereum -> Secret transaction {tx_hash}, for {amount} {s20.name}")
             # SwapTrackerObject.update_last_processed(src=Source.ETH.value, update_val=block_number)
         except (IndexError, AttributeError) as e:

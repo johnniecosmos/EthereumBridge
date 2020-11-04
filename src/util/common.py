@@ -19,6 +19,7 @@ def temp_file(data: str):
     remove(f.name)
 
 
+# todo: I don't think this actually works
 @contextmanager
 def temp_files(data: List[str], logger) -> Generator:
     temp = []
