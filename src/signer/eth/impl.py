@@ -12,6 +12,7 @@ from src.contracts.secret.secret_contract import swap_query_res
 from src.db.collections.token_map import TokenPairing
 from src.util.common import Token
 from src.util.config import Config
+from src.util.crypto_store.crypto_manager import CryptoManagerBase
 from src.util.logger import get_logger
 from src.util.oracle.oracle import BridgeOracle
 from src.util.secretcli import query_scrt_swap
@@ -34,12 +35,12 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
     """
     network = "Ethereum"
 
-    def __init__(self, multisig_contract: MultisigWallet, private_key: bytes, account: str,
+    def __init__(self, multisig_contract: MultisigWallet, signer: CryptoManagerBase,
                  dst_network: str, config: Config):
         # todo: simplify this, pylint is right
         self.multisig_contract = multisig_contract
-        self.private_key = private_key
-        self.account = account
+        self.account = signer.address
+        self.signer = signer
         self.config = config
         self.logger = get_logger(db_name=config['db_name'],
                                  logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.account[0:5]}"))
@@ -162,6 +163,7 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         else:
             gas_prices = None
         msg = message.Confirm(submission_id)
+
         tx_hash = self.multisig_contract.confirm_transaction(self.account, self.private_key, gas_prices, msg)
         self.logger.info(msg=f"Signed transaction - signer: {self.account}, signed msg: {msg}, "
                              f"tx hash: {tx_hash.hex()}")
