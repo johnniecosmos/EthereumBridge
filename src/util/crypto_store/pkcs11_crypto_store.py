@@ -20,6 +20,7 @@ class Pkcs11CryptoStore(CryptoManagerBase):
         self.key_id = key_id or None
         self._address = None
         self.public_key = None
+        # self.chain_id = chain_id
         if self.key_id:
             self._load_key()
 
@@ -38,9 +39,11 @@ class Pkcs11CryptoStore(CryptoManagerBase):
                     pkcs11.KeyType.EC, {
                         pkcs11.Attribute.EC_PARAMS: ec.encode_named_curve_parameters('secp256k1'),
                     }, local=True)
-                self.key_id = os.urandom(10)
+                self.key_id = 2002  # int.from_bytes(os.urandom(4), byteorder="big")
                 pub, priv = ecparams.generate_keypair(id=self.key_id, label=self.label, store=True)
                 self._address = self._address_from_pub(pub)
+                self.public_key = encode_ec_public_key(pub)[24:]
+        return self.key_id, self.label
 
     @property
     def address(self) -> str:
@@ -60,7 +63,7 @@ class Pkcs11CryptoStore(CryptoManagerBase):
                                    object_class=pkcs11.ObjectClass.PRIVATE_KEY,
                                    label=self.label,
                                    id=self.key_id)
-            signature = priv.sign(msg_bytes)
+            signature = priv.sign(msg_bytes, mechanism=pkcs11.Mechanism.ECDSA)
 
             r = int.from_bytes(signature[0:32], byteorder='big')
             s = int.from_bytes(signature[32:], byteorder='big')
@@ -69,8 +72,9 @@ class Pkcs11CryptoStore(CryptoManagerBase):
             s = s if s * 2 < secpk1n else secpk1n - s
 
             v = 0
+
             for _v in range(27, 29):
-                pub2 = ecrecover_to_pub(msg_bytes, v, r, s)
+                pub2 = ecrecover_to_pub(msg_bytes, _v, r, s)
                 if pub2 == self.public_key:
                     v = _v
 
