@@ -12,6 +12,7 @@ from src.signer.secret20 import Secret20Signer
 from src.signer.secret20.signer import SecretAccount
 from src.util.common import Token, bytes_from_hex
 from src.util.config import Config
+from src.util.crypto_store.local_crypto_store import LocalCryptoStore
 from src.util.logger import get_logger
 from src.util.secretcli import configure_secretcli
 from src.util.web3 import w3
@@ -64,24 +65,23 @@ def run_bridge():  # pylint: disable=too-many-statements
         logger.error('Failed to set up secretcli')
         sys.exit(1)
 
+    signer = LocalCryptoStore(private_key=bytes_from_hex(cfg['private_key']), account=cfg['account'])
+
     with database(db=cfg['db_name'], host=cfg['db_host'],
                   password=cfg['db_password'], username=cfg['db_username']):
 
         eth_wallet = MultisigWallet(w3, cfg['multisig_wallet_address'])
 
-        private_key = bytes_from_hex(cfg['private_key'])
-        account = cfg['account']
-
         secret_account = SecretAccount(cfg['multisig_acc_addr'], cfg['secret_key_name'])
 
-        eth_signer = EtherSigner(eth_wallet, private_key, account, dst_network="Secret", config=cfg)
+        eth_signer = EtherSigner(eth_wallet, signer, dst_network="Secret", config=cfg)
         s20_signer = Secret20Signer(secret_account, eth_wallet, cfg)
 
         runners.append(eth_signer)
         runners.append(s20_signer)
 
         if cfg['MODE'].lower() == 'leader':
-            eth_leader = EtherLeader(eth_wallet, private_key, account, dst_network="Secret", config=cfg)
+            eth_leader = EtherLeader(eth_wallet, signer, dst_network="Secret", config=cfg)
 
             secret_leader = SecretAccount(cfg['multisig_acc_addr'], cfg['multisig_key_name'])
             s20_leader = Secret20Leader(secret_leader, eth_wallet, src_network="Ethereum", config=cfg)

@@ -2,6 +2,7 @@ import json
 from abc import abstractmethod
 from typing import Optional, List, Tuple
 
+import rlp
 from web3 import Web3
 from eth_utils import to_checksum_address
 from web3.datastructures import AttributeDict
@@ -10,11 +11,16 @@ from src.util.crypto_store.crypto_manager import CryptoManagerBase
 from src.util.eth.transaction import Transaction
 from src.util.web3 import normalize_address, send_contract_tx, event_log, w3
 
-GAS_LIMIT_DEFAULT = 400000
+GAS_LIMIT_DEFAULT = 4000000
 
 
 def estimate_gas_price():
     return w3.eth.gasPrice
+
+
+def broadcast_transaction(tx: Transaction):
+    raw = rlp.encode(tx)
+    return w3.eth.sendRawTransaction(raw)
 
 
 class EthereumContract:
@@ -25,7 +31,7 @@ class EthereumContract:
         self._address = contract_address
         self.contract = provider.eth.contract(address=normalize_address(self._address), abi=self.abi)
         self.provider = provider
-        self.network = w3.net.version
+        self.network = w3.eth.chainId
 
     @property
     def address(self):
@@ -59,19 +65,19 @@ class EthereumContract:
         """
         return send_contract_tx(self.contract, func_name, from_, private_key, gas, gas_price=gas_price, args=args)
 
-    def raw_transaction(self, account: str, to: str, value: int, data: bytes = b'',
+    def raw_transaction(self, account: str, value: int, data: str = '0x',
                         gas_price=None, gas_limit=None) -> Transaction:
-
-        nonce = w3.eth.getTransactionCount(to_checksum_address, block_identifier='pending'),
+        address = to_checksum_address(account)
+        nonce = w3.eth.getTransactionCount(address, block_identifier='pending')
         _gas_price = gas_price * 1e9 if gas_price else estimate_gas_price()
         _gas_limit = gas_limit or GAS_LIMIT_DEFAULT
         tx = Transaction(nonce=nonce,
                          gasprice=_gas_price,
                          startgas=_gas_limit,
-                         to=to,
+                         to=self.contract.address,
                          value=value,
-                         data=data,
-                         sender=account,
+                         data=bytes.fromhex(data[2:]),
+                         sender=address,
                          network=self.network)
         # tx.sender = account
         return tx
@@ -79,7 +85,7 @@ class EthereumContract:
     def sign_transaction(self, tx: Transaction, signer: CryptoManagerBase) -> Transaction:
         return tx.sign(signer, self.network)
 
-    def encode_data(self, fn_name: str, *args) -> bytes:
+    def encode_data(self, fn_name: str, *args) -> str:
         """
         In order to invoke functions in contracts, one would we required to generate the raw tx message and pass
         it as param to the call function. call signature: call(g, a, v, in, insize, out, outsize).
@@ -90,7 +96,7 @@ class EthereumContract:
             - args order is important
             - this might not be require for all contracts (it is required for gnosis MultiSigWallet)
         """
-        return self.contract.encodeABI(fn_name=fn_name, args=[*args]).encode()
+        return self.contract.encodeABI(fn_name=fn_name, args=[*args])
 
     @abstractmethod
     def extract_addr(self, tx_log: AttributeDict) -> str:

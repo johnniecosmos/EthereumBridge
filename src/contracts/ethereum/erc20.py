@@ -37,7 +37,6 @@ class Erc20(EthereumContract):
         :param data: an encodeAbi result
         """
         result = self.contract.decode_function_input(data.hex())
-        print(f'{result=}')
         if len(data) < 139:
             raise ValueError("Data in erc-20 transaction must be 139 bytes or more")
         _, dest, amount = data[:10], data[34:74], data[74:138]

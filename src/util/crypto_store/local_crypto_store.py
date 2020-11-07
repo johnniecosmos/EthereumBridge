@@ -10,9 +10,10 @@ from src.util.crypto_store.crypto_manager import CryptoManagerBase
 
 class LocalCryptoStore(CryptoManagerBase):
     def __init__(self, private_key: bytes = b'', account: str = ''):
-        self.private_key = b''
+        self.private_key = private_key
         self.public_key = b''
-        self.address = ''
+
+        self.address = account
 
     def generate(self):
         sk = SigningKey.generate(curve=SECP256k1)
@@ -27,6 +28,6 @@ class LocalCryptoStore(CryptoManagerBase):
     def sign(self, tx_hash: str):
         msg_bytes = bytes.fromhex(tx_hash)
 
-        r, s, v = ecsign(msg_bytes, self.private_key)
+        v, r, s = ecsign(msg_bytes, self.private_key)
 
         return r, s, v

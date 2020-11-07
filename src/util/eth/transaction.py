@@ -145,12 +145,8 @@ class Transaction(rlp.Serializable):
         """Sign this transaction with a private key.
         A potentially already existing signature would be overridden.
         """
-        if network_id is None:
-            rlpdata = rlp.encode(unsigned_tx_from_tx(self), UnsignedTransaction)
-        else:
-            assert 1 <= network_id < 2**63 - 18
-            rlpdata = rlp.encode(rlp.infer_sedes(self).serialize(self)[
-                                 :-3] + [network_id, b'', b''])
+
+        rlpdata = self.rlpdata(network_id)
 
         keccak_hash = keccak.new(digest_bits=256)
         keccak_hash.update(rlpdata)
@@ -158,14 +154,8 @@ class Transaction(rlp.Serializable):
 
         r, s, v = signer.sign(hashed_msg)
 
-        # v = int(_v) + 27
-        # r = int(_r, 16)
-        # s = int(_s, 16)
-
         if network_id is not None:
             v += 8 + network_id * 2
-
-        print(f'r:{r}\ns{s}\nv:{v}')
 
         ret = self.copy(
             v=v, r=r, s=s

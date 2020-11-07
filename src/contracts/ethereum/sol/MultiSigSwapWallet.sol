@@ -77,7 +77,7 @@ contract MultiSigSwapWallet {
     }
 
     modifier ownerExists(address owner) {
-        require(isOwner[owner]);
+        require(isOwner[owner], "Owner does not exist");
         _;
     }
 

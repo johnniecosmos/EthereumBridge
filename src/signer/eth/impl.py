@@ -7,6 +7,7 @@ from typing import Dict
 from web3.datastructures import AttributeDict
 
 import src.contracts.ethereum.message as message
+from src.contracts.ethereum.ethr_contract import broadcast_transaction
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
 from src.db.collections.token_map import TokenPairing
@@ -164,6 +165,12 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
             gas_prices = None
         msg = message.Confirm(submission_id)
 
-        tx_hash = self.multisig_contract.confirm_transaction(self.account, self.private_key, gas_prices, msg)
+        data = self.multisig_contract.encode_data('confirmTransaction', *msg.args())
+        tx = self.multisig_contract.raw_transaction(self.signer.address, 0, data, gas_prices,
+                                                    gas_limit=self.multisig_contract.CONFIRM_GAS)
+        tx = self.multisig_contract.sign_transaction(tx, self.signer)
+        tx_hash = broadcast_transaction(tx)
+
+        # tx_hash = self.multisig_contract.confirm_transaction(self.account, self.private_key, gas_prices, msg)
         self.logger.info(msg=f"Signed transaction - signer: {self.account}, signed msg: {msg}, "
                              f"tx hash: {tx_hash.hex()}")
