@@ -12,45 +12,48 @@ from src.util.crypto_store.crypto_manager import CryptoManagerBase
 
 
 class Pkcs11CryptoStore(CryptoManagerBase):
-    def __init__(self, token, user_pin, label: str = '', key_id: bytes = b''):
+    def __init__(self, token, user_pin, label: str = ''):
         lib = pkcs11.lib(os.getenv('PKCS11_MODULE'))
-        self.token = lib.get_token(token_label=token)
+        try:
+            self.token = lib.get_token(token_label=token)
+        except pkcs11.MultipleTokensReturned:
+            raise RuntimeError("Multiple tokens returned for token label")
+
         self.user_pin = user_pin
         self.label = label or "bridge_key"
-        self.key_id = key_id or None
         self._address = None
         self.public_key = None
-        # self.chain_id = chain_id
-        if self.key_id:
+
+        if self.label:
             self._load_key()
 
     def _load_key(self):
         with self.token.open(user_pin=self.user_pin) as session:
             keys = session.get_objects({pkcs11.Attribute.CLASS: pkcs11.ObjectClass.PUBLIC_KEY})
             for key in keys:
-                if key.id == self.key_id:
+                if key.label == self.label:
                     self.public_key = encode_ec_public_key(key)[24:]
                     self._address = self._address_from_pub(key)
 
     def generate(self):
         if not self._address:
+            # if we got here, we didn't succeed in loading during _load_key, so we can just generate a new one without
+            # being afraid of multiple objects
+            # todo: handle multiple objects a little more gracefully? We'll see how other HSMs handle this shit...
             with self.token.open(rw=True, user_pin=self.user_pin) as session:
                 ecparams = session.create_domain_parameters(
                     pkcs11.KeyType.EC, {
                         pkcs11.Attribute.EC_PARAMS: ec.encode_named_curve_parameters('secp256k1'),
                     }, local=True)
-                self.key_id = 2002  # int.from_bytes(os.urandom(4), byteorder="big")
-                pub, priv = ecparams.generate_keypair(id=self.key_id, label=self.label, store=True)
+
+                pub, priv = ecparams.generate_keypair(label=self.label, store=True)
                 self._address = self._address_from_pub(pub)
                 self.public_key = encode_ec_public_key(pub)[24:]
-        return self.key_id, self.label
+        return self.label
 
     @property
     def address(self) -> str:
         return self._address
-
-    def keyid(self) -> bytes:
-        return self.key_id
 
     def sign(self, tx_hash: str) -> Tuple[int, int, int]:
 
@@ -61,8 +64,7 @@ class Pkcs11CryptoStore(CryptoManagerBase):
         with self.token.open(user_pin=self.user_pin) as session:
             priv = session.get_key(key_type=pkcs11.KeyType.EC,
                                    object_class=pkcs11.ObjectClass.PRIVATE_KEY,
-                                   label=self.label,
-                                   id=self.key_id)
+                                   label=self.label)
             signature = priv.sign(msg_bytes, mechanism=pkcs11.Mechanism.ECDSA)
 
             r = int.from_bytes(signature[0:32], byteorder='big')
@@ -90,7 +92,7 @@ class Pkcs11CryptoStore(CryptoManagerBase):
 
         # public key in der encoding is 32 bytes of header stuff, then 65 bytes of the uncompressed public key
         # so we start from the 33rd byte
-        pub_uncompressed = public_der[33:].hex()
+        pub_uncompressed = public_der[24:].hex()
         return pubkey_to_addr(pub_uncompressed)
 
 
