@@ -6,7 +6,7 @@ services:
     hostname: signer
     image: bridge:latest
     volumes:
-      - /mnt/c/EthereumBridge/tkeys:/root/keys  # path where the file specified by "secret_key_name" exists
+      - /replace/this/with/keys/path/:/root/keys  # map the path where the file specified by "secret_key_name" exists
     environment:
       - SWAP_ENV=TESTNET
       - MODE=signer
@@ -23,12 +23,10 @@ services:
       - eth_private_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa   # ethereum private key
       - eth_account=0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb                     # ethereum account address
 
-      # eth key option 2 - pkcs11 module
+      # eth key option 2 - pkcs11 module (only softhsm supported currently)
       # volumes: (you need to map the HSM's library to a path inside the container)
-      #   - /path/to/host/lib.so:/root/hsm/libsigner.so  # path where the file specified by "secret_key_name" exists
       #   - /path/to/tokens:/root/hsm/tokens/
       # environment:
-      #   - PKCS11_MODULE=/root/hsm/libsigner.so     <- must point to the .so file inside the container
       #   - token=token
       #   - user_pin=1234
       #   - label=label

@@ -82,7 +82,7 @@ def test_1_swap_eth_to_s20(setup, scrt_signers, scrt_leader, web3_provider, conf
 
     sleep(5)
 
-    assert Swap.objects().get().status in [Status.SWAP_SUBMITTED, Status.SWAP_CONFIRMED]
+    assert Swap.objects().get().status in [Status.SWAP_SUBMITTED]
     # give time for manager to process the signatures
     sleep(configuration['sleep_interval'] + 5)
     assert Swap.objects().get().status == Status.SWAP_CONFIRMED
@@ -197,7 +197,7 @@ def test_11_swap_erc_to_s20(scrt_leader, scrt_signers, web3_provider, configurat
     # add usdt to the whitelisted token list
     account = web3_provider.eth.account.from_key(configuration["leader_key"])
     nonce = web3_provider.eth.getTransactionCount(account.address, "pending")
-    tx = multisig_wallet.contract.functions.addToken(erc20_contract.address)
+    tx = multisig_wallet.contract.functions.addToken(erc20_contract.address, 1)
     raw_tx = tx.buildTransaction(transaction={'from': account.address, 'gas': 3000000, 'nonce': nonce})
     signed_tx = account.sign_transaction(raw_tx)
     tx_hash = web3_provider.eth.sendRawTransaction(signed_tx.rawTransaction)

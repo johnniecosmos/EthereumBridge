@@ -127,46 +127,6 @@ tx_hash = multisig_wallet.tracked_contract.functions.swapToken(dest_address.enco
     transact({'from': web3_provider.eth.coinbase}).hex().lower()
 ```
 
-#### Okay, so what now
-
-Things that will be provided by leader:
-
-1. Database hosting + usernames and passwords
-2. Transactional encryption key - must be shared between all parties to decrypt, verify and sign transaction
-3. Contract addresses
-4. General configuration parameters
-5. Docker image
-
-What do you need to do as a signer:
-
-##### Generate your keys
-1. Generate your Ethereum key. Either in a PKCS11 compatible device, or as raw bytes
-2. Generate your Secret Network key
-
-##### Provide leader with Addresses
-3. Provide leader with Ethereum address and Secret Network public key. These will be used to instantiate multisig addresses and contracts
-4. Once done, leader will provide the Secret Network multisig address and Ethereum smart contract address
-
-##### Add Funds to Eth account
-5. Send Eth to your Ethereum account
-
-##### Customize docker-compose file (or other docker runner)
-
-Of all available config parameters, the ones that require environment variables are:
-
-* eth_node_address
-* secret_node
-* db_username
-* db_password
-* db_host
-
-We recommend setting an .env file and using docker-compose, but you can also use `docker run` or any other
-docker runner.
-
-##### Start the signer
-
-`docker-compose up`
-
 ##### Config Parameters
 
 All these parameters can be overwritten by setting an environment variable with the same name. Set common variables in one
