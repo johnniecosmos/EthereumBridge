@@ -21,7 +21,7 @@ def test_pkcs11_sign():
 
     bal = w3.eth.getBalance(to_checksum_address(zero_address))
 
-    signer = Pkcs11CryptoStore(token="token", user_pin="1234", label="bobob")
+    signer = Pkcs11CryptoStore(store=os.getenv("PKCS11_MODULE"), token="token", user_pin="1234", label="bobob")
 
     label = signer.generate()
     print(f"{label=}, {signer.address=}")

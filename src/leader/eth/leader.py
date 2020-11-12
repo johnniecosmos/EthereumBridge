@@ -165,7 +165,7 @@ class EtherLeader(Thread):
         try:
             tx_hash = self._broadcast_transaction(msg)
             swap.dst_tx_hash = tx_hash
-            swap.status = Status.SWAP_CONFIRMED
+            swap.status = Status.SWAP_SUBMITTED
         except (ValueError, TransactionNotFound) as e:
             self.logger.critical(f"Failed to broadcast transaction for msg {repr(msg)}: {e}")
         finally:

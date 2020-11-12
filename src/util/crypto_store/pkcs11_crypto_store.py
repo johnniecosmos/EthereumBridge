@@ -9,11 +9,12 @@ from Crypto.Hash import keccak
 
 # ''
 from src.util.crypto_store.crypto_manager import CryptoManagerBase
+from src.util.config import Config
 
 
 class Pkcs11CryptoStore(CryptoManagerBase):
-    def __init__(self, token, user_pin, label: str = ''):
-        lib = pkcs11.lib(os.getenv('PKCS11_MODULE'))
+    def __init__(self, store: str, token, user_pin, label: str = ''):
+        lib = pkcs11.lib(store)
         try:
             self.token = lib.get_token(token_label=token)
         except pkcs11.MultipleTokensReturned:

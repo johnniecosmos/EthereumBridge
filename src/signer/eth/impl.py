@@ -44,7 +44,8 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         self.signer = signer
         self.config = config
         self.logger = get_logger(db_name=config['db_name'],
-                                 logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.account[0:5]}"))
+                                 logger_name=config.get('logger_name',
+                                                        f"{self.__class__.__name__}-{self.account[0:5]}"))
 
         self.erc20 = erc20_contract()
         self.catch_up_complete = False

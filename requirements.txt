@@ -10,3 +10,4 @@ pycryptodome
 ethereum
 rlp
 ecdsa
+# rusty-rlp

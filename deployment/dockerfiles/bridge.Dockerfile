@@ -19,6 +19,8 @@ RUN wget -O secretcli https://github.com/enigmampc/SecretNetwork/releases/downlo
 RUN chmod +x ./secretcli
 RUN cp ./secretcli /usr/bin
 
+RUN apt-get install -y softhsm
+
 RUN pip3 install supervisor
 
 WORKDIR EthereumBridge/
@@ -29,5 +31,7 @@ RUN pip3 install -r requirements.txt
 
 COPY . .
 
-# To run leader:
-CMD python3 -m src.bridge
+COPY deployment/config/supervisord.conf /etc/supervisor/supervisord.conf
+COPY deployment/config/softhsm2.conf /etc/softhsm/softhsm2.conf
+
+ENTRYPOINT supervisord -c /etc/supervisor/supervisord.conf

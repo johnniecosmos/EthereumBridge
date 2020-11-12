@@ -13,6 +13,7 @@ from src.signer.secret20.signer import SecretAccount
 from src.util.common import Token, bytes_from_hex
 from src.util.config import Config
 from src.util.crypto_store.local_crypto_store import LocalCryptoStore
+from src.util.crypto_store.pkcs11_crypto_store import Pkcs11CryptoStore
 from src.util.logger import get_logger
 from src.util.secretcli import configure_secretcli
 from src.util.web3 import w3
@@ -56,7 +57,8 @@ tracked_tokens_scrt = {"secret1hx84ff3h4m8yuvey36g9590pw9mm2p55cwqnm6": Token("n
 
 def run_bridge():  # pylint: disable=too-many-statements
     runners = []
-    required_configs = ['MODE', 'private_key', 'account', 'secret_node', 'multisig_acc_addr', 'chain_id']
+    logger = get_logger(logger_name='runner')
+    required_configs = ['MODE', 'secret_node', 'multisig_acc_addr', 'chain_id']
     cfg = Config(required=required_configs)
     try:
         configure_secretcli(cfg)
@@ -65,7 +67,12 @@ def run_bridge():  # pylint: disable=too-many-statements
         logger.error('Failed to set up secretcli')
         sys.exit(1)
 
-    signer = LocalCryptoStore(private_key=bytes_from_hex(cfg['private_key']), account=cfg['account'])
+    if cfg['token']:
+        signer = Pkcs11CryptoStore(store=cfg["PKCS11_MODULE"], token=cfg["token"], user_pin=cfg["user_pin"], label=cfg.get('label'))
+    else:
+        signer = LocalCryptoStore(private_key=bytes_from_hex(cfg['eth_private_key']), account=cfg['eth_address'])
+
+    logger.info(f'Starting with ETH address {signer.address}')
 
     with database(db=cfg['db_name'], host=cfg['db_host'],
                   password=cfg['db_password'], username=cfg['db_username']):
