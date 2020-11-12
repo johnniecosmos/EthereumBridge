@@ -246,7 +246,7 @@ contract MultiSigSwapWallet {
     notPaused()
     isSecretAddress(_recipient)
     payable {
-        require(msg.value > 1000000000000000); // 0.001 ETH
+        require(msg.value >= 1000000000000000); // 0.001 ETH
         emit Swap(msg.value, _recipient);
     }
 

@@ -1,15 +1,12 @@
-import os
 from typing import Tuple
 
 import pkcs11
+from Crypto.Hash import keccak
 from ethereum.utils import ecrecover_to_pub
 from pkcs11.util import ec
 from pkcs11.util.ec import encode_ec_public_key
-from Crypto.Hash import keccak
 
-# ''
 from src.util.crypto_store.crypto_manager import CryptoManagerBase
-from src.util.config import Config
 
 
 class Pkcs11CryptoStore(CryptoManagerBase):
@@ -18,7 +15,7 @@ class Pkcs11CryptoStore(CryptoManagerBase):
         try:
             self.token = lib.get_token(token_label=token)
         except pkcs11.MultipleTokensReturned:
-            raise RuntimeError("Multiple tokens returned for token label")
+            raise RuntimeError(f"Multiple tokens returned for token {token}, label {label}") from None
 
         self.user_pin = user_pin
         self.label = label or "bridge_key"
@@ -47,7 +44,7 @@ class Pkcs11CryptoStore(CryptoManagerBase):
                         pkcs11.Attribute.EC_PARAMS: ec.encode_named_curve_parameters('secp256k1'),
                     }, local=True)
 
-                pub, priv = ecparams.generate_keypair(label=self.label, store=True)
+                pub, _ = ecparams.generate_keypair(label=self.label, store=True)
                 self._address = self._address_from_pub(pub)
                 self.public_key = encode_ec_public_key(pub)[24:]
         return self.label
@@ -104,53 +101,3 @@ def pubkey_to_addr(pubkey: str) -> str:
     addr = keccak_hash.hexdigest()
     addr = '0x' + addr[-40:]
     return addr
-
-
-def run():
-    store = Pkcs11CryptoStore(token="token", user_pin="1234", key_id=b'&\xb7&\xa4\xd9y?\xdab\xf4')
-
-    store.generate()
-
-    print(store.address)
-    print(store.key_id)
-    # lib = pkcs11.lib('/usr/local/lib/softhsm/libsofthsm2.so')
-    # token = lib.get_token(token_label='token')
-    #
-    # data = b'INPUT DATA'
-    # mylabel = "bridge2"
-    # done = False
-    # # Open a session on our token
-    # with token.open(rw=True, user_pin='1234') as session:
-    #     # Generate an EC keypair in this session from a named curve
-    #     ecparams = session.create_domain_parameters(
-    #         pkcs11.KeyType.EC, {
-    #             pkcs11.Attribute.EC_PARAMS: ec.encode_named_curve_parameters('secp256k1'),
-    #         }, local=True)
-    #
-    #     keys = session.get_objects({pkcs11.Attribute.CLASS: pkcs11.ObjectClass.PUBLIC_KEY})
-    #     for key in keys:
-    #         if key.label == mylabel:
-    #             pubk = encode_ec_public_key(key)
-    #             print(pubk.hex())
-    #             done = True
-    #
-    #     if done:
-    #         return
-    #
-    #     pub, priv = ecparams.generate_keypair(label=mylabel, mechanism=pkcs11.Mechanism.ECDSA, store=True)
-    #
-    #
-    #
-    #     # Sign
-    #     signature = priv.sign(data, mechanism=pkcs11.Mechanism.ECDSA)
-    #     print(signature)
-    #
-    #     # pub = session.get_key(key_type=pkcs11.KeyType.EC,
-    #     #                       object_class=pkcs11.ObjectClass.PUBLIC_KEY)
-    #     # key = pkcs11.load_public_key(encode_ec_public_key(pub))
-    #     pubk = encode_ec_public_key(pub)
-    #     print(pubk.hex())
-
-
-if __name__ == '__main__':
-    run()

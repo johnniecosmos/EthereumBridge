@@ -3,8 +3,8 @@ from abc import abstractmethod
 from typing import Optional, List, Tuple
 
 import rlp
-from web3 import Web3
 from eth_utils import to_checksum_address
+from web3 import Web3
 from web3.datastructures import AttributeDict
 
 from src.util.crypto_store.crypto_manager import CryptoManagerBase

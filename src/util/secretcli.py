@@ -89,9 +89,9 @@ def query_data_success(tx_hash: str) -> Dict:
             raise ValueError(f"Failed to execute transaction: {output_error}")
         return json.loads(json.loads(resp)["output_data_as_string"])
     except json.JSONDecodeError as e:
-        raise ValueError(f"Failed to decode response as valid json: {e}, {resp}")
+        raise ValueError(f"Failed to decode response as valid json: {e}, {resp}") from None
     except KeyError as e:
-        raise ValueError(f"Failed to decode response {e}")
+        raise ValueError(f"Failed to decode response {e}") from e
 
 
 def run_secret_cli(cmd: List[str]) -> str:

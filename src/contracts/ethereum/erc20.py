@@ -1,5 +1,4 @@
 import os
-from typing import Tuple
 
 from web3 import Web3
 
@@ -29,15 +28,3 @@ class Erc20(EthereumContract):
         # returns true if the ERC20 was sent to the MultiSigWallet (that's how token transfer is preformed)
         # noinspection PyProtectedMember
         return tx_log.args._to.lower() == self.dest_address.lower()    # pylint: disable=protected-access
-
-    # noinspection PyPep8Naming
-    def get_params_from_data(self, data: bytes) -> Tuple[str, int]:
-        """
-        This functions takes a chunk of data encoded by web3 contract encodeAbi func and extracts the params from it.
-        :param data: an encodeAbi result
-        """
-        result = self.contract.decode_function_input(data.hex())
-        if len(data) < 139:
-            raise ValueError("Data in erc-20 transaction must be 139 bytes or more")
-        _, dest, amount = data[:10], data[34:74], data[74:138]
-        return '0x' + dest.decode(), int(amount, 16)  # convert amount from hex to decimal

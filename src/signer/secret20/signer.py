@@ -139,6 +139,3 @@ class Secret20Signer(Thread):
     def _account_details(self):
         details = account_info(self.multisig.address)
         return details["value"]["account_number"], details["value"]["sequence"]
-
-    def update_sequence(self):
-        self.account_num, self.sequence = self._account_details()

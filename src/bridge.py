@@ -68,7 +68,8 @@ def run_bridge():  # pylint: disable=too-many-statements
         sys.exit(1)
 
     if cfg['token']:
-        signer = Pkcs11CryptoStore(store=cfg["PKCS11_MODULE"], token=cfg["token"], user_pin=cfg["user_pin"], label=cfg.get('label'))
+        signer = Pkcs11CryptoStore(store=cfg["PKCS11_MODULE"], token=cfg["token"], user_pin=cfg["user_pin"],
+                                   label=cfg.get('label'))
     else:
         signer = LocalCryptoStore(private_key=bytes_from_hex(cfg['eth_private_key']), account=cfg['eth_address'])
 

@@ -21,7 +21,8 @@ from src.util.web3 import event_log
 from tests.integration.conftest import PAYABLE_ADDRESS
 from tests.utils.keys import get_key_signer
 
-TRANSFER_AMOUNT = 100
+TRANSFER_AMOUNT_ETH = 1000000000000001
+TRANSFER_AMOUNT_ERC = 100
 zero_address = '0x000000000000000000000000000000000000dEaD'
 
 
@@ -32,12 +33,12 @@ def test_fail_swap_token_not_whitelisted(setup, scrt_leader, scrt_signers, web3_
     t1_address = get_key_signer("t1", Path.joinpath(project_base_path(), configuration['path_to_keys']))['address']
 
     tx_hash = erc20_contract.contract.functions.approve(multisig_wallet.address,
-                                                                TRANSFER_AMOUNT). \
+                                                                TRANSFER_AMOUNT_ERC). \
         transact({'from': web3_provider.eth.coinbase}).hex().lower()
 
     try:
         tx_hash = multisig_wallet.contract.functions.swapToken(t1_address.encode(),
-                                                                       TRANSFER_AMOUNT,
+                                                                       TRANSFER_AMOUNT_ERC,
                                                                        erc20_contract.address). \
                 transact({'from': web3_provider.eth.coinbase}).hex().lower()
     except ValueError:
@@ -62,7 +63,7 @@ def test_1_swap_eth_to_s20(setup, scrt_signers, scrt_leader, web3_provider, conf
     # (we will use 'a' later to check it received the money)
     print(f"Creating new swap transaction at {web3_provider.eth.getBlock('latest').number + 1}")
     tx_hash = multisig_wallet.contract.functions.swap(t1_address.encode()). \
-        transact({'from': web3_provider.eth.coinbase, 'value': TRANSFER_AMOUNT}).hex().lower()
+        transact({'from': web3_provider.eth.coinbase, 'value': TRANSFER_AMOUNT_ETH}).hex().lower()
     # TODO: validate ethr increase of the smart contract
     # increase number of blocks to reach the confirmation threshold
     assert increase_block_number(web3_provider, configuration['eth_confirmations'] - 1)
@@ -82,9 +83,8 @@ def test_1_swap_eth_to_s20(setup, scrt_signers, scrt_leader, web3_provider, conf
 
     sleep(5)
 
-    assert Swap.objects().get().status in [Status.SWAP_SUBMITTED]
-    # give time for manager to process the signatures
-    sleep(configuration['sleep_interval'] + 5)
+    if Swap.objects().get().status == Status.SWAP_SUBMITTED:
+        sleep(configuration['sleep_interval'] + 5)
     assert Swap.objects().get().status == Status.SWAP_CONFIRMED
 
     # get tx details
@@ -124,7 +124,7 @@ def test_2_swap_s20_to_eth(web3_provider, ethr_leader, configuration: Config, et
         signer.start()
 
     # Generate swap tx on secret network
-    swap = {"send": {"amount": str(TRANSFER_AMOUNT),
+    swap = {"send": {"amount": str(TRANSFER_AMOUNT_ETH),
                      "msg": base64.standard_b64encode(zero_address.encode()).decode(),
                      "recipient": swap_contract_addr}}
 
@@ -207,7 +207,7 @@ def test_11_swap_erc_to_s20(scrt_leader, scrt_signers, web3_provider, configurat
 
     # this will likely fail since the test before also allocates the allowance - just ignore if it fails
     try:
-        _ = erc20_contract.contract.functions.approve(multisig_wallet.address, TRANSFER_AMOUNT). \
+        _ = erc20_contract.contract.functions.approve(multisig_wallet.address, TRANSFER_AMOUNT_ERC). \
             transact({'from': web3_provider.eth.coinbase})
     except ValueError:
         pass
@@ -215,10 +215,10 @@ def test_11_swap_erc_to_s20(scrt_leader, scrt_signers, web3_provider, configurat
     tx_hash = multisig_wallet\
         .contract\
         .functions\
-        .swapToken(t1_address.encode(), TRANSFER_AMOUNT, erc20_contract.address)\
+        .swapToken(t1_address.encode(), TRANSFER_AMOUNT_ERC, erc20_contract.address)\
         .transact({'from': web3_provider.eth.coinbase}).hex().lower()
 
-    assert TRANSFER_AMOUNT == erc20_contract.contract.functions.balanceOf(multisig_wallet.address).call()
+    assert TRANSFER_AMOUNT_ERC == erc20_contract.contract.functions.balanceOf(multisig_wallet.address).call()
 
     # increase number of blocks to reach the confirmation threshold
     assert increase_block_number(web3_provider, configuration['eth_confirmations'] - 1)
@@ -278,7 +278,7 @@ def test_2_swap_s20_to_erc(web3_provider, ethr_leader, configuration: Config, et
     #     signer.start()
 
     # Generate swap tx on secret network
-    swap = {"send": {"amount": str(TRANSFER_AMOUNT),
+    swap = {"send": {"amount": str(TRANSFER_AMOUNT_ERC),
                      "msg": base64.b64encode(ethr_leader.signer.address.encode()).decode(),
                      "recipient": swap_contract_addr}}
 
@@ -314,7 +314,7 @@ def test_3_confirm_tx(web3_provider, ethr_signers, configuration: Config, erc20_
 
     fee = erc20_contract.contract.functions.balanceOf(PAYABLE_ADDRESS).call()
     assert fee > 0
-    assert TRANSFER_AMOUNT == erc20_contract.contract.functions.balanceOf(ethr_leader.signer.address).call() + fee
+    assert TRANSFER_AMOUNT_ERC == erc20_contract.contract.functions.balanceOf(ethr_leader.signer.address).call() + fee
 
 
 def increase_block_number(web3_provider: Web3, increment: int) -> True:

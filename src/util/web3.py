@@ -149,4 +149,3 @@ def erc20_contract():
     with open(abi_path, "r") as f:
         abi = json.load(f)['abi']
     return w3.eth.contract(abi=abi)
-

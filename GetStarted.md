@@ -14,10 +14,12 @@
 
 * [How multisig on Secret Network (& Cosmos) works](https://hub.cosmos.network/master/resources/gaiacli.html)
 
-
 ##### Step 1 - Generate your keys
 1. Generate your Ethereum key. Either in a PKCS11 compatible device, or as raw bytes
 2. Generate your Secret Network key, and export it to a file using `secretcli keys export`
+
+We may also require manual transaction signing, in case manual intervention is necessary, 
+so be sure you know how to do that with the keys you generated.
 
 3. Provide leader with Ethereum address and Secret Network public key. These will be used to instantiate multisig addresses and contracts
 4. Once done, leader will provide the Secret Network multisig address and Ethereum smart contract address
