@@ -24,7 +24,7 @@ services:
       - eth_account=0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb                     # ethereum account address
 
       # eth key option 2 - pkcs11 module (only softhsm supported currently)
-      # volumes: (you need to map the HSM's library to a path inside the container)
+      # volumes: (you may want to map the token storage path to a path inside the container)
       #   - /path/to/tokens:/root/hsm/tokens/
       # environment:
       #   - token=token
