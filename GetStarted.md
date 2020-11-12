@@ -37,16 +37,38 @@ Request amounts for signers are 10K req/day on Ethereum, and 1K/day on Secret Ne
 
 ##### Customize docker-compose file (or other docker runner)
 
-Of all available config parameters, the ones that require environment variables are:
+Of all available config parameters, the ones that require setting environment variables are:
 
-* eth_node
-* secret_node
-* db_username
-* db_password
-* db_host
-* multisig_acc_addr
-* multisig_wallet_address
-* secret_signers
+# General
+* SWAP_ENV - either "TESTNET", "MAINNET" or "LOCAL" depending on environment
+
+###### Node addresses
+* eth_node - address of ethereum node (or service like infura)
+* secret_node - address of secret network rpc node
+
+###### Secret Network private key
+* secret_key_name
+* secret_key_file
+* secret_key_password
+
+###### Ethereum private key
+* eth_private_key
+* eth_account
+
+###### OR if PKCS11 is used:
+* token
+* user_pin
+* label
+
+###### Provided by leader
+* db_username - database username
+* db_password - database password
+* db_host - hostname of database service provider
+* multisig_acc_addr - Secret Network multisig address
+* multisig_wallet_address - Ethereum multisig contract address
+* secret_signers - comma-separated list of the public keys of addresses that comprise the address in `multisig_acc_addr`
+* scrt_swap_address - address of secret contract handling our swaps
+* swap_code_hash - code hash of the secret contract handling our swaps
 
 We recommend setting an .env file and using docker-compose, but you can also use `docker run` or any other docker runner.
 
