@@ -25,20 +25,27 @@ so be sure you know how to do that with the keys you generated.
 4. Once done, leader will provide the Secret Network multisig address and Ethereum smart contract address
 
 ##### Step 2 - Add Funds to Eth account
-5. Send some Eth to your Ethereum account (recommended 10 ETH)
+Send some Eth to your Ethereum account (recommended 10 ETH)
+
+##### Step 3 - Get an access point for Eth and Secret
+* Ethereum - Infura, start your own node, etc.
+* Secret - Start your own node, or use an available public node
+
+Signers are responsible for managing their own endpoints. 
+
+Request amounts for signers are 10K req/day on Ethereum, and 1K/day on Secret Network.
 
 ##### Customize docker-compose file (or other docker runner)
 
 Of all available config parameters, the ones that require environment variables are:
 
-* eth_node_address
+* eth_node
 * secret_node
 * db_username
 * db_password
 * db_host
 
-We recommend setting an .env file and using docker-compose, but you can also use `docker run` or any other
-docker runner.
+We recommend setting an .env file and using docker-compose, but you can also use `docker run` or any other docker runner.
 
 ##### Start the signer
 
