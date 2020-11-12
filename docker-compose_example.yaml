@@ -17,8 +17,8 @@ services:
       - db_host=url_to_db.com
 
       # access nodes
-      - eth_node - "https://ropsten.infura.io/v3/..."
-      - secret_node - "tcp://bootstrap.secrettestnet.io:26657"
+      - eth_node="https://ropsten.infura.io/v3/..."
+      - secret_node="tcp://bootstrap.secrettestnet.io:26657"
       
       # scrt keys config
       - secret_key_name=t1
