@@ -89,9 +89,9 @@ def query_data_success(tx_hash: str) -> Dict:
             raise ValueError(f"Failed to execute transaction: {output_error}")
         return json.loads(json.loads(resp)["output_data_as_string"])
     except json.JSONDecodeError as e:
-        raise ValueError(f"Failed to decode response as valid json: {e}, {resp}")
+        raise ValueError(f"Failed to decode response as valid json: {e}, {resp}") from None
     except KeyError as e:
-        raise ValueError(f"Failed to decode response {e}")
+        raise ValueError(f"Failed to decode response {e}") from e
 
 
 def run_secret_cli(cmd: List[str]) -> str:
@@ -135,6 +135,9 @@ def configure_secretcli(config: Config):  # pylint: disable=too-many-statements
 
     # set up multisig
     signers = []
+    if isinstance(config["secret_signers"], str):
+        signers = config["secret_signers"].replace(' ', '').split(',')
+
     for i, key in enumerate(config["secret_signers"]):
         cmd = ['secretcli', 'keys', 'add', f'ms_signer{i}', f'--pubkey={key}']
         signers.append(f'ms_signer{i}')

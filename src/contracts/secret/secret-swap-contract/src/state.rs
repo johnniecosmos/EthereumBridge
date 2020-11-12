@@ -107,6 +107,7 @@ impl Swap {
 pub struct Contract {
     pub address: CanonicalAddr,
     pub code_hash: String,
+    pub minimum_amount: Uint128,
 }
 
 impl PartialEq for Contract {

@@ -1,7 +1,6 @@
 import json
 from datetime import datetime
 from threading import Thread, Event
-from time import sleep
 from typing import List
 
 from mongoengine import OperationError
@@ -145,19 +144,19 @@ class Secret20Leader(Thread):
                 self.logger.info("Updated status to confirmed")
                 document.update(status=Status.SWAP_CONFIRMED)
                 return True
-            else:
-                # maybe the block took a long time - we wait 60 seconds before we mark it as failed
-                # The returned value is just here to let us know if we need to retry the next transactions
-                if (datetime.utcnow() - document.updated_on).total_seconds() < BROADCAST_VALIDATION_COOLDOWN:
-                    return True
 
-                # TX isn't on-chain. We can retry it
-                document.update(status=Status.SWAP_RETRY)
+            # maybe the block took a long time - we wait 60 seconds before we mark it as failed
+            # The returned value is just here to let us know if we need to retry the next transactions
+            if (datetime.utcnow() - document.updated_on).total_seconds() < BROADCAST_VALIDATION_COOLDOWN:
+                return True
 
-                # update sequence number - just in case we failed because we are out of sync
-                self.manager.update_sequence()
-                self.logger.critical(f"Failed confirming broadcast for tx: {repr(document)}")
-                return False
+            # TX isn't on-chain. We can retry it
+            document.update(status=Status.SWAP_RETRY)
+
+            # update sequence number - just in case we failed because we are out of sync
+            self.manager.update_sequence()
+            self.logger.critical(f"Failed confirming broadcast for tx: {repr(document)}")
+            return False
         except (ValueError, KeyError) as e:
             # TX failed for whatever reason. Might be a duplicate, out of gas, or any other reason
             self.logger.error(f"Failed confirming broadcast for tx: {repr(document)}. Error: {e}")

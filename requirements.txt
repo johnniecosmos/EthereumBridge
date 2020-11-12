@@ -3,5 +3,11 @@ mongoengine~=0.20.0
 blinker
 hexbytes~=0.2.1
 pymongo[srv]
+python-pkcs11
 requests~=2.24.0
 aiohttp~=3.7.2
+pycryptodome
+ethereum
+rlp
+ecdsa
+# rusty-rlp
