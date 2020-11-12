@@ -22,7 +22,7 @@ def add_token(token: str):
     with open('./src/contracts/ethereum/compiled/MultiSigSwapWallet.json', 'r') as f:
         contract_source_code = json.loads(f.read())
 
-    w3 = web3_provider(cfg['eth_node_address'])
+    w3 = web3_provider(cfg['eth_node'])
     account = w3.eth.account.from_key("0xb84db86a570359ca8a16ad840f7495d3d8a1b799b29ae60a2032451d918f3826")
 
     contract = w3.eth.contract(address=cfg['multisig_wallet_address'],
@@ -45,7 +45,7 @@ def deploy_eth():
     with open('./src/contracts/ethereum/compiled/MultiSigSwapWallet.json', 'r') as f:
         contract_source_code = json.loads(f.read())
 
-    w3 = web3_provider(cfg['eth_node_address'])
+    w3 = web3_provider(cfg['eth_node'])
     account = w3.eth.account.from_key("0xb84db86a570359ca8a16ad840f7495d3d8a1b799b29ae60a2032451d918f3826")
     print(f"Deploying on {cfg['network']} from address {account.address}")
     balance = w3.eth.getBalance(account.address, "latest")

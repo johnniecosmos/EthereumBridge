@@ -147,7 +147,7 @@ of the files in the ./config/ directory, and the rest by setting environment var
 * eth_address - ethereum address
 * eth_private_key - ethereum private key
 * secret_node - address of secret network rpc node
-* eth_node_address - address of ethereum node (or service like infura)
+* eth_node - address of ethereum node (or service like infura)
 * enclave_key - path to enclave key
 * multisig_acc_addr - secret network multisig address
 * multisig_key_name - secret network multisig name

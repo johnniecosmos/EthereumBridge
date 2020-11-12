@@ -26,7 +26,7 @@ w3: Web3 = None
 
 def init_provider(config: Config):
     global w3  # pylint: disable=global-statement
-    w3 = web3_provider(config["eth_node_address"])
+    w3 = web3_provider(config["eth_node"])
 
 
 cfg = Config()
