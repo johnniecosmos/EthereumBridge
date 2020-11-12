@@ -39,7 +39,7 @@ Request amounts for signers are 10K req/day on Ethereum, and 1K/day on Secret Ne
 
 Of all available config parameters, the ones that require setting environment variables are:
 
-# General
+###### General
 * SWAP_ENV - either "TESTNET", "MAINNET" or "LOCAL" depending on environment
 
 ###### Node addresses
