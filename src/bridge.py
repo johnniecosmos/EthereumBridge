@@ -67,7 +67,7 @@ def run_bridge():  # pylint: disable=too-many-statements
         logger.error('Failed to set up secretcli')
         sys.exit(1)
 
-    if cfg['token']:
+    if cfg.get('token', ''):
         signer = Pkcs11CryptoStore(store=cfg["PKCS11_MODULE"], token=cfg["token"], user_pin=cfg["user_pin"],
                                    label=cfg.get('label'))
     else:
