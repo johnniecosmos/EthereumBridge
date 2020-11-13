@@ -23,7 +23,7 @@ Enigma will be running the leader, and handling most of the setup and configurat
 We may also require manual transaction signing, in case manual intervention is necessary, 
 so be sure you know how to do that with the keys you generated.
 
-3. Provide leader with Ethereum address and Secret Network public key. These will be used to instantiate multisig addresses and contracts
+3. Provide leader with Ethereum address and Secret Network public key (`secretpub1...`). These will be used to instantiate multisig addresses and contracts
 4. Once done, leader will provide the Secret Network multisig address and Ethereum smart contract address
 
 ### Step 2 - Add Funds to Eth account
