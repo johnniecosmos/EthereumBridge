@@ -15,7 +15,7 @@ from src.signer.secret20.signer import SecretAccount
 from src.util.common import temp_file, temp_files, Token
 from src.util.config import Config
 from src.util.logger import get_logger
-from src.util.secretcli import broadcast, multisig_tx, query_data_success
+from src.util.secretcli import broadcast, multisig_tx, query_data_success, get_uscrt_balance
 
 BROADCAST_VALIDATION_COOLDOWN = 60
 SCRT_BLOCK_TIME = 7
@@ -25,11 +25,14 @@ class Secret20Leader(Thread):
     """ Broadcasts signed Secret-20 minting tx after successful ETH or ERC20 swap event """
     network = "Secret"
 
-    def __init__(self,
-                 secret_multisig: SecretAccount,
-                 contract: MultisigWallet,
-                 src_network: str,
-                 config: Config, *args, **kwargs):
+    def __init__(
+        self,
+        secret_multisig: SecretAccount,
+        contract: MultisigWallet,
+        src_network: str,
+        config: Config,
+        *args, **kwargs
+    ):
         super().__init__(*args, **kwargs)
 
         token_map = {}
@@ -40,8 +43,10 @@ class Secret20Leader(Thread):
         self.multisig_name = secret_multisig.name
         self.config = config
         self.manager = SecretManager(contract, token_map, secret_multisig, config)
-        self.logger = get_logger(db_name=self.config['db_name'],
-                                 logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.multisig_name}"))
+        self.logger = get_logger(
+            db_name=self.config['db_name'],
+            logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.multisig_name}")
+        )
         self.stop_event = Event()
 
         super().__init__(group=None, name="SecretLeader", target=self.run, **kwargs)
@@ -101,8 +106,13 @@ class Secret20Leader(Thread):
             with temp_files(signatures, self.logger) as signed_tx_paths:
                 return multisig_tx(unsigned_tx_path, self.multisig_name, *signed_tx_paths)
 
-    @staticmethod
-    def _broadcast(signed_tx) -> str:
+    def _broadcast(self, signed_tx) -> str:
+        remaining_funds = get_uscrt_balance(self.manager.multisig.address)
+        self.logger.debug(f'SCRT leader remaining funds: {remaining_funds / 1e6} SCRT')
+        fund_warning_threshold = float(self.config['scrt_funds_warning_threshold'])
+        if remaining_funds < fund_warning_threshold * 1e6:  # 1e6 uSCRT == 1 SCRT
+            self.logger.warning(f'SCRT leader has less than {fund_warning_threshold} SCRT left')
+
         # Note: This operation costs Scrt
         with temp_file(signed_tx) as signed_tx_path:
             return json.loads(broadcast(signed_tx_path))['txhash']

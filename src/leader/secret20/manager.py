@@ -21,18 +21,24 @@ from src.util.web3 import w3
 class SecretManager(Thread):
     """Registers to contract event and manages tx state in DB"""
 
-    def __init__(self, contract: MultisigWallet,
-                 token_to_secret_map: Dict[str, Token],
-                 s20_multisig_account: SecretAccount, config: Config, **kwargs):
+    def __init__(
+        self,
+        contract: MultisigWallet,
+        token_to_secret_map: Dict[str, Token],
+        s20_multisig_account: SecretAccount,
+        config: Config,
+        **kwargs
+    ):
         self.contract = contract
         self.s20_map = token_to_secret_map
         self.config = config
         self.multisig = s20_multisig_account
         self.event_listener = EthEventListener(contract, config)
 
-        self.logger = get_logger(db_name=self.config['db_name'],
-                                 logger_name=config.get('logger_name',
-                                                        f"{self.__class__.__name__}-{self.multisig.name}"))
+        self.logger = get_logger(
+            db_name=self.config['db_name'],
+            logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.multisig.name}")
+        )
         self.stop_signal = Event()
         self.account_num = 0
         self.sequence = 0
