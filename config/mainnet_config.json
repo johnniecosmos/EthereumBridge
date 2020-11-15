@@ -19,5 +19,7 @@
 "enclave_key": "/home/guy/Workspace/dev/EthereumBridge/deployment/testnet/io-master-cert.der",
 "viewing_key": "api_key_XWfhJgtZnPSA514+v2TOd9sG8RKCwogDEIKnfso5g+k=",
 "multisig_acc_addr": "secret1k798cssp56ndy7nhjdwml90qy933qp3l0kywtp",
-"multisig_key_name": "ms1"
+"multisig_key_name": "ms1",
+"eth_funds_warning_threshold": "0.1",
+"scrt_funds_warning_threshold": "10"
 }

@@ -25,7 +25,21 @@ TRANSFER_AMOUNT = 100
 zero_address = '0x000000000000000000000000000000000000dEaD'
 
 
+def _test_header_log(func):
+    import functools
+
+    @functools.wraps(func)
+    def test_header_log_wrapper(*args, **kwargs):
+        print(f'-------------------------- Starting test {func.__name__}')
+        ret = func(*args, **kwargs)
+        print(f'-------------------------- Finished test {func.__name__}')
+        return ret
+
+    return test_header_log_wrapper
+
+
 # Try to swap a token without the token being whitelisted -- should fail
+@_test_header_log
 def test_fail_swap_token_not_whitelisted(setup, scrt_leader, scrt_signers, web3_provider, configuration: Config,
                                          erc20_contract, multisig_wallet):
 
@@ -45,6 +59,7 @@ def test_fail_swap_token_not_whitelisted(setup, scrt_leader, scrt_signers, web3_
     # assert
 
 
+@_test_header_log
 def test_1_swap_eth_to_s20(setup, scrt_signers, scrt_leader, web3_provider, configuration: Config, multisig_wallet):
 
     secret_token_addr = TokenPairing.objects().get(src_network="Ethereum", src_coin="ETH").dst_address
@@ -114,7 +129,8 @@ def test_1_swap_eth_to_s20(setup, scrt_signers, scrt_leader, web3_provider, conf
 
 # covers EthrLeader tracking of swap events in secret20 and creating submission event in Ethereum
 # ethr_signers are here to respond for leader's submission
-def test_2_swap_s20_to_eth(web3_provider, ethr_leader, configuration: Config, ethr_signers):
+@_test_header_log
+def test_2_swap_s20_to_eth(setup, web3_provider, ethr_leader, configuration: Config, ethr_signers, scrt_signers):
 
     swap_contract_addr = configuration['scrt_swap_address']
     secret_token_addr = TokenPairing.objects().get(src_network="Ethereum", src_coin="ETH").dst_address
@@ -136,19 +152,22 @@ def test_2_swap_s20_to_eth(web3_provider, ethr_leader, configuration: Config, et
     tx_hash = json.loads(tx_hash.stdout)['txhash']
 
     sleep(configuration['sleep_interval'] + 6)
+    assert query_data_success(tx_hash) != {}
 
     last_nonce_after = SwapTrackerObject.last_processed(secret_token_addr)
     print(f"last processed before: {last_nonce_after}")
     assert last_nonce + 1 == last_nonce_after
 
-    # Give ethr signers time to handle the secret20 swap tx (will be verified in test_4
-    sleep(configuration['sleep_interval'] + 1)
+    # Give ethr signers time to handle the secret20 swap tx
+    increase_block_number(web3_provider, configuration['eth_confirmations'])
+    sleep(configuration['sleep_interval'] + 5)
 
 
 # EthrSigner event response and multisig logic
 # Components tested:
 # 1. EthrSigner - confirmation and offline catchup
 # 2. SmartContract multisig functionality
+@_test_header_log
 def test_3_confirm_and_finalize_eth_tx(web3_provider, ethr_signers, configuration: Config):
     # To allow the new EthrSigner to "catch up", we start it after the event submission event in Ethereum
     secret_token_addr = TokenPairing.objects().get(src_network="Ethereum", src_coin="ETH").dst_address
@@ -181,6 +200,7 @@ def test_3_confirm_and_finalize_eth_tx(web3_provider, ethr_signers, configuratio
 # 2. Manager status update and multisig creation.
 # 3. SecretSigners validation and signing.
 # 4. Smart Contract swap functionality.
+@_test_header_log
 def test_11_swap_erc_to_s20(scrt_leader, scrt_signers, web3_provider, configuration: Config,
                            erc20_contract, multisig_wallet, ethr_leader):
 
@@ -267,6 +287,7 @@ def test_11_swap_erc_to_s20(scrt_leader, scrt_signers, web3_provider, configurat
 
 # covers EthrLeader tracking of swap events in secret20 and creating submission event in Ethereum
 # ethr_signers are here to respond for leader's submission
+@_test_header_log
 def test_2_swap_s20_to_erc(web3_provider, ethr_leader, configuration: Config, ethr_signers, erc20_contract):
 
     swap_contract_addr = configuration['scrt_swap_address']
@@ -296,6 +317,7 @@ def test_2_swap_s20_to_erc(web3_provider, ethr_leader, configuration: Config, et
 # Components tested:
 # 1. EthrSigner - confirmation and offline catchup
 # 2. SmartContract multisig functionality
+@_test_header_log
 def test_3_confirm_tx(web3_provider, ethr_signers, configuration: Config, erc20_contract, ethr_leader):
 
     secret_token_addr = TokenPairing.objects().get(src_network="Ethereum", src_coin="ERC").dst_address

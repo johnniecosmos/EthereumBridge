@@ -65,16 +65,16 @@ class EtherLeader(Thread):
         while not self.stop_event.is_set():
             for token in self.token_map:
                 try:
-                    doc = SwapTrackerObject.get_or_create(src=token)
-                    next_nonce = doc.nonce + 1
+                    swap_tracker = SwapTrackerObject.get_or_create(src=token)
+                    next_nonce = swap_tracker.nonce + 1
 
                     self.logger.debug(f'Scanning token {token} for query #{next_nonce}')
 
                     swap_data = query_scrt_swap(next_nonce, self.config["scrt_swap_address"], token)
 
                     self._handle_swap(swap_data, token, self.token_map[token].address)
-                    doc.nonce = next_nonce
-                    doc.save()
+                    swap_tracker.nonce = next_nonce
+                    swap_tracker.save()
                     next_nonce += 1
 
                 except CalledProcessError as e:
@@ -125,6 +125,8 @@ class EtherLeader(Thread):
         return data, tx_dest, tx_amount, tx_token, fee
 
     def _handle_swap(self, swap_data: str, src_token: str, dst_token: str):
+
+
         swap_json = swap_query_res(swap_data)
         # this is an id, and not the TX hash since we don't actually know where the TX happened, only the id of the
         # swap reported by the contract
@@ -177,6 +179,13 @@ class EtherLeader(Thread):
             gas_price = BridgeOracle.gas_price()
         else:
             gas_price = None
+
+        remaining_funds = self.multisig_wallet.provider.eth.getBalance(self.default_account)
+        self.logger.debug(f'ETH leader remaining funds: {remaining_funds / 1e18} ETH')
+        fund_warning_threshold = float(self.config['eth_funds_warning_threshold'])
+        if remaining_funds < fund_warning_threshold * 1e18:  # 1e18 WEI == 1 ETH
+            self.logger.warning(f'ETH leader {self.default_account} has less than {fund_warning_threshold} ETH left')
+
         tx_hash = self.multisig_wallet.submit_transaction(self.default_account, self.private_key, gas_price, msg)
         self.logger.info(msg=f"Submitted tx: hash: {tx_hash.hex()}, msg: {msg}")
         return tx_hash.hex()

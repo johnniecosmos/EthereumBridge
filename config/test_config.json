@@ -21,5 +21,7 @@
   "path_to_keys": "keys/keys",
   "path_to_certs": "../keys/deployment",
   "eth_node_address": "http://127.0.0.1:8545",
-  "secret_node": "tcp://localhost:26657"
+  "secret_node": "tcp://localhost:26657",
+  "eth_funds_warning_threshold": "2",
+  "scrt_funds_warning_threshold": "10"
 }

@@ -15,7 +15,7 @@ from src.util.config import Config
 from src.util.logger import get_logger
 from src.util.oracle.oracle import BridgeOracle
 from src.util.secretcli import query_scrt_swap
-from src.util.web3 import erc20_contract
+from src.util.web3 import erc20_contract, w3
 
 
 class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-arguments
@@ -34,15 +34,23 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
     """
     network = "Ethereum"
 
-    def __init__(self, multisig_contract: MultisigWallet, private_key: bytes, account: str,
-                 dst_network: str, config: Config):
+    def __init__(
+        self,
+        multisig_contract: MultisigWallet,
+        private_key: bytes,
+        account: str,
+        dst_network: str,
+        config: Config
+    ):
         # todo: simplify this, pylint is right
         self.multisig_contract = multisig_contract
         self.private_key = private_key
         self.account = account
         self.config = config
-        self.logger = get_logger(db_name=config['db_name'],
-                                 logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.account[0:5]}"))
+        self.logger = get_logger(
+            db_name=config['db_name'],
+            logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.account[0:5]}")
+        )
 
         self.erc20 = erc20_contract()
         self.catch_up_complete = False
@@ -66,6 +74,12 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
     def sign(self, submission_event: AttributeDict):
         """Tries to validate the transaction corresponding to submission id on the smart contract,
         confirms and signs if valid"""
+        remaining_funds = w3.eth.getBalance(self.account)
+        self.logger.debug(f'ETH signer remaining funds: {remaining_funds/1e18} ETH')
+        fund_warning_threshold = float(self.config['eth_funds_warning_threshold'])
+        if remaining_funds < fund_warning_threshold * 1e18:  # 1e18 WEI == 1 ETH
+            self.logger.warning(f'ETH signer {self.account} has less than {fund_warning_threshold} ETH left')
+
         transaction_id = submission_event.args.transactionId
         self.logger.info(f'Got submission event with transaction id: {transaction_id}, checking status')
 
@@ -88,6 +102,8 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
                     self.logger.error(f'Failed to validate transaction: {data}')
             except ValueError as e:
                 self.logger.error(f"Error parsing secret-20 swap event {data}. Error: {e}")
+
+        self.logger.info(f'Swap from secret network to ethereum signed successfully: {data}')
 
     def _is_valid(self, submission_data: Dict[str, any]) -> bool:
         # lookup the tx hash in secret20, and validate it.

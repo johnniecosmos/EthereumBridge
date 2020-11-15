@@ -4,16 +4,23 @@
   "signatures_threshold": 3,
   "eth_confirmations": 12,
   "eth_start_block": 0,
-  "eth_signer_start_block": 0,
   "sleep_interval": 2.0,
+
   "chain_id": "enigma-testnet",
   "multisig_wallet_address": "0xef06222f18a008cd3635a8325208fc0ff934d830",
+  "secret_token_address": "secret1ljptw8mf5wk9n69j2v5vl4w2laqlrgspxykanp",
+  "secret_swap_contract_address": "secret1hx84ff3h4m8yuvey36g9590pw9mm2p55cwqnm6",
+  "secret_token_name": "seth",
+  "code_hash": "309757D609FB932B5DD0E101A2D018E80FC11347B3A8EB285B826B0E2CBDA236",
   "mint_token": false,
   "leader_acc_addr": "",
   "leader_key": "",
   "provider_address": "",
-  "multisig_key_name": "ms1",
+  "secret_node": "tcp://localhost:26657",
+  "multisig_key_name": "ms3",
   "path_to_keys": "keys/keys",
   "path_to_certs": "../keys/deployment",
-  "eth_node_address": "http://127.0.0.1:8545"
+  "eth_node_address": "http://127.0.0.1:8545",
+  "eth_funds_warning_threshold": "0.1",
+  "scrt_funds_warning_threshold": "10"
 }

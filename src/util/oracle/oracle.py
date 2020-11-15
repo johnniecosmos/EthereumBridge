@@ -32,8 +32,7 @@ class Oracle:
         return average
 
     async def _gas_price(self) -> int:
-        prices = await asyncio.gather(*(self._get_gas_price_from_source(source)
-                                        for source in self.gas_sources))
+        prices = await asyncio.gather(*(self._get_gas_price_from_source(source) for source in self.gas_sources))
 
         average = sum(prices) / len(prices)
         return average

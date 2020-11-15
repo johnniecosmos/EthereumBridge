@@ -24,8 +24,10 @@ class EthEventListener(EventProvider):
         self.tracked_contract = contract
         self.config = config
         self.callbacks = Callbacks()
-        self.logger = get_logger(db_name=config['db_name'],
-                                 logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.id}"))
+        self.logger = get_logger(
+            db_name=config['db_name'],
+            logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.id}")
+        )
         self.events = []
         self.pending_events: List[Tuple[str, LogReceipt]] = []
         self.filters: Dict[str, LogFilter] = {}
@@ -43,7 +45,6 @@ class EthEventListener(EventProvider):
         :param events: list of events the caller wants to register to
         :param from_block: Starting block
         """
-
         for event_name in events:
             self.logger.info(f"registering event {event_name}")
             self.events.append(event_name)
@@ -65,7 +66,7 @@ class EthEventListener(EventProvider):
         self.logger.info("Starting..")
 
         while not self.stop_event.is_set():
-            self.logger.debug('Scanning for new events')
+            self.logger.debug(f'Scanning for new events of type {self.events}')
             for name, event in self.get_new_events():
                 self.logger.info(f"New event found {name}, adding to confirmation handler")
                 self.pending_events.append((name, event))
@@ -79,9 +80,10 @@ class EthEventListener(EventProvider):
         blockNum = w3.eth.blockNumber
         # this creates a copy of the list, so we can remove from the original one while still iterating
         for item in list(self.pending_events):
-            if item[1].blockNumber <= (blockNum - self.confirmations):
+            name, event = item
+            if event.blockNumber <= (blockNum - self.confirmations):
                 self.pending_events.remove(item)
-                yield item[0], item[1]
+                yield item
 
     def events_in_range(self, event: str, from_block: int, to_block: int = None):
         """ Returns a generator that yields all contract events in range"""
@@ -119,6 +121,9 @@ class EthEventListener(EventProvider):
 
 class Callbacks(MutableMapping):
     """Utility class that manages events registration by confirmation threshold"""
+    def __init__(self, *args, **kwargs):
+        self.store = dict()
+        self.update(dict(*args, **kwargs))
 
     def __iter__(self) -> Iterator:
         return iter(self.store)
@@ -128,10 +133,6 @@ class Callbacks(MutableMapping):
 
     def __delitem__(self, key) -> None:
         del self.store[key]
-
-    def __init__(self, *args, **kwargs):
-        self.store = dict()
-        self.update(dict(*args, **kwargs))
 
     def __setitem__(self, key, value):
         if key in self.store:
