@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 pub struct InitMsg {
     pub owner: HumanAddr,
     pub token_address: Option<HumanAddr>,
-    pub code_hash: Option<String>,
+    pub code_hash: Option<String>,       // code hash of snip-20 token
+    pub minimum_amount: Option<Uint128>, // Minimum amount allowed to swap
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -16,6 +17,7 @@ pub enum HandleMsg {
     AddToken {
         address: HumanAddr,
         code_hash: String,
+        minimum_amount: Uint128, // Minimum amount allowed to swap
     },
     RemoveToken {
         address: HumanAddr,
@@ -52,7 +54,6 @@ pub enum QueryMsg {
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleAnswer {
-    // Native
     AddToken { status: ResponseStatus },
     RemoveToken { status: ResponseStatus },
     Receive { status: ResponseStatus, nonce: u32 },

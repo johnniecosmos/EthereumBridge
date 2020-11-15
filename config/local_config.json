@@ -15,12 +15,14 @@
   "mint_token": false,
   "leader_acc_addr": "",
   "leader_key": "",
+  "network": "local",
   "provider_address": "",
   "secret_node": "tcp://localhost:26657",
   "multisig_key_name": "ms3",
   "path_to_keys": "keys/keys",
   "path_to_certs": "../keys/deployment",
-  "eth_node_address": "http://127.0.0.1:8545",
+  "eth_node": "http://127.0.0.1:8545",
+  "ethgastation_api_key": "988d6b114be7514aad5d0c912c90f60af84770393e2a07f41b278aff0bb1",
   "eth_funds_warning_threshold": "0.1",
   "scrt_funds_warning_threshold": "10"
 }

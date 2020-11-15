@@ -2,43 +2,44 @@
 version: "3"
 
 services:
-  leader:
-    hostname: leader
-    image: bridge:latest
-    volumes:
-      - /mnt/c/EthereumBridge/tkeys:/root/keys
-      - /mnt/c/.bridge:/root/.bridge_data
-    environment:
-      - SWAP_ENV=TESTNET # either "TESTNET" or "MAINNET"
-      - MODE=leader      # either "leader" or "signer"
-      - db_username=memyselfandI
-      - db_password=supersecret
-      - db_host=url_to_db.com
-      - db_port=12345
-      - private_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa   # ethereum private key
-      - account=0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb                     # ethereum account address
-      - secret_key_name=t1         # doesn't really matter what you choose here
-      - secret_key_file=t1.key     # file name containing the encrypted key
-      - secret_key_password=12345678  # password for encrypted key
-      - SRC_COIN=eth               # SRC_COIN is the original coin
-      - DST_COIN=seth              # DST_COIN is the wrapped coin (i.e. s+<src_coin> ; eth -> seth)
   signer:
     hostname: signer
-    image: bridge:latest
+    image: enigmampc/eth-bridge-0.8.0:latest
     volumes:
-      - /mnt/c/EthereumBridge/tkeys:/root/keys  # path where the file specified by "secret_key_name" exists
-      - /mnt/c/.bridge:/root/.bridge_data    # used to persist cache when the docker is shutdown
+      - /replace/this/with/keys/path/:/root/keys  # map the path where the file specified by "secret_key_name" exists
     environment:
+      # general
       - SWAP_ENV=TESTNET
-      - MODE=signer
+
+      # database config
       - db_username=memyselfandI
       - db_password=supersecret
       - db_host=url_to_db.com
-      - db_port=12345
-      - private_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa   # ethereum private key
-      - account=0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb                     # ethereum account address
+
+      # access nodes
+      - eth_node="https://ropsten.infura.io/v3/..."
+      - secret_node="tcp://bootstrap.secrettestnet.io:26657"
+      
+      # scrt keys config
       - secret_key_name=t1
       - secret_key_file=t1.key
       - secret_key_password=12345678
-      - SRC_COIN=eth
-      - DST_COIN=seth
+
+      # eth key option 1 - hardcoded private key
+      - eth_private_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa   # ethereum private key
+      - eth_account=0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb                     # ethereum account address
+
+      # provided by leader
+      - multisig_acc_addr=secret18g2pvlz2ess848qkfwert28a2n7xqknjxjgesd
+      - multisig_wallet_address=0x03A95ab8A5de93e47b3802cbA6295ebf85f4aA6f
+      - secret_signers=secretpub1addwnpepqwamxgvaeayyhlsh5htwx9z8vh40vnm5fwlr5axzn6jheeyv3yxhv2qk5p7,secretpub1addwnpepqf080zg7qhwh7wx777jfnyaemp366778edfc5yt7238m3vk03a75ypdtyzk,secretpub1addwnpepqfr4h7p7ylhyjuv0fcef22wu28sgdqljhnz9dtrpafhs4hdkn4r9z3w2z2n
+      - scrt_swap_address=secret1zw0kfxrxgrs5l087mjm79hcmj3y8z6tlkaegyy
+      - swap_code_hash=11ECBAFB0574EBCFA8AE3C884D22EB97EEC7275676661F32660FCE48CE86F5FB
+
+      # eth key option 2 - pkcs11 module (only softhsm supported currently)
+      # volumes: (you may want to map the token storage path to a path inside the container)
+      #   - /path/to/tokens:/root/hsm/tokens/
+      # environment:
+      #   - token=token
+      #   - user_pin=1234
+      #   - label=label

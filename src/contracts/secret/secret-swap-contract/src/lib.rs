@@ -1,4 +1,5 @@
 pub mod contract;
+mod eth;
 pub mod msg;
 pub mod state;
 mod token_messages;

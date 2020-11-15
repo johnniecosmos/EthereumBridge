@@ -7,6 +7,7 @@ from pymongo.errors import DuplicateKeyError
 from web3.exceptions import TransactionNotFound
 
 import src.contracts.ethereum.message as message
+from src.contracts.ethereum.ethr_contract import broadcast_transaction
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res, get_swap_id
 from src.db.collections.eth_swap import Swap, Status
@@ -15,6 +16,7 @@ from src.db.collections.token_map import TokenPairing
 from src.util.coins import Erc20Info, Coin
 from src.util.common import Token
 from src.util.config import Config
+from src.util.crypto_store.crypto_manager import CryptoManagerBase
 from src.util.logger import get_logger
 from src.util.oracle.oracle import BridgeOracle
 from src.util.secretcli import query_scrt_swap
@@ -32,7 +34,7 @@ class EtherLeader(Thread):
     """
     network = "Ethereum"
 
-    def __init__(self, multisig_wallet: MultisigWallet, private_key: bytes, account: str,
+    def __init__(self, multisig_wallet: MultisigWallet, signer: CryptoManagerBase,
                  dst_network: str, config: Config, **kwargs):
         self.config = config
         self.multisig_wallet = multisig_wallet
@@ -42,9 +44,9 @@ class EtherLeader(Thread):
         pairs = TokenPairing.objects(dst_network=dst_network, src_network=self.network)
         for pair in pairs:
             token_map.update({pair.dst_address: Token(pair.src_address, pair.src_coin)})
-
-        self.private_key = private_key
-        self.default_account = account
+        self.signer = signer
+        # self.private_key = private_key
+        # self.default_account = account
         self.token_map = token_map
         self.logger = get_logger(db_name=self.config['db_name'],
                                  logger_name=config.get('logger_name', self.__class__.__name__))
@@ -61,7 +63,7 @@ class EtherLeader(Thread):
 
     def _scan_swap(self):
         """ Scans secret network contract for swap events """
-        self.logger.info(f'Starting with {self.private_key=}, {self.default_account=} {self.token_map=}')
+        self.logger.info(f'Starting for account {self.signer.address} with tokens: {self.token_map=}')
         while not self.stop_event.is_set():
             for token in self.token_map:
                 try:
@@ -144,7 +146,7 @@ class EtherLeader(Thread):
         if not self._validate_fee(amount, fee):
             self.logger.error("Tried to swap an amount too low to cover fee")
             swap = Swap(src_network="Secret", src_tx_hash=swap_id, unsigned_tx=data, src_coin=src_token,
-                        dst_coin=dst_token, dst_address=dest_address, amount=str(amount), dst_network="Ethereum",
+                        dst_coin=dst_token, dst_address=dest_address, amount=amount, dst_network="Ethereum",
                         status=Status.SWAP_FAILED)
             try:
                 swap.save()
@@ -160,12 +162,12 @@ class EtherLeader(Thread):
                              data)
         # todo: check we have enough ETH
         swap = Swap(src_network="Secret", src_tx_hash=swap_id, unsigned_tx=data, src_coin=src_token,
-                    dst_coin=dst_token, dst_address=dest_address, amount=str(amount), dst_network="Ethereum",
+                    dst_coin=dst_token, dst_address=dest_address, amount=amount, dst_network="Ethereum",
                     status=Status.SWAP_FAILED)
         try:
             tx_hash = self._broadcast_transaction(msg)
             swap.dst_tx_hash = tx_hash
-            swap.status = Status.SWAP_CONFIRMED
+            swap.status = Status.SWAP_SUBMITTED
         except (ValueError, TransactionNotFound) as e:
             self.logger.critical(f"Failed to broadcast transaction for msg {repr(msg)}: {e}")
         finally:
@@ -180,12 +182,22 @@ class EtherLeader(Thread):
         else:
             gas_price = None
 
-        remaining_funds = self.multisig_wallet.provider.eth.getBalance(self.default_account)
+        remaining_funds = self.multisig_wallet.provider.eth.getBalance(self.signer.address)
         self.logger.debug(f'ETH leader remaining funds: {remaining_funds / 1e18} ETH')
         fund_warning_threshold = float(self.config['eth_funds_warning_threshold'])
         if remaining_funds < fund_warning_threshold * 1e18:  # 1e18 WEI == 1 ETH
-            self.logger.warning(f'ETH leader {self.default_account} has less than {fund_warning_threshold} ETH left')
+            self.logger.warning(f'ETH leader {self.signer.address} has less than {fund_warning_threshold} ETH left')
 
-        tx_hash = self.multisig_wallet.submit_transaction(self.default_account, self.private_key, gas_price, msg)
+        # tx_hash = self.multisig_wallet.submit_transaction(self.config['leader_acc_addr'], self.config['leader_key'],
+        #                                                   gas_price, msg)
+        data = self.multisig_wallet.encode_data('submitTransaction', *msg.args())
+        tx = self.multisig_wallet.raw_transaction(
+            self.signer.address, 0, data, gas_price,
+            gas_limit=self.multisig_wallet.SUBMIT_GAS
+        )
+        tx = self.multisig_wallet.sign_transaction(tx, self.signer)
+
+        tx_hash = broadcast_transaction(tx)
+
         self.logger.info(msg=f"Submitted tx: hash: {tx_hash.hex()}, msg: {msg}")
         return tx_hash.hex()

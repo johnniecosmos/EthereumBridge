@@ -48,4 +48,4 @@ def ether_accounts(web3_provider, configuration: Config):
 @fixture(scope="module")
 def web3_provider(configuration):
     # connect to local ganache node, started by brownie
-    return Web3(Web3.HTTPProvider(configuration['eth_node_address']))
+    return Web3(Web3.HTTPProvider(configuration['eth_node']))

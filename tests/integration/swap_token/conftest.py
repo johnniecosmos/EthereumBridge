@@ -17,8 +17,9 @@ from src.leader.eth.leader import EtherLeader
 from src.leader.secret20 import Secret20Leader
 from src.signer.eth.signer import EtherSigner
 from src.signer.secret20 import Secret20Signer
-from src.util.common import Token, SecretAccount
+from src.util.common import Token, SecretAccount, bytes_from_hex
 from src.util.config import Config
+from src.util.crypto_store.local_crypto_store import LocalCryptoStore
 from src.util.web3 import normalize_address
 from tests.integration.conftest import contracts_folder, brownie_project_folder
 
@@ -208,8 +209,9 @@ def ethr_leader(multisig_account, configuration: Config, web3_provider, erc20_to
     configuration['eth_start_block'] = web3_provider.eth.blockNumber
 
     # token_map = configuration["token_map_scrt"]
-
-    leader = EtherLeader(multisig_wallet, configuration['leader_key'], configuration['leader_acc_addr'],
+    signer = LocalCryptoStore(private_key=configuration['leader_key'],
+                              account=configuration['leader_acc_addr'])
+    leader = EtherLeader(multisig_wallet, signer,
                          dst_network="Secret", config=configuration)
 
     leader.start()
@@ -228,8 +230,8 @@ def ethr_signers(multisig_wallet, configuration: Config, ether_accounts, erc20_t
     for acc in ether_accounts[1:]:
         private_key = acc.key
         address = acc.address
-
-        res.append(EtherSigner(multisig_wallet, private_key, address, dst_network="Secret", config=configuration))
+        signer = LocalCryptoStore(private_key=private_key, account=address)
+        res.append(EtherSigner(multisig_wallet, signer, dst_network="Secret", config=configuration))
 
     yield res
 

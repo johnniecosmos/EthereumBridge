@@ -127,14 +127,12 @@ tx_hash = multisig_wallet.tracked_contract.functions.swapToken(dest_address.enco
     transact({'from': web3_provider.eth.coinbase}).hex().lower()
 ```
 
-
-###### Config Parameters
+##### Config Parameters
 
 All these parameters can be overwritten by setting an environment variable with the same name. Set common variables in one
 of the files in the ./config/ directory, and the rest by setting environment variables
 
 * db_name - name of database
-* app_data - path to local cache directory (no need to touch this in most cases)
 * signatures_threshold - number of signatures required to authorize transaction 
 * eth_confirmations - number of blocks to wait on ethereum before confirming transactions
 * eth_start_block - block number to start scanning events from  
@@ -142,45 +140,21 @@ of the files in the ./config/ directory, and the rest by setting environment var
 * network - name of ethereum network
 * chain_id - secret network chain-id
 * multisig_wallet_address - Ethereum multisig contract address
-* secret_token_address - address of SNIP-20 secret contract token we are minting
-* secret_swap_contract_address - address of secret contract handling our swaps
-* secret_token_name - name of secret token (not required)
-* code_hash - code hash of the secret contract handling our swaps
+* scrt_swap_address - address of secret contract handling our swaps
+* swap_code_hash - code hash of the secret contract handling our swaps
 * KEYS_BASE_PATH - path to directory with secret network key, and transactional key (id_tx_io.json)
 * SECRETCLI_HOME - path to secretcli config directory (/home/{user}/.secretcli)
-* account - ethereum address
-* private_key - ethereum private key
+* eth_address - ethereum address
+* eth_private_key - ethereum private key
 * secret_node - address of secret network rpc node
-* eth_node_address - address of ethereum node (or service like infura)
+* eth_node - address of ethereum node (or service like infura)
 * enclave_key - path to enclave key
 * multisig_acc_addr - secret network multisig address
 * multisig_key_name - secret network multisig name
 * secret_signers - list of the public keys of addresses that comprise the address in `multisig_acc_addr`
+* SWAP_ENV - either "TESTNET", "MAINNET" or "LOCAL" depending on environment
+* MODE - either "signer" or "leader" depending on operating mode
+* db_username - database username
+* db_password - database password
+* db_host - hostname of database service provider
 
-Example settings:
-```json
-{
-  "db_name": "test_db",
-  "app_data": ".bridge_data",
-  "signatures_threshold": 3,
-  "eth_confirmations": 2,
-  "eth_start_block": 8880990,
-  "sleep_interval": 5.0,
-  "network": "ropsten",
-  "chain_id": "holodeck",
-  "multisig_wallet_address": "0x913BD292C1fbd164Bb61436aa1B026C8131104fd",
-  "secret_token_address": "secret1ljptw8mf5wk9n69j2v5vl4w2laqlrgspxykanp",
-  "secret_swap_contract_address": "secret1hx84ff3h4m8yuvey36g9590pw9mm2p55cwqnm6",
-  "secret_token_name": "seth",
-  "code_hash": "309757D609FB932B5DD0E101A2D018E80FC11347B3A8EB285B826B0E2CBDA236",
-  "KEYS_BASE_PATH": "/EthereumBridge/tkeys",
-  "SECRETCLI_HOME": "/root/.secretcli",
-  "secret_node": "tcp://bootstrap.secrettestnet.io:26657",
-  "eth_node_address": "https://ropsten.infura.io/v3/",
-  "enclave_key": "io-master-cert.der",
-  "viewing_key": "api_key_A90Mw0L31a4Uxm5E1wr+woYq8vuZfnzTpnH6ivyajb4=",
-  "multisig_acc_addr": "secret18g2pvlz2ess848qkfwert28a2n7xqknjxjgesd",
-  "multisig_key_name": "ms3",
-  "secret_signers": ["secretpub1addwnpepqwamxgvaeayyhlsh5htwx9z8vh40vnm5fwlr5axzn6jheeyv3yxhv2qk5p7", "secretpub1addwnpepqf080zg7qhwh7wx777jfnyaemp366778edfc5yt7238m3vk03a75ypdtyzk", "secretpub1addwnpepqfr4h7p7ylhyjuv0fcef22wu28sgdqljhnz9dtrpafhs4hdkn4r9z3w2z2n"]
-}
-```

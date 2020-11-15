@@ -38,7 +38,7 @@ contract MultiSigSwapWallet {
     /*
      *  Storage
      */
-    mapping (address => bool) public tokenWhitelist;
+    mapping (address => uint) public tokenWhitelist;
 
     mapping(uint => Transaction) public transactions;
     mapping(uint => mapping(address => bool)) public confirmations;
@@ -77,7 +77,7 @@ contract MultiSigSwapWallet {
     }
 
     modifier ownerExists(address owner) {
-        require(isOwner[owner]);
+        require(isOwner[owner], "Owner does not exist");
         _;
     }
 
@@ -130,7 +130,7 @@ contract MultiSigSwapWallet {
     }
 
     modifier tokenWhitelisted(address token) {
-        require(tokenWhitelist[token]);
+        require(tokenWhitelist[token] > 0);
         _;
     }
 
@@ -145,6 +145,18 @@ contract MultiSigSwapWallet {
     payable
     {
         revert();
+    }
+
+    /// @dev Returns the execution status of a transaction.
+    /// useful in case an execution fails for some reason - so we can easily see that it failed, and handle it manually
+    /// @param transactionId Transaction ID.
+    /// @return Execution status.
+    function isExecuted(uint transactionId)
+    public
+    view
+    returns (bool)
+    {
+        return transactions[transactionId].executed;
     }
 
     function pauseSwaps()
@@ -170,12 +182,12 @@ contract MultiSigSwapWallet {
         return tokens;
     }
 
-    function addToken(address _tokenAddress)
+    function addToken(address _tokenAddress, uint min_amount)
     public
     ownerExists(msg.sender)
     // OnlyWallet todo: consider this as OnlyWallet
     {
-        tokenWhitelist[_tokenAddress] = true;
+        tokenWhitelist[_tokenAddress] = min_amount;
         tokens.push(_tokenAddress);
     }
 
@@ -216,6 +228,9 @@ contract MultiSigSwapWallet {
     isSecretAddress(_recipient)
     {
         IERC20 token = IERC20(_tokenAddress);
+
+        require(_amount >= tokenWhitelist[_tokenAddress], "Require transfer greater than minimum");
+
         token.safeTransferFrom(msg.sender, address(this), _amount);
 
         emit SwapToken(
@@ -231,7 +246,7 @@ contract MultiSigSwapWallet {
     notPaused()
     isSecretAddress(_recipient)
     payable {
-        require(msg.value > 0); // amount in wei
+        require(msg.value >= 1000000000000000); // 0.001 ETH
         emit Swap(msg.value, _recipient);
     }
 
@@ -411,13 +426,7 @@ contract MultiSigSwapWallet {
             txn.executed = true;
 
             if (txn.fee > 0) {
-                //collectFee(transactionId);
-                if (txn.token == address(0)) {
-                    feeCollector.transfer(txn.fee);
-                } else {
-                    IERC20 token = IERC20(txn.token);
-                    token.safeTransfer(feeCollector, txn.fee);
-                }
+                collectFee(transactionId);
             }
 
             require(gasleft() >= 3000);
@@ -448,6 +457,7 @@ contract MultiSigSwapWallet {
                 0                  // Output is ignored, therefore the output size is zero
             )
         }
+        return success;
     }
 
     /// @dev Returns the confirmation status of a transaction.

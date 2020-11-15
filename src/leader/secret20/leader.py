@@ -1,7 +1,6 @@
 import json
 from datetime import datetime
 from threading import Thread, Event
-from time import sleep
 from typing import List
 
 from mongoengine import OperationError
@@ -19,6 +18,11 @@ from src.util.secretcli import broadcast, multisig_tx, query_data_success, get_u
 
 BROADCAST_VALIDATION_COOLDOWN = 60
 SCRT_BLOCK_TIME = 7
+
+
+def _set_retry(tx: Swap):
+    tx.status = Status.SWAP_RETRY
+    tx.save()
 
 
 class Secret20Leader(Thread):
@@ -69,42 +73,59 @@ class Secret20Leader(Thread):
 
     def _scan_swap(self):
         while not self.stop_event.is_set():
+            failed_prev = False
             for tx in Swap.objects(status=Status.SWAP_SIGNED, src_network="Ethereum"):
+                # if there are 2 transactions that depend on each other (sequence number), and the first fails we mark
+                # the next as "retry"
+                if failed_prev:
+                    self.logger.info(f"Previous TX failed, retrying {tx.id}")
+                    _set_retry(tx)
+                    continue
+
                 self.logger.info(f"Found tx ready for broadcasting {tx.id}")
-                self._create_and_broadcast(tx)
-                sleep(SCRT_BLOCK_TIME)
+                failed_prev = not self._create_and_broadcast(tx)
+            failed_prev = False
             for tx in Swap.objects(status=Status.SWAP_SUBMITTED, src_network="Ethereum"):
-                self._broadcast_validation(tx)
+                if failed_prev:
+                    self.logger.info(f"Previous TX failed, retrying {tx.id}")
+                    _set_retry(tx)
+                    continue
+                failed_prev = not self._broadcast_validation(tx)
+
             self.logger.debug('done scanning for swaps. sleeping..')
             self.stop_event.wait(self.config['sleep_interval'])
 
-    def _create_and_broadcast(self, tx: Swap):
+    def _create_and_broadcast(self, tx: Swap) -> bool:
         # reacts to signed tx in the DB that are ready to be sent to secret20
         signatures = [signature.signed_tx for signature in Signatures.objects(tx_id=tx.id)]
         if len(signatures) < self.config['signatures_threshold']:  # sanity check
             self.logger.error(msg=f"Tried to sign tx {tx.id}, without enough signatures"
                                   f" (required: {self.config['signatures_threshold']}, have: {len(signatures)})")
-            return
+            return False
 
         try:
-            signed_tx = self._create_multisig(tx.unsigned_tx, signatures)
+            signed_tx = self._create_multisig(tx.unsigned_tx, tx.sequence, signatures)
             scrt_tx_hash = self._broadcast(signed_tx)
             self.logger.info(f"Broadcasted {tx.id} successfully - {scrt_tx_hash}")
             tx.status = Status.SWAP_SUBMITTED
             tx.dst_tx_hash = scrt_tx_hash
             tx.save()
             self.logger.info(f"Changed status of tx {tx.id} to submitted")
+            return True
         except (RuntimeError, OperationError) as e:
             self.logger.error(msg=f"Failed to create multisig and broadcast, error: {e}")
-            self.manager.update_sequence()
+            tx.status = Status.SWAP_FAILED
+            tx.save()
+            return False
 
-    def _create_multisig(self, unsigned_tx: str, signatures: List[str]) -> str:
+    def _create_multisig(self, unsigned_tx: str, sequence: int, signatures: List[str]) -> str:
         """Takes all the signatures of the signers from the db and generates the signed tx with them."""
 
         # creates temp-files containing the signatures, as the 'multisign' command requires files as input
         with temp_file(unsigned_tx) as unsigned_tx_path:
             with temp_files(signatures, self.logger) as signed_tx_paths:
-                return multisig_tx(unsigned_tx_path, self.multisig_name, *signed_tx_paths)
+                return multisig_tx(unsigned_tx_path, self.multisig_name,
+                                   self.manager.account_num, sequence, *signed_tx_paths)
 
     def _broadcast(self, signed_tx) -> str:
         remaining_funds = get_uscrt_balance(self.manager.multisig.address)
@@ -117,29 +138,41 @@ class Secret20Leader(Thread):
         with temp_file(signed_tx) as signed_tx_path:
             return json.loads(broadcast(signed_tx_path))['txhash']
 
-    def _broadcast_validation(self, document: Swap):  # pylint: disable=unused-argument
+    def _broadcast_validation(self, document: Swap) -> bool:  # pylint: disable=unused-argument
         """validation of submitted broadcast signed tx
 
         **kwargs needs to be here even if unused, because this function gets passed arguments from mongo internals
         """
         if not document.status == Status.SWAP_SUBMITTED or not document.src_network == "Ethereum":
-            return
+            return False
 
         tx_hash = document.dst_tx_hash
         try:
             res = query_data_success(tx_hash)
 
             if res and res["mint_from_ext_chain"]["status"] == "success":
+                self.logger.info("Updated status to confirmed")
                 document.update(status=Status.SWAP_CONFIRMED)
-            else:
-                # maybe the block took a long time - we wait 60 seconds before we mark it as failed
-                if (datetime.utcnow() - document.updated_on).total_seconds() < BROADCAST_VALIDATION_COOLDOWN:
-                    return
-                document.update(status=Status.SWAP_FAILED)
-                self.logger.critical(f"Failed confirming broadcast for tx: {repr(document)}")
-        except (IndexError, json.JSONDecodeError, RuntimeError) as e:
-            self.logger.critical(f"Failed confirming broadcast for tx: {repr(document)}. Error: {e}")
-            # This can fail, but if it does we want to crash - this can lead to duplicate amounts and confusion
-            # Better to just stop and make sure everything is kosher before continuing
+                return True
+
+            # maybe the block took a long time - we wait 60 seconds before we mark it as failed
+            # The returned value is just here to let us know if we need to retry the next transactions
+            if (datetime.utcnow() - document.updated_on).total_seconds() < BROADCAST_VALIDATION_COOLDOWN:
+                return True
+
+            # TX isn't on-chain. We can retry it
+            document.update(status=Status.SWAP_RETRY)
+
+            # update sequence number - just in case we failed because we are out of sync
+            self.manager.update_sequence()
+            self.logger.critical(f"Failed confirming broadcast for tx: {repr(document)}")
+            return False
+        except (ValueError, KeyError) as e:
+            # TX failed for whatever reason. Might be a duplicate, out of gas, or any other reason
+            self.logger.error(f"Failed confirming broadcast for tx: {repr(document)}. Error: {e}")
+            # The DB update can fail, but if it does we want to crash - this can lead to
+            # duplicate amounts and confusion. Better to just stop and make sure
+            # everything is kosher before continuing
             document.update(status=Status.SWAP_FAILED)
             self.manager.update_sequence()
+            return False

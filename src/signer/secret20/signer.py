@@ -11,7 +11,7 @@ from src.db.collections.signatures import Signatures
 from src.util.common import temp_file
 from src.util.config import Config
 from src.util.logger import get_logger
-from src.util.secretcli import sign_tx as secretcli_sign, decrypt
+from src.util.secretcli import sign_tx as secretcli_sign, decrypt, account_info
 
 SecretAccount = namedtuple('SecretAccount', ['address', 'name'])
 
@@ -30,6 +30,7 @@ class Secret20Signer(Thread):
         )
         super().__init__(group=None, name=f"SecretSigner-{self.multisig.name}", target=self.run, **kwargs)
         self.setDaemon(True)  # so tests don't hang
+        self.account_num, _ = self._account_details()
         # signals.post_init.connect(self._tx_signal, sender=ETHSwap)  # TODO: test this with deployed db on machine
 
     def stop(self):
@@ -40,12 +41,23 @@ class Secret20Signer(Thread):
         """Scans the db for unsigned swap tx and signs them"""
         self.logger.info("Starting..")
         while not self.stop_event.is_set():
+            failed = False
             for tx in Swap.objects(status=Status.SWAP_UNSIGNED):
+
+                # if there are 2 transactions that depend on each other (sequence number), and the first fails we mark
+                # the next as "retry"
+                if failed:
+                    tx.status = Status.SWAP_RETRY
+                    continue
+
                 self.logger.info(f"Found new unsigned swap event {tx}")
                 try:
                     self._validate_and_sign(tx)
+                    self.logger.info(
+                        f"Signed transaction successfully id:{tx.id}")
                 except ValueError as e:
                     self.logger.error(f'Failed to sign transaction: {tx} error: {e}')
+                    failed = True
             self.stop_event.wait(self.config['sleep_interval'])
 
     def _validate_and_sign(self, tx: Swap):
@@ -55,18 +67,20 @@ class Secret20Signer(Thread):
         :raises: ValueError
         """
         if self._is_signed(tx):
-            self.logger.debug(f"This signer already this transaction. Waiting for other signers... id:{tx.id}")
+            self.logger.debug(f"This signer already signed this transaction. Waiting for other signers... id:{tx.id}")
             return
 
         if not self._is_valid(tx):
             self.logger.error(f"Validation failed. Signer: {self.multisig.name}. Tx id:{tx.id}.")
             tx.status = Status.SWAP_FAILED
             tx.save()
-            return
+            raise ValueError
 
         try:
-            signed_tx = self._sign_with_secret_cli(tx.unsigned_tx)
+            signed_tx = self._sign_with_secret_cli(tx.unsigned_tx, tx.sequence)
         except RuntimeError as e:
+            tx.status = Status.SWAP_FAILED
+            tx.save()
             raise ValueError from e
 
         try:
@@ -98,8 +112,13 @@ class Secret20Signer(Thread):
             json_start_index = res.find('{')
             json_end_index = res.rfind('}') + 1
             decrypted_data = json.loads(res[json_start_index:json_end_index])
-            # assert decrypted_data['mint']['eth_tx_hash'] == log.transactionHash.hex()
-            assert int(decrypted_data['mint_from_ext_chain']['amount']) == self.contract.extract_amount(log)
+
+            tx_amount = int(decrypted_data['mint_from_ext_chain']['amount'])
+
+            # check that amounts on-chain and in the db match the amount we're minting
+            assert tx_amount == self.contract.extract_amount(log)
+            assert tx_amount == tx.amount
+            # check that the address we're minting to matches the target from the TX
             assert decrypted_data['mint_from_ext_chain']['address'] == self.contract.extract_addr(log)
         except (json.JSONDecodeError, AssertionError, KeyError) as e:
             self.logger.error(f"Failed to validate tx data: {tx}, {decrypted_data}. Error: {e}")
@@ -107,9 +126,10 @@ class Secret20Signer(Thread):
 
         return True
 
-    def _sign_with_secret_cli(self, unsigned_tx: str) -> str:
+    def _sign_with_secret_cli(self, unsigned_tx: str, sequence: int) -> str:
         with temp_file(unsigned_tx) as unsigned_tx_path:
-            res = secretcli_sign(unsigned_tx_path, self.multisig.address, self.multisig.name)
+            res = secretcli_sign(unsigned_tx_path, self.multisig.address, self.multisig.name,
+                                 self.account_num, sequence)
 
         return res
 
@@ -117,3 +137,7 @@ class Secret20Signer(Thread):
     def _decrypt(unsigned_tx: Dict):
         msg = unsigned_tx['value']['msg'][0]['value']['msg']
         return decrypt(msg)
+
+    def _account_details(self):
+        details = account_info(self.multisig.address)
+        return details["value"]["account_number"], details["value"]["sequence"]

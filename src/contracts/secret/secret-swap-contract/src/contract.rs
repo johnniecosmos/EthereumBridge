@@ -1,22 +1,24 @@
-use cosmwasm_std::{
-    to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
-    StdError, StdResult, Storage, Uint128,
-};
-
+use crate::eth::validate_address;
 use crate::msg::ResponseStatus::Success;
 use crate::msg::{HandleAnswer, HandleMsg, InitMsg, QueryAnswer, QueryMsg};
 use crate::state::{config, config_read, Contract, Mint, State, Swap, TokenWhiteList};
 use crate::token_messages::TokenMsgs;
+use cosmwasm_std::{
+    to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
+    StdError, StdResult, Storage, Uint128,
+};
 
 pub fn _add_token<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: &Env,
     code_hash: &String,
     token_address: &HumanAddr,
+    minimum_amount: Uint128,
 ) -> StdResult<TokenMsgs> {
     let params = Contract {
         address: deps.api.canonical_address(token_address)?,
         code_hash: code_hash.clone(),
+        minimum_amount,
     };
 
     TokenWhiteList::add(&mut deps.storage, &params)?;
@@ -56,7 +58,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         if let Some(hash) = msg.code_hash {
             // it will be helpful to just do this here instead of after
 
-            let callback = _add_token(deps, &env, &hash, &address)?;
+            let callback = _add_token(deps, &env, &hash, &address, msg.minimum_amount.unwrap())?;
 
             return Ok(InitResponse {
                 messages: vec![callback.to_cosmos_msg(address, hash)?],
@@ -78,8 +80,11 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::UnpauseSwap {} => unpause_swap(deps, env),
         HandleMsg::ChangeOwner { owner } => change_owner(deps, env, owner),
         HandleMsg::AddToken {
-            address, code_hash, ..
-        } => add_token_contract(deps, env, address, code_hash),
+            address,
+            code_hash,
+            minimum_amount,
+            ..
+        } => add_token_contract(deps, env, address, code_hash, minimum_amount),
         HandleMsg::RemoveToken { address, .. } => remove_token_contract(deps, env, address),
         HandleMsg::MintFromExtChain {
             address,
@@ -192,11 +197,6 @@ fn burn_token<S: Storage, A: Api, Q: Querier>(
     amount: Uint128,
     msg: Option<Binary>,
 ) -> StdResult<HandleResponse> {
-    // validate that this is a callback from the token contract
-    // let params = TokenContractParams::load(&deps.storage).map_err(|_e| {
-    //     StdError::generic_err("You fool you must set the token contract parameters first")
-    // })?;
-
     let state = config(&mut deps.storage).load()?;
     if state.paused {
         return Err(StdError::generic_err("Swap contract is currently paused"));
@@ -205,13 +205,25 @@ fn burn_token<S: Storage, A: Api, Q: Querier>(
     let params = TokenWhiteList::get(
         &deps.storage,
         &deps.api.canonical_address(&env.message.sender)?,
-    )?;
+    )
+    .map_err(|_| StdError::generic_err("Unknown token"))?;
 
     // get params from receive callback msg
     let destination = msg.unwrap().to_string();
 
+    // validate that destination is valid Ethereum address
+    let _ = validate_address(&destination)?;
+
+    if amount < params.minimum_amount {
+        return Err(StdError::generic_err(format!(
+            "Cannot swap amount under minimum of: {}",
+            params.minimum_amount
+        )));
+    }
+
     let source = from.to_string();
     let token = env.message.sender;
+
     // store the swap details
     let mut swap_store = Swap {
         source,
@@ -291,6 +303,7 @@ pub fn add_token_contract<S: Storage, A: Api, Q: Querier>(
     env: Env,
     address: HumanAddr,
     code_hash: String,
+    minimum_amount: Uint128,
 ) -> StdResult<HandleResponse> {
     let params = config_read(&deps.storage).load()?;
 
@@ -300,7 +313,7 @@ pub fn add_token_contract<S: Storage, A: Api, Q: Querier>(
         ));
     }
 
-    let callback = _add_token(deps, &env, &code_hash, &address)?;
+    let callback = _add_token(deps, &env, &code_hash, &address, minimum_amount)?;
 
     Ok(HandleResponse {
         messages: vec![callback.to_cosmos_msg(address, code_hash)?],

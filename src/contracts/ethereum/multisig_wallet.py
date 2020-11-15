@@ -10,7 +10,7 @@ from src.util.common import project_base_path
 
 
 class MultisigWallet(EthereumContract):
-    SUBMIT_GAS = 500000
+    SUBMIT_GAS = 5000000
     CONFIRM_GAS = 600000
 
     def __init__(self, provider: Web3, contract_address: str):
@@ -78,7 +78,6 @@ class MultisigWallet(EthereumContract):
 
     @staticmethod
     def parse_swap_event(event: AttributeDict):
-        print(f"{event=}")
         try:
             block_number = event["blockNumber"]
         except IndexError:
