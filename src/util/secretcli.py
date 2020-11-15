@@ -79,7 +79,7 @@ def query_data_success(tx_hash: str) -> Dict:
     """
     cmd = ['secretcli', 'query', 'compute', 'tx', tx_hash]
     try:
-        resp = run_secret_cli(cmd)
+        resp = run_secret_cli(cmd, log=False)
     except RuntimeError:
         return {}
     try:
@@ -94,7 +94,7 @@ def query_data_success(tx_hash: str) -> Dict:
         raise ValueError(f"Failed to decode response {e}") from e
 
 
-def run_secret_cli(cmd: List[str]) -> str:
+def run_secret_cli(cmd: List[str], log: bool = True) -> str:
     """
 
     """
@@ -102,7 +102,8 @@ def run_secret_cli(cmd: List[str]) -> str:
         logger.debug(f'Running command: {cmd}')
         p = subprocess.run(cmd, stdout=PIPE, stderr=PIPE, check=True)
     except subprocess.CalledProcessError as e:
-        logger.error(f'Failed: stderr: {e.stderr.decode()}, stdout: {e.stdout.decode()}')
+        if log:
+            logger.error(f'Failed: stderr: {e.stderr.decode()}, stdout: {e.stdout.decode()}')
         raise RuntimeError(e.stdout.decode()) from None
 
     logger.debug('Success')
