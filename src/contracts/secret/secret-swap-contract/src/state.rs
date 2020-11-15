@@ -1,3 +1,4 @@
+use bincode2;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -8,12 +9,32 @@ use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
 
 use secret_toolkit::storage::{AppendStore, AppendStoreMut};
+use serde::de::DeserializeOwned;
+use std::any::type_name;
 
 pub static CONFIG_KEY: &[u8] = b"config";
 pub static TOKEN_NAMESPACE: &[u8] = b"TokenContractParams";
 pub static WHITELIST_KEY: &[u8] = b"Whitelist";
 pub static SWAP_KEY: &[u8] = b"swap";
 pub static MINT_KEY: &[u8] = b"mint";
+
+fn set_bin_data<T: Serialize, S: Storage>(storage: &mut S, key: &[u8], data: &T) -> StdResult<()> {
+    let bin_data =
+        bincode2::serialize(&data).map_err(|e| StdError::serialize_err(type_name::<T>(), e))?;
+
+    storage.set(key, &bin_data);
+    Ok(())
+}
+
+fn get_bin_data<T: DeserializeOwned, S: ReadonlyStorage>(storage: &S, key: &[u8]) -> StdResult<T> {
+    let bin_data = storage.get(key);
+
+    match bin_data {
+        None => Err(StdError::not_found("Key not found in storage")),
+        Some(bin_data) => Ok(bincode2::deserialize::<T>(&bin_data)
+            .map_err(|e| StdError::serialize_err(type_name::<T>(), e))?),
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct Mint {
@@ -29,36 +50,43 @@ impl Mint {
     /// Err() if the store failed, or if the mint already exists
     pub fn store<S: Storage>(&self, store: &mut S) -> StdResult<()> {
         let exists = Self::exists(store, &self.identifier);
-
-        let mut store = PrefixedStorage::new(MINT_KEY, store);
-        let mut store = AppendStoreMut::attach_or_create(&mut store)?;
-
-        if exists.is_ok() && exists.unwrap() {
+        if exists {
             return Err(StdError::generic_err("Mint already exists"));
         }
 
-        store.push(self)?;
+        let mut store = PrefixedStorage::new(MINT_KEY, store);
+
+        //let mut store = AppendStoreMut::attach_or_create(&mut store)?;
+        //store.set(&self.identifier.into_bytes(), set_bin_data);
+        set_bin_data(&mut store, self.identifier.as_bytes(), self);
+        // if exists.is_ok() && exists.unwrap() {
+        //     return Err(StdError::generic_err("Mint already exists"));
+        // }
+        //
+        // store.push(self)?;
         Ok(())
     }
 
-    pub fn exists<S: ReadonlyStorage>(storage: &S, key: &String) -> StdResult<bool> {
+    pub fn exists<S: ReadonlyStorage>(storage: &S, key: &String) -> bool {
         let store = ReadonlyPrefixedStorage::new(MINT_KEY, storage);
 
         // Try to access the storage of txs for the account.
         // If it doesn't exist yet, return an empty list of transfers.
-        let store = if let Some(result) = AppendStore::<Self, _>::attach(&store) {
-            result?
-        } else {
-            return Ok(false);
-        };
+        store.get(key.as_bytes()).is_some()
 
-        for s in store.iter() {
-            if &s?.identifier == key {
-                return Ok(true);
-            }
-        }
-
-        return Ok(false);
+        // let store = if let Some(result) = AppendStore::<Self, _>::attach(&store) {
+        //     result?
+        // } else {
+        //     return Ok(false);
+        // };
+        //
+        // for s in store.iter() {
+        //     if &s?.identifier == key {
+        //         return Ok(true);
+        //     }
+        // }
+        //
+        // return Ok(false);
     }
 }
 

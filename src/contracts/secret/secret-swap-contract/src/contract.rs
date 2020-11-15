@@ -121,12 +121,12 @@ fn mint_token<S: Storage, A: Api, Q: Querier>(
     let canonical = deps.api.canonical_address(&token)?;
     let params = TokenWhiteList::get(&deps.storage, &canonical)?;
 
-    let mint_store = Mint {
-        address: deps.api.canonical_address(&address)?,
-        identifier,
-        amount,
-    };
-    mint_store.store(&mut deps.storage)?;
+    // let mint_store = Mint {
+    //     address: deps.api.canonical_address(&address)?,
+    //     identifier,
+    //     amount,
+    // };
+    // mint_store.store(&mut deps.storage)?;
 
     let contract_addr = deps.api.human_address(&params.address)?;
     let mint_msg = TokenMsgs::Mint {
@@ -365,7 +365,7 @@ pub fn query_mint<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     identifier: String,
 ) -> StdResult<Binary> {
-    let mint = Mint::exists(&deps.storage, &identifier)?;
+    let mint = Mint::exists(&deps.storage, &identifier);
 
     Ok(to_binary(&QueryAnswer::Mint { result: mint })?)
 }
