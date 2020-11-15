@@ -127,8 +127,6 @@ class EtherLeader(Thread):
         return data, tx_dest, tx_amount, tx_token, fee
 
     def _handle_swap(self, swap_data: str, src_token: str, dst_token: str):
-
-
         swap_json = swap_query_res(swap_data)
         # this is an id, and not the TX hash since we don't actually know where the TX happened, only the id of the
         # swap reported by the contract

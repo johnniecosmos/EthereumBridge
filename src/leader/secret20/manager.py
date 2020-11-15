@@ -127,7 +127,6 @@ class SecretManager(Thread):
 
     def _handle(self, event: AttributeDict):
         """Extracts tx data from @event and add unsigned_tx to db"""
-
         if not self.contract.verify_destination(event):
             return
 
