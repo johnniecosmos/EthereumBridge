@@ -19,7 +19,7 @@ class Swap(Document):
     src_tx_hash = StringField(required=True, unique=True)
     src_network = StringField(required=True, default='eth')
     src_coin = StringField(required=True, default='')
-    amount = IntField(required=True)
+    amount = StringField(required=True)
     status = EnumField(Status, required=True)
     unsigned_tx = StringField(required=True)
     dst_tx_hash = StringField(required=True, default='')
@@ -35,7 +35,7 @@ class Swap(Document):
         document.updated_on = datetime.now()
 
     def __repr__(self):
-        return f"<Swap hash {self.src_tx_hash} from {self.src_network} for {self.amount}{self.src_coin} " \
+        return f"<Swap hash {self.src_tx_hash} from {self.src_network} for {self.amount} {self.src_coin} " \
                f"to {self.dst_network} for {self.dst_coin}>"
 
 

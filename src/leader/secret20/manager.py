@@ -124,7 +124,7 @@ class SecretManager(Thread):
         if not self.contract.verify_destination(event):
             return
 
-        amount = self.contract.extract_amount(event)
+        amount = str(self.contract.extract_amount(event))
 
         try:
             block_number, tx_hash, recipient, token = self.contract.parse_swap_event(event)
@@ -139,7 +139,7 @@ class SecretManager(Thread):
             unsigned_tx = create_unsigned_tx(self.config["scrt_swap_address"], mint, self.config['chain_id'],
                                              self.config['enclave_key'], self.config["swap_code_hash"],
                                              self.multisig.address)
-            # if ETHSwap.objects(tx_hash=tx_hash).count() == 0:  # TODO: exception because of force_insert?
+
             tx = Swap(src_tx_hash=tx_hash, status=Status.SWAP_UNSIGNED, unsigned_tx=unsigned_tx, src_coin=token,
                       dst_coin=s20.name, dst_address=s20.address, src_network="Ethereum", sequence=self.sequence,
                       amount=amount)
