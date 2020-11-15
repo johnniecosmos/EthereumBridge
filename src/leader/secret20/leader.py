@@ -127,12 +127,15 @@ class Secret20Leader(Thread):
                 return multisig_tx(unsigned_tx_path, self.multisig_name,
                                    self.manager.account_num, sequence, *signed_tx_paths)
 
-    def _broadcast(self, signed_tx) -> str:
+    def _check_remaining_funds(self):
         remaining_funds = get_uscrt_balance(self.manager.multisig.address)
         self.logger.debug(f'SCRT leader remaining funds: {remaining_funds / 1e6} SCRT')
         fund_warning_threshold = float(self.config['scrt_funds_warning_threshold'])
         if remaining_funds < fund_warning_threshold * 1e6:  # 1e6 uSCRT == 1 SCRT
             self.logger.warning(f'SCRT leader has less than {fund_warning_threshold} SCRT left')
+
+    def _broadcast(self, signed_tx) -> str:
+        self._check_remaining_funds()
 
         # Note: This operation costs Scrt
         with temp_file(signed_tx) as signed_tx_path:
