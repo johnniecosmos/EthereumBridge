@@ -20,7 +20,7 @@ from src.util.crypto_store.crypto_manager import CryptoManagerBase
 from src.util.logger import get_logger
 from src.util.oracle.oracle import BridgeOracle
 from src.util.secretcli import query_scrt_swap
-from src.util.web3 import erc20_contract
+from src.util.web3 import erc20_contract, w3
 
 
 class EtherLeader(Thread):
@@ -176,17 +176,20 @@ class EtherLeader(Thread):
             except (DuplicateKeyError, NotUniqueError):
                 pass
 
+    def _chcek_remaining_funds(self):
+        remaining_funds = w3.eth.getBalance(self.signer.address)
+        self.logger.debug(f'ETH leader remaining funds: {w3.fromWei(remaining_funds, "ether")} ETH')
+        fund_warning_threshold = float(self.config['eth_funds_warning_threshold'])
+        if remaining_funds < w3.toWei(fund_warning_threshold, 'ether'):
+            self.logger.warning(f'ETH leader {self.signer.address} has less than {fund_warning_threshold} ETH left')
+
     def _broadcast_transaction(self, msg: message.Submit):
         if self.config["network"] == "mainnet":
             gas_price = BridgeOracle.gas_price()
         else:
             gas_price = None
 
-        remaining_funds = self.multisig_wallet.provider.eth.getBalance(self.signer.address)
-        self.logger.debug(f'ETH leader remaining funds: {remaining_funds / 1e18} ETH')
-        fund_warning_threshold = float(self.config['eth_funds_warning_threshold'])
-        if remaining_funds < fund_warning_threshold * 1e18:  # 1e18 WEI == 1 ETH
-            self.logger.warning(f'ETH leader {self.signer.address} has less than {fund_warning_threshold} ETH left')
+        self._chcek_remaining_funds()
 
         # tx_hash = self.multisig_wallet.submit_transaction(self.config['leader_acc_addr'], self.config['leader_key'],
         #                                                   gas_price, msg)

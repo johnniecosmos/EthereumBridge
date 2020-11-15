@@ -70,15 +70,18 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
 
         return open(file_path, "a+")
 
+    def _check_remaining_funds(self):
+        remaining_funds = w3.eth.getBalance(self.account)
+        self.logger.debug(f'ETH signer remaining funds: {w3.fromWei(remaining_funds, "ether")} ETH')
+        fund_warning_threshold = float(self.config['eth_funds_warning_threshold'])
+        if remaining_funds < w3.toWei(fund_warning_threshold, 'ether'):
+            self.logger.warning(f'ETH signer {self.account} has less than {fund_warning_threshold} ETH left')
+
     # noinspection PyUnresolvedReferences
     def sign(self, submission_event: AttributeDict):
         """Tries to validate the transaction corresponding to submission id on the smart contract,
         confirms and signs if valid"""
-        remaining_funds = w3.eth.getBalance(self.account)
-        self.logger.debug(f'ETH signer remaining funds: {remaining_funds/1e18} ETH')
-        fund_warning_threshold = float(self.config['eth_funds_warning_threshold'])
-        if remaining_funds < fund_warning_threshold * 1e18:  # 1e18 WEI == 1 ETH
-            self.logger.warning(f'ETH signer {self.account} has less than {fund_warning_threshold} ETH left')
+        self._check_remaining_funds()
 
         transaction_id = submission_event.args.transactionId
         self.logger.info(f'Got submission event with transaction id: {transaction_id}, checking status')
