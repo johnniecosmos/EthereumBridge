@@ -139,7 +139,7 @@ class Secret20Signer(Thread):
             return False
 
         # check that the address we're minting to matches the target from the TX
-        if tx_address == eth_on_chain_address:
+        if tx_address != eth_on_chain_address:
             self.logger.error(f"Failed to validate tx data: {tx}, ({tx_address}, {eth_on_chain_address}),"
                               f" addresses do not match")
             return False
