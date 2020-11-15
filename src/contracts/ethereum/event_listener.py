@@ -80,7 +80,7 @@ class EthEventListener(EventProvider):
         blockNum = w3.eth.blockNumber
         # this creates a copy of the list, so we can remove from the original one while still iterating
         for item in list(self.pending_events):
-            name, event = item
+            _name, event = item
             if event.blockNumber <= (blockNum - self.confirmations):
                 self.pending_events.remove(item)
                 yield item
