@@ -5,7 +5,7 @@ import subprocess
 
 from src.db import database
 from src.db.collections.token_map import TokenPairing
-from src.util.config import Config
+from src.util.config import config
 from src.util.web3 import web3_provider
 
 signer_accounts = ['0xA48e330838A6167a68d7991bf76F2E522566Da33', '0x55810874c137605b96e9d2B76C3089fcC325ed5d',
@@ -16,16 +16,13 @@ signer_accounts = ['0xA48e330838A6167a68d7991bf76F2E522566Da33', '0x55810874c137
 #
 
 def add_token(token: str):
-
-    cfg = Config()
-
     with open('./src/contracts/ethereum/compiled/MultiSigSwapWallet.json', 'r') as f:
         contract_source_code = json.loads(f.read())
 
-    w3 = web3_provider(cfg['eth_node'])
+    w3 = web3_provider(config.eth_node)
     account = w3.eth.account.from_key("0xb84db86a570359ca8a16ad840f7495d3d8a1b799b29ae60a2032451d918f3826")
 
-    contract = w3.eth.contract(address=cfg['multisig_wallet_address'],
+    contract = w3.eth.contract(address=config.multisig_wallet_address,
                                abi=contract_source_code['abi'],
                                bytecode=contract_source_code['data']['bytecode']['object'])
 
@@ -39,15 +36,12 @@ def add_token(token: str):
 
 
 def deploy_eth():
-
-    cfg = Config()
-
     with open('./src/contracts/ethereum/compiled/MultiSigSwapWallet.json', 'r') as f:
         contract_source_code = json.loads(f.read())
 
-    w3 = web3_provider(cfg['eth_node'])
+    w3 = web3_provider(config.eth_node)
     account = w3.eth.account.from_key("0xb84db86a570359ca8a16ad840f7495d3d8a1b799b29ae60a2032451d918f3826")
-    print(f"Deploying on {cfg['network']} from address {account.address}")
+    print(f"Deploying on {config.network} from address {account.address}")
     balance = w3.eth.getBalance(account.address, "latest")
     if balance < 1000000000000:
         print("You gotta have some cash dawg")
@@ -55,7 +49,7 @@ def deploy_eth():
 
     # Instantiate and deploy contract
     contract = w3.eth.contract(abi=contract_source_code['abi'], bytecode=contract_source_code['data']['bytecode']['object'])
-    tx = contract.constructor(signer_accounts, cfg['signatures_threshold'],)
+    tx = contract.constructor(signer_accounts, config.signatures_threshold,)
 
     nonce = w3.eth.getTransactionCount(account.address, "pending")
 
@@ -78,14 +72,11 @@ def rand_str(n):
 
 
 def deploy_scrt():
-
-    configuration = Config()
-
     # docker exec -it secretdev secretcli tx compute store "/token.wasm.gz" --from a --gas 2000000 -b block -y
     #
     # docker exec -it secretdev secretcli tx compute store "/swap.wasm.gz" --from a --gas 2000000 -b block -y
 
-    multisig_account = configuration["multisig_acc_addr"]
+    multisig_account = config.multisig_acc_addr
     deployer = "secret1qcz0405jctqvar3e5wmlsj2q5vrehgudtv5nqd"
 
     tx_data = {"admin": multisig_account, "name": "Coin Name", "symbol": "ETHR", "decimals": 6,
@@ -95,10 +86,6 @@ def deploy_scrt():
           f" --from t1 -b block -y"
     res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
 
-    res = subprocess.run("secretcli query compute list-contract-by-code 1 | jq '.[-1].address'",
-                         shell=True, stdout=subprocess.PIPE)
-    configuration['secret_token_address'] = res.stdout.decode().strip()[1:-1]
-
     tx_data = { "owner": multisig_account }
 
     cmd = f"secretcli tx compute instantiate 2 --label {rand_str(10)} '{json.dumps(tx_data)}'" \
@@ -107,11 +94,11 @@ def deploy_scrt():
 
     res = subprocess.run("secretcli query compute list-contract-by-code 2 | jq '.[-1].address'",
                          shell=True, stdout=subprocess.PIPE)
-    configuration['secret_swap_contract_address'] = res.stdout.decode().strip()[1:-1]
+    secret_swap_contract_address = res.stdout.decode().strip()[1:-1]
 
-    res = subprocess.run(f"secretcli q compute contract-hash {configuration['secret_swap_contract_address']}",
+    res = subprocess.run(f"secretcli q compute contract-hash {secret_swap_contract_address}",
                          shell=True, stdout=subprocess.PIPE).stdout.decode().strip()[2:]
-    configuration['code_hash'] = res
+    config.code_hash = res
 
 
 def configure_db():

@@ -1,8 +1,8 @@
 {
   "db_name": "test_db",
-  "LOG_LEVEL": "info",
-  "MODE": "signer",
-  "PKCS11_MODULE": "/usr/lib/softhsm/libsofthsm2.so",
+  "log_level": "info",
+  "mode": "signer",
+  "pkcs11_module": "/usr/lib/softhsm/libsofthsm2.so",
   "signatures_threshold": 3,
   "eth_confirmations": 2,
   "eth_start_block": 8880990,
@@ -12,8 +12,8 @@
   "multisig_wallet_address": "0x03A95ab8A5de93e47b3802cbA6295ebf85f4aA6f",
   "scrt_swap_address": "secret1zw0kfxrxgrs5l087mjm79hcmj3y8z6tlkaegyy",
   "swap_code_hash": "11ECBAFB0574EBCFA8AE3C884D22EB97EEC7275676661F32660FCE48CE86F5FB",
-  "KEYS_BASE_PATH": "/EthereumBridge/tkeys",
-  "SECRETCLI_HOME": "/root/.secretcli",
+  "keys_base_path": "/EthereumBridge/tkeys",
+  "secretcli_home": "/root/.secretcli",
   "eth_address": "",
   "eth_private_key": "",
   "secret_node": "tcp://bootstrap.secrettestnet.io:26657",
@@ -21,7 +21,11 @@
   "enclave_key": "io-master-cert.der",
   "multisig_acc_addr": "secret18g2pvlz2ess848qkfwert28a2n7xqknjxjgesd",
   "multisig_key_name": "ms3",
-  "secret_signers": ["secretpub1addwnpepqwamxgvaeayyhlsh5htwx9z8vh40vnm5fwlr5axzn6jheeyv3yxhv2qk5p7", "secretpub1addwnpepqf080zg7qhwh7wx777jfnyaemp366778edfc5yt7238m3vk03a75ypdtyzk", "secretpub1addwnpepqfr4h7p7ylhyjuv0fcef22wu28sgdqljhnz9dtrpafhs4hdkn4r9z3w2z2n"],
-  "eth_funds_warning_threshold": "0.1",
-  "scrt_funds_warning_threshold": "10"
+  "secret_signers": [
+    "secretpub1addwnpepqwamxgvaeayyhlsh5htwx9z8vh40vnm5fwlr5axzn6jheeyv3yxhv2qk5p7",
+    "secretpub1addwnpepqf080zg7qhwh7wx777jfnyaemp366778edfc5yt7238m3vk03a75ypdtyzk",
+    "secretpub1addwnpepqfr4h7p7ylhyjuv0fcef22wu28sgdqljhnz9dtrpafhs4hdkn4r9z3w2z2n"
+  ],
+  "eth_funds_warning_threshold": 0.1,
+  "scrt_funds_warning_threshold": 10
 }
