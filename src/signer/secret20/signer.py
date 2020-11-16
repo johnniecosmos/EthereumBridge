@@ -105,23 +105,45 @@ class Secret20Signer(Thread):
             self.logger.error(f'Tried to load tx with hash: {tx.src_tx_hash} '
                               f'but got raw data as invalid json')
             return False
-        decrypted_data = {}
+
         try:
             res = self._decrypt(unsigned_tx)
             self.logger.debug(f'Decrypted unsigned tx successfully {res}')
             json_start_index = res.find('{')
             json_end_index = res.rfind('}') + 1
             decrypted_data = json.loads(res[json_start_index:json_end_index])
+        except json.JSONDecodeError:
+            self.logger.error(f"Failed to validate tx data: {tx}, {unsigned_tx}, Failed to decrypt data")
+            return False
 
+        # extract address and value from unsigned transaction
+        try:
             tx_amount = int(decrypted_data['mint_from_ext_chain']['amount'])
+            tx_address = decrypted_data['mint_from_ext_chain']['address']
+        except KeyError:
+            self.logger.error(f"Failed to validate tx data: {tx}, {decrypted_data}, "
+                              f"failed to get amount or destination address from tx")
+            return False
 
-            # check that amounts on-chain and in the db match the amount we're minting
-            assert tx_amount == self.contract.extract_amount(log)
-            assert tx_amount == tx.amount
-            # check that the address we're minting to matches the target from the TX
-            assert decrypted_data['mint_from_ext_chain']['address'] == self.contract.extract_addr(log)
-        except (json.JSONDecodeError, AssertionError, KeyError) as e:
-            self.logger.error(f"Failed to validate tx data: {tx}, {decrypted_data}. Error: {e}")
+        # extract amount from on-chain swap tx
+        try:
+            eth_on_chain_amount = self.contract.extract_amount(log)
+            eth_on_chain_address = self.contract.extract_addr(log)
+        except AttributeError:
+            self.logger.error(f"Failed to validate tx data: {tx}, {log}, "
+                              f"failed to get amount or address from on-chain eth tx")
+            return False
+
+        # check that amounts on-chain and in the db match the amount we're minting
+        if tx_amount != eth_on_chain_amount or tx_amount != int(tx.amount):
+            self.logger.error(f"Failed to validate tx data: {tx} ({tx_amount}, {eth_on_chain_amount}, {int(tx.amount)}) "
+                              f"Amounts do not match")
+            return False
+
+        # check that the address we're minting to matches the target from the TX
+        if tx_address != eth_on_chain_address:
+            self.logger.error(f"Failed to validate tx data: {tx}, ({tx_address}, {eth_on_chain_address}),"
+                              f" addresses do not match")
             return False
 
         return True

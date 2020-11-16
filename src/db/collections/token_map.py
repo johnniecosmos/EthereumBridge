@@ -20,7 +20,7 @@ class TokenPairing(Document):
     # Token name
     src_coin = StringField(required=True)
     # Smart contract address
-    src_address = StringField(required=True)
+    src_address = StringField(required=True, unique=True)
     dst_network = StringField(required=True)
-    dst_address = StringField(required=True)
+    dst_address = StringField(required=True, unique=True)
     dst_coin = StringField(required=True)

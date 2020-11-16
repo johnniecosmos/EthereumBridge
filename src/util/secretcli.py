@@ -38,7 +38,7 @@ def create_unsigned_tx(secret_contract_addr: str, transaction_data: Dict, chain_
                        code_hash: str, multisig_acc_addr: str) -> str:
     cmd = ['secretcli', 'tx', 'compute', 'execute', secret_contract_addr, f"{json.dumps(transaction_data)}",
            '--generate-only', '--chain-id', f"{chain_id}", '--enclave-key', enclave_key, '--code-hash',
-           code_hash, '--from', multisig_acc_addr, '--gas', '250000']
+           code_hash, '--from', multisig_acc_addr, '--gas', '200000']
     return run_secret_cli(cmd)
 
 
@@ -79,7 +79,7 @@ def query_data_success(tx_hash: str) -> Dict:
     """
     cmd = ['secretcli', 'query', 'compute', 'tx', tx_hash]
     try:
-        resp = run_secret_cli(cmd)
+        resp = run_secret_cli(cmd, log=False)
     except RuntimeError:
         return {}
     try:
@@ -94,7 +94,6 @@ def query_data_success(tx_hash: str) -> Dict:
         raise ValueError(f"Failed to decode response {e}") from e
 
 
-# todo just use account_info
 def get_uscrt_balance(address: str) -> int:
     info = account_info(address)
     amount = 0
@@ -106,7 +105,7 @@ def get_uscrt_balance(address: str) -> int:
     return amount
 
 
-def run_secret_cli(cmd: List[str]) -> str:
+def run_secret_cli(cmd: List[str], log: bool = True) -> str:
     """
 
     """
@@ -114,7 +113,8 @@ def run_secret_cli(cmd: List[str]) -> str:
         logger.debug(f'Running command: {cmd}')
         p = subprocess.run(cmd, stdout=PIPE, stderr=PIPE, check=True)
     except subprocess.CalledProcessError as e:
-        logger.error(f'Failed: stderr: {e.stderr.decode()}, stdout: {e.stdout.decode()}')
+        if log:
+            logger.error(f'Failed: stderr: {e.stderr.decode()}, stdout: {e.stdout.decode()}')
         raise RuntimeError(e.stdout.decode()) from None
 
     logger.debug('Success')

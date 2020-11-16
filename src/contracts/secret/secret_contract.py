@@ -3,8 +3,8 @@ import json
 from typing import Dict
 
 
-def mint_json(amount, tx_hash, address: str, token: str) -> Dict:
-    return {"mint_from_ext_chain": {"amount": str(amount), "address": address, "identifier": tx_hash, "token": token}}
+def mint_json(amount: str, tx_hash, address: str, token: str) -> Dict:
+    return {"mint_from_ext_chain": {"amount": amount, "address": address, "identifier": tx_hash, "token": token}}
 
 
 def swap_json(nonce: int, token: str) -> str:

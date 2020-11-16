@@ -58,7 +58,7 @@ class Secret20Leader(Thread):
     def _catch_up(self):
         """ Scans the DB for signed swap tx at startup """
         # Note: As Collection.objects() call is cached, there shouldn't be collisions with DB signals
-        for tx in Swap.objects(status=Status.SWAP_SIGNED):
+        for tx in Swap.objects(status=Status.SWAP_SIGNED).order_by('sequence'):
             self._create_and_broadcast(tx)
 
     def stop(self):
