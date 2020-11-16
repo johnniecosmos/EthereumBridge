@@ -93,9 +93,9 @@ def init_token_contract(configuration: Config, swap_addr: str = None) -> (str, s
           f" --from a -b block -y"
     res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
 
-    res = subprocess.run("secretcli query compute list-contract-by-code 1 | jq '.[-1].address'",
+    res = subprocess.run("secretcli query compute list-contract-by-code 1 | jq -r '.[-1].address'",
                          shell=True, stdout=subprocess.PIPE)
-    token_addr = res.stdout.decode().strip()[1:-1]
+    token_addr = res.stdout.decode().strip()
     res = subprocess.run(f"secretcli q compute contract-hash {token_addr}",
                          shell=True, stdout=subprocess.PIPE).stdout.decode().strip()[2:]
     sn_token_codehash = res
@@ -115,13 +115,13 @@ def init_swap_contract(configuration: Config, token_addr: str, token_code_hash: 
           f" --from t1 -b block -y"
     res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
 
-    res = subprocess.run("secretcli query compute list-contract-by-code 2 | jq '.[-1].address'",
+    res = subprocess.run("secretcli query compute list-contract-by-code 2 | jq -r '.[-1].address'",
                          shell=True, stdout=subprocess.PIPE)
-    swap_addr = res.stdout.decode().strip()[1:-1]
+    swap_addr = res.stdout.decode().strip()
 
     res = subprocess.run(f"secretcli q compute contract-hash {swap_addr}",
-                         shell=True, stdout=subprocess.PIPE).stdout.decode().strip()[2:]
-    swap_code_hash = res
+                         shell=True, stdout=subprocess.PIPE)
+    swap_code_hash = res.stdout.decode().strip()[2:]
 
     return swap_addr, swap_code_hash
 
@@ -131,8 +131,8 @@ def setup(make_project, db, configuration: Config, erc20_token):
 
     configuration['token_contract_addr'] = erc20_token.address
 
-    eth_token, eth_token_code = init_token_contract(configuration)
-    swap_contract, swap_contract_hash = init_swap_contract(configuration, eth_token, eth_token_code)
+    eth_token, eth_token_hash = init_token_contract(configuration)
+    swap_contract, swap_contract_hash = init_swap_contract(configuration, eth_token, eth_token_hash)
     add_minter(eth_token, swap_contract)
     erc_token, erc_token_hash = init_token_contract(configuration, swap_contract)
 

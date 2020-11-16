@@ -24,8 +24,10 @@ class Secret20Signer(Thread):
         self.contract = contract
         self.config = config
         self.stop_event = Event()
-        self.logger = get_logger(db_name=config['db_name'],
-                                 logger_name=config.get('logger_name', f"SecretSigner-{self.multisig.name}"))
+        self.logger = get_logger(
+            db_name=config['db_name'],
+            logger_name=config.get('logger_name', f"SecretSigner-{self.multisig.name}")
+        )
         super().__init__(group=None, name=f"SecretSigner-{self.multisig.name}", target=self.run, **kwargs)
         self.setDaemon(True)  # so tests don't hang
         self.account_num, _ = self._account_details()

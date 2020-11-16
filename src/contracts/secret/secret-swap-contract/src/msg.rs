@@ -29,7 +29,7 @@ pub enum HandleMsg {
     UnpauseSwap {},
 
     Receive {
-        sender: HumanAddr,
+        from: HumanAddr,
         msg: Option<Binary>,
         amount: Uint128,
     },

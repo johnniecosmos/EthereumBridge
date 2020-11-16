@@ -121,11 +121,8 @@ impl Swap {
 
         // Try to access the storage of txs for the account.
         // If it doesn't exist yet, return an empty list of transfers.
-        let store = if let Some(result) = AppendStore::<Self, _>::attach(&store) {
-            result?
-        } else {
-            return Err(StdError::generic_err(""));
-        };
+        let store = AppendStore::<Self, _>::attach(&store)
+            .unwrap_or_else(|| Err(StdError::generic_err("")))?;
 
         store.get_at(key)
     }

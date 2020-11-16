@@ -94,6 +94,17 @@ def query_data_success(tx_hash: str) -> Dict:
         raise ValueError(f"Failed to decode response {e}") from e
 
 
+def get_uscrt_balance(address: str) -> int:
+    info = account_info(address)
+    amount = 0
+
+    for coin in info['value']['coins']:
+        if coin['denom'] == 'uscrt':
+            amount += int(coin['amount'])
+
+    return amount
+
+
 def run_secret_cli(cmd: List[str], log: bool = True) -> str:
     """
 

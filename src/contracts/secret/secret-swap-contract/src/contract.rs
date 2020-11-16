@@ -96,9 +96,9 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::Receive {
             amount,
             msg,
-            sender,
+            from,
             ..
-        } => burn_token(deps, env, sender, amount, msg),
+        } => burn_token(deps, env, from, amount, msg),
     }
 }
 
@@ -193,7 +193,7 @@ fn unpause_swap<S: Storage, A: Api, Q: Querier>(
 fn burn_token<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    sender: HumanAddr,
+    from: HumanAddr,
     amount: Uint128,
     msg: Option<Binary>,
 ) -> StdResult<HandleResponse> {
@@ -221,7 +221,7 @@ fn burn_token<S: Storage, A: Api, Q: Querier>(
         )));
     }
 
-    let source = sender.to_string();
+    let source = from.to_string();
     let token = env.message.sender;
 
     // store the swap details

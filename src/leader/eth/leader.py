@@ -20,7 +20,7 @@ from src.util.crypto_store.crypto_manager import CryptoManagerBase
 from src.util.logger import get_logger
 from src.util.oracle.oracle import BridgeOracle
 from src.util.secretcli import query_scrt_swap
-from src.util.web3 import erc20_contract
+from src.util.web3 import erc20_contract, w3
 
 
 class EtherLeader(Thread):
@@ -67,16 +67,16 @@ class EtherLeader(Thread):
         while not self.stop_event.is_set():
             for token in self.token_map:
                 try:
-                    doc = SwapTrackerObject.get_or_create(src=token)
-                    next_nonce = doc.nonce + 1
+                    swap_tracker = SwapTrackerObject.get_or_create(src=token)
+                    next_nonce = swap_tracker.nonce + 1
 
                     self.logger.debug(f'Scanning token {token} for query #{next_nonce}')
 
                     swap_data = query_scrt_swap(next_nonce, self.config["scrt_swap_address"], token)
 
                     self._handle_swap(swap_data, token, self.token_map[token].address)
-                    doc.nonce = next_nonce
-                    doc.save()
+                    swap_tracker.nonce = next_nonce
+                    swap_tracker.save()
                     next_nonce += 1
 
                 except CalledProcessError as e:
@@ -174,16 +174,28 @@ class EtherLeader(Thread):
             except (DuplicateKeyError, NotUniqueError):
                 pass
 
+    def _chcek_remaining_funds(self):
+        remaining_funds = w3.eth.getBalance(self.signer.address)
+        self.logger.debug(f'ETH leader remaining funds: {w3.fromWei(remaining_funds, "ether")} ETH')
+        fund_warning_threshold = float(self.config['eth_funds_warning_threshold'])
+        if remaining_funds < w3.toWei(fund_warning_threshold, 'ether'):
+            self.logger.warning(f'ETH leader {self.signer.address} has less than {fund_warning_threshold} ETH left')
+
     def _broadcast_transaction(self, msg: message.Submit):
         if self.config["network"] == "mainnet":
             gas_price = BridgeOracle.gas_price()
         else:
             gas_price = None
+
+        self._chcek_remaining_funds()
+
         # tx_hash = self.multisig_wallet.submit_transaction(self.config['leader_acc_addr'], self.config['leader_key'],
         #                                                   gas_price, msg)
         data = self.multisig_wallet.encode_data('submitTransaction', *msg.args())
-        tx = self.multisig_wallet.raw_transaction(self.signer.address, 0, data, gas_price,
-                                                  gas_limit=self.multisig_wallet.SUBMIT_GAS)
+        tx = self.multisig_wallet.raw_transaction(
+            self.signer.address, 0, data, gas_price,
+            gas_limit=self.multisig_wallet.SUBMIT_GAS
+        )
         tx = self.multisig_wallet.sign_transaction(tx, self.signer)
 
         tx_hash = broadcast_transaction(tx)

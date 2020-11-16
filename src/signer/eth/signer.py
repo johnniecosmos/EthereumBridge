@@ -24,14 +24,22 @@ class EtherSigner(Thread):
 
     The account set here must have enough ETH for all the transactions you're planning on doing
     """
-    def __init__(self, contract: MultisigWallet, signer: CryptoManagerBase, dst_network: str,
-                 config: Config, **kwargs):
+    def __init__(
+        self,
+        contract: MultisigWallet,
+        signer: CryptoManagerBase,
+        dst_network: str,
+        config: Config,
+        **kwargs
+    ):
         self.account = signer.address
         # self.private_key = private_key
         self.event_listener = EthEventListener(contract, config)
         self.stop_event = Event()
-        self.logger = get_logger(db_name=config['db_name'],
-                                 logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.account[0:5]}"))
+        self.logger = get_logger(
+            db_name=config['db_name'],
+            logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.account[0:5]}")
+        )
         self.config = config
         self.signer = EthSignerImpl(contract, signer, dst_network, config)
 

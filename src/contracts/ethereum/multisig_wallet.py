@@ -18,13 +18,24 @@ class MultisigWallet(EthereumContract):
         super().__init__(provider, contract_address, abi_path)
 
     def submit_transaction(self, from_: str, private_key: bytes, gas_price, message: Submit):
-        return self.send_transaction('submitTransaction', from_, private_key, self.SUBMIT_GAS,
-                                     gas_price=gas_price, args=message.args())
+        return self.send_transaction(
+            'submitTransaction',
+            from_,
+            private_key,
+            self.SUBMIT_GAS,
+            gas_price=gas_price,
+            args=message.args()
+        )
 
-    def confirm_transaction(self, from_: str, private_key: bytes,
-                            gas_price, message: Confirm):
-        return self.send_transaction('confirmTransaction', from_, private_key,
-                                     self.CONFIRM_GAS, gas_price=gas_price, args=message.args())
+    def confirm_transaction(self, from_: str, private_key: bytes, gas_price, message: Confirm):
+        return self.send_transaction(
+            'confirmTransaction',
+            from_,
+            private_key,
+            self.CONFIRM_GAS,
+            gas_price=gas_price,
+            args=message.args()
+        )
 
     def extract_addr(self, tx_log) -> str:
         return tx_log.args.recipient.decode()
@@ -54,8 +65,16 @@ class MultisigWallet(EthereumContract):
     def submission_data(self, transaction_id) -> Dict[str, any]:
         data = self.contract.functions.transactions(transaction_id).call()
 
-        return {'dest': data[0], 'amount': data[1], 'data': data[2], 'executed': data[3], 'nonce': data[4],
-                'ethr_tx_hash': transaction_id, 'token': data[5], 'fee': data[6]}
+        return {
+            'dest': data[0],
+            'amount': data[1],
+            'data': data[2],
+            'executed': data[3],
+            'nonce': data[4],
+            'token': data[5],
+            'fee': data[6],
+            'ethr_tx_hash': transaction_id,
+        }
 
     @staticmethod
     def parse_swap_event(event: AttributeDict):
