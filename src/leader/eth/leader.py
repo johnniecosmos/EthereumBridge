@@ -1,4 +1,3 @@
-import base64
 from subprocess import CalledProcessError
 from threading import Event, Thread
 
