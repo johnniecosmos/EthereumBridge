@@ -13,9 +13,9 @@ def swap_eth():
     with open('./src/contracts/ethereum/compiled/MultiSigSwapWallet.json', 'r') as f:
         contract_source_code = json.loads(f.read())
 
-    w3 = web3_provider(config['eth_node'])
+    w3 = web3_provider(config.eth_node)
     # multisig_wallet = MultisigWallet(web3_provider, config.multisig_wallet_address)
-    multisig_wallet = MultisigWallet(w3, config['multisig_wallet_address'])
+    multisig_wallet = MultisigWallet(w3, config.multisig_wallet_address)
 
     class SwapMessage(Message):
         def args(self):
@@ -35,7 +35,7 @@ def swap_erc():
     with open('./src/contracts/ethereum/abi/IERC20.json', 'r') as f:
         contract_source_code = json.loads(f.read())
     #
-    w3 = web3_provider(config['eth_node'])
+    w3 = web3_provider(config.eth_node)
     #
     account = w3.eth.account.from_key(private_key)
     nonce = w3.eth.getTransactionCount(account.address, "pending")
