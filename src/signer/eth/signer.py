@@ -36,11 +36,12 @@ class EtherSigner(Thread):
         # self.private_key = private_key
         self.event_listener = EthEventListener(contract, config)
         self.stop_event = Event()
-        self.logger = get_logger(
-            db_name=config['db_name'],
-            logger_name=config.get('logger_name', f"{self.__class__.__name__}-{self.account[0:5]}")
-        )
         self.config = config
+        self.logger = get_logger(
+            db_name=config.db_name,
+            loglevel=config.log_level,
+            logger_name=config.logger_name or f"{self.__class__.__name__}-{self.account[0:5]}"
+        )
         self.signer = EthSignerImpl(contract, signer, dst_network, config)
 
         super().__init__(group=None, name=f"{self.__class__.__name__}-{self.account[0:5]}", target=self.run, **kwargs)
@@ -66,4 +67,4 @@ class EtherSigner(Thread):
 
     def choose_starting_block(self) -> int:
         """Returns the block from which we start scanning Ethereum for new tx"""
-        return int(self.config.get('eth_start_block', 0))
+        return self.config.eth_start_block or 0
