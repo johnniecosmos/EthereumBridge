@@ -1,6 +1,5 @@
 {
   "db_name": "test_db",
-  "app_data": ".bridge_test",
   "log_level": "",
   "mode": "",
   "keys_base_path": "",

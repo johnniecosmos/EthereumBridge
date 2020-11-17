@@ -64,14 +64,6 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
 
         self.tracked_tokens = self.token_map.keys()
 
-    def _create_cache(self):
-        # todo: db this shit
-        directory = Path.joinpath(Path.home(), self.config.app_data)
-        directory.mkdir(parents=True, exist_ok=True)  # pylint: disable=no-member
-        file_path = Path.joinpath(directory, f'submission_events_{self.account[0:5]}')
-
-        return open(file_path, "a+")
-
     def _check_remaining_funds(self):
         remaining_funds = w3.eth.getBalance(self.account)
         self.logger.debug(f'ETH signer remaining funds: {w3.fromWei(remaining_funds, "ether")} ETH')

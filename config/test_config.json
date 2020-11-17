@@ -2,7 +2,6 @@
   "db_name": "test_db",
   "mode": "",
   "log_level": "debug",
-  "app_data": ".bridge_test",
   "signatures_threshold": 3,
   "eth_confirmations": 12,
   "eth_start_block": 0,
