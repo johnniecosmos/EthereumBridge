@@ -1,6 +1,5 @@
 import json
 import os
-from collections import UserDict
 
 from serde import Model, fields
 

@@ -1,6 +1,5 @@
 import subprocess
 from json import JSONDecodeError
-from pathlib import Path
 from typing import Dict
 
 from web3.datastructures import AttributeDict

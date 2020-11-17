@@ -1,6 +1,4 @@
 import logging
-# from mongoengine import connect
-import os
 import sys
 
 import mongoengine
