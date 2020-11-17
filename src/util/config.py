@@ -96,7 +96,7 @@ def get_config(config_file: str = None) -> Config:
         raise ValueError from e
 
     config_data = {}
-    for field_name, field_type in Config.__fields__.items():
+    for field_name, field_type in Config.__fields__.items():  # pylint: disable=no-member
         for source in [os.environ, conf_file_data]:
             if field_name in source:
                 config_data[field_name] = source[field_name]

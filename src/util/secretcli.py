@@ -121,8 +121,7 @@ def run_secret_cli(cmd: List[str], log: bool = True) -> str:
     return p.stdout.decode()
 
 
-def configure_secretcli(config: Config):  # pylint: disable=too-many-statements
-
+def configure_secretcli(config: Config):  # pylint: disable=too-many-statements, redefined-outer-name
     # check if cli is already set up:
     cmd = ['secretcli', 'keys', 'list']
     result = run_secret_cli(cmd)
