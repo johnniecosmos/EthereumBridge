@@ -1,4 +1,3 @@
-import base64
 import subprocess
 from json import JSONDecodeError
 from pathlib import Path
@@ -67,7 +66,7 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
     def _check_remaining_funds(self):
         remaining_funds = w3.eth.getBalance(self.account)
         self.logger.debug(f'ETH signer remaining funds: {w3.fromWei(remaining_funds, "ether")} ETH')
-        fund_warning_threshold = float(self.config.eth_funds_warning_threshold)
+        fund_warning_threshold = self.config.eth_funds_warning_threshold
         if remaining_funds < w3.toWei(fund_warning_threshold, 'ether'):
             self.logger.warning(f'ETH signer {self.account} has less than {fund_warning_threshold} ETH left')
 
@@ -99,6 +98,7 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
                     self.logger.error(f'Failed to validate transaction: {data}')
             except ValueError as e:
                 self.logger.error(f"Error parsing secret-20 swap event {data}. Error: {e}")
+                return
 
         self.logger.info(f'Swap from secret network to ethereum signed successfully: {data}')
 
@@ -143,7 +143,7 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
                               f'{submission_data["amount"]} + {submission_data["fee"]}')
             return False
 
-        dest = base64.standard_b64decode(swap_data['destination']).decode()
+        dest = swap_data['destination']
         if dest != submission_data['dest']:
             self.logger.error(f'Invalid transaction - {dest} does not match {submission_data["dest"]}')
             return False
@@ -160,7 +160,6 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
         # check if signer already signed the tx
         res = self.multisig_contract.contract.functions.confirmations(transaction_id, self.account).call()
         if res:
-            self.logger.error(f"aww6: {res=}")
             return True
 
         return False

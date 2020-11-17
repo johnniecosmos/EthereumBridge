@@ -1,4 +1,4 @@
-from mongoengine import Document, StringField
+from mongoengine import Document, StringField, IntField
 
 
 class TokenRecord(Document):
@@ -24,3 +24,5 @@ class TokenPairing(Document):
     dst_network = StringField(required=True)
     dst_address = StringField(required=True, unique=True)
     dst_coin = StringField(required=True)
+    decimals = IntField(required=True)
+    name = StringField(required=True)

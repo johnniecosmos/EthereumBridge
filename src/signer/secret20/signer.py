@@ -102,19 +102,16 @@ class Secret20Signer(Thread):
 
         try:
             unsigned_tx = json.loads(tx.unsigned_tx)
-        except json.JSONDecodeError:
-            self.logger.error(f'Tried to load tx with hash: {tx.src_tx_hash} '
-                              f'but got raw data as invalid json')
-            return False
 
-        try:
             res = self._decrypt(unsigned_tx)
             self.logger.debug(f'Decrypted unsigned tx successfully {res}')
             json_start_index = res.find('{')
             json_end_index = res.rfind('}') + 1
             decrypted_data = json.loads(res[json_start_index:json_end_index])
+
         except json.JSONDecodeError:
-            self.logger.error(f"Failed to validate tx data: {tx}, {unsigned_tx}, Failed to decrypt data")
+            self.logger.error(f'Tried to load tx with hash: {tx.src_tx_hash} {tx.id}'
+                              f'but got data as invalid json, or failed to decrypt')
             return False
 
         # extract address and value from unsigned transaction
@@ -137,8 +134,8 @@ class Secret20Signer(Thread):
 
         # check that amounts on-chain and in the db match the amount we're minting
         if tx_amount != eth_on_chain_amount or tx_amount != int(tx.amount):
-            self.logger.error(f"Failed to validate tx data: {tx} ({tx_amount}, {eth_on_chain_amount}, {int(tx.amount)}) "
-                              f"Amounts do not match")
+            self.logger.error(f"Failed to validate tx data: {tx} ({tx_amount}, {eth_on_chain_amount}, {int(tx.amount)})"
+                              f" amounts do not match")
             return False
 
         # check that the address we're minting to matches the target from the TX

@@ -131,7 +131,7 @@ class Secret20Leader(Thread):
     def _check_remaining_funds(self):
         remaining_funds = get_uscrt_balance(self.manager.multisig.address)
         self.logger.debug(f'SCRT leader remaining funds: {remaining_funds / 1e6} SCRT')
-        fund_warning_threshold = float(self.config.scrt_funds_warning_threshold)
+        fund_warning_threshold = self.config.scrt_funds_warning_threshold
         if remaining_funds < fund_warning_threshold * 1e6:  # 1e6 uSCRT == 1 SCRT
             self.logger.warning(f'SCRT leader has less than {fund_warning_threshold} SCRT left')
 

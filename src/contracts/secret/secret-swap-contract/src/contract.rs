@@ -94,10 +94,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             ..
         } => mint_token(deps, env, address, identifier, amount, token),
         HandleMsg::Receive {
-            amount,
-            msg,
-            from,
-            ..
+            amount, msg, from, ..
         } => burn_token(deps, env, from, amount, msg),
     }
 }
@@ -209,7 +206,7 @@ fn burn_token<S: Storage, A: Api, Q: Querier>(
     .map_err(|_| StdError::generic_err("Unknown token"))?;
 
     // get params from receive callback msg
-    let destination = msg.unwrap().to_string();
+    let destination = String::from_utf8_lossy(msg.unwrap().as_slice()).to_string();
 
     // validate that destination is valid Ethereum address
     let _ = validate_address(&destination)?;

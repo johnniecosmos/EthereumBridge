@@ -74,9 +74,16 @@ def run_bridge():  # pylint: disable=too-many-statements
 
     logger.info(f'Starting with ETH address {signer.address}')
 
-    with database(db=config.db_name, host=config.db_host, password=config.db_password, username=config.db_username):
-        eth_wallet = MultisigWallet(w3, config.multisig_wallet_address)
+    uri = config.db_uri
+    if not uri:
+        db = config.db_name or 'test_db'
+        host = config.db_host or 'localhost'
+        password = config.db_password
+        username = config.db_username
+        uri = f"mongodb+srv://{username}:{password}@{host}/{db}?retryWrites=true&w=majority"
 
+    with database(uri):
+        eth_wallet = MultisigWallet(w3, config.multisig_wallet_address)
         secret_account = SecretAccount(config.multisig_acc_addr, config.secret_key_name)
 
         eth_signer = EtherSigner(eth_wallet, signer, dst_network="Secret", config=config)

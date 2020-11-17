@@ -34,6 +34,7 @@ class Config(Model):
 
     # db stuff
     db_name: fields.Str()
+    db_uri: fields.Optional(fields.Str)
     db_host: fields.Optional(fields.Str)
     db_password: fields.Optional(fields.Str)
     db_username: fields.Optional(fields.Str)

@@ -1,4 +1,3 @@
-import base64
 from subprocess import CalledProcessError
 from threading import Event, Thread
 
@@ -140,8 +139,8 @@ class EtherLeader(Thread):
         # this is an id, and not the TX hash since we don't actually know where the TX happened, only the id of the
         # swap reported by the contract
         swap_id = get_swap_id(swap_json)
-        dest_address = base64.b64decode(swap_json['destination']).decode()
-
+        dest_address = swap_json['destination']
+        self.logger.info(f'{swap_json}')
         amount = int(swap_json['amount'])
 
         if dst_token == 'native':
@@ -153,7 +152,7 @@ class EtherLeader(Thread):
         if not self._validate_fee(amount, fee):
             self.logger.error("Tried to swap an amount too low to cover fee")
             swap = Swap(src_network="Secret", src_tx_hash=swap_id, unsigned_tx=data, src_coin=src_token,
-                        dst_coin=dst_token, dst_address=dest_address, amount=amount, dst_network="Ethereum",
+                        dst_coin=dst_token, dst_address=dest_address, amount=str(amount), dst_network="Ethereum",
                         status=Status.SWAP_FAILED)
             try:
                 swap.save()
@@ -169,7 +168,7 @@ class EtherLeader(Thread):
                              data)
         # todo: check we have enough ETH
         swap = Swap(src_network="Secret", src_tx_hash=swap_id, unsigned_tx=data, src_coin=src_token,
-                    dst_coin=dst_token, dst_address=dest_address, amount=amount, dst_network="Ethereum",
+                    dst_coin=dst_token, dst_address=dest_address, amount=str(amount), dst_network="Ethereum",
                     status=Status.SWAP_FAILED)
         try:
             tx_hash = self._broadcast_transaction(msg)
@@ -185,8 +184,8 @@ class EtherLeader(Thread):
 
     def _chcek_remaining_funds(self):
         remaining_funds = w3.eth.getBalance(self.signer.address)
-        self.logger.debug(f'ETH leader remaining funds: {w3.fromWei(remaining_funds, "ether")} ETH')
-        fund_warning_threshold = float(self.config.eth_funds_warning_threshold)
+        self.logger.info(f'ETH leader remaining funds: {w3.fromWei(remaining_funds, "ether")} ETH')
+        fund_warning_threshold = self.config.eth_funds_warning_threshold
         if remaining_funds < w3.toWei(fund_warning_threshold, 'ether'):
             self.logger.warning(f'ETH leader {self.signer.address} has less than {fund_warning_threshold} ETH left')
 
