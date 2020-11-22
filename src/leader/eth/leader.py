@@ -127,7 +127,8 @@ class EtherLeader(Thread):
         else:
             fee = 1
 
-        data = self.erc20.encodeABI(fn_name='transfer', args=[dest_address, amount - fee])
+        checksum_addr = w3.toChecksumAddress(dest_address)
+        data = self.erc20.encodeABI(fn_name='transfer', args=[checksum_addr, amount - fee])
         tx_dest = dst_token
         tx_token = dst_token
         tx_amount = 0
