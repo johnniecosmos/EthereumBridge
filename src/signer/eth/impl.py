@@ -99,15 +99,17 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
                     self.logger.info(f'Transaction {transaction_id} is valid. Signing & approving..')
                     self._approve_and_sign(transaction_id)
 
-                    obj = SwapTrackerObject.objects().get(src=signer_id(self.account))
-                    if obj.nonce == -1:
-                        obj.update(nonce=submission_event["blockNumber"])
-
                 else:
                     self.logger.error(f'Failed to validate transaction: {data}')
             except ValueError as e:
                 self.logger.error(f"Error parsing secret-20 swap event {data}. Error: {e}")
                 return
+
+            # either way we want to continue on
+            finally:
+                obj = SwapTrackerObject.objects().get(src=signer_id(self.account))
+                if obj.nonce == -1:
+                    obj.update(nonce=submission_event["blockNumber"])
 
         self.logger.info(f'Swap from secret network to ethereum signed successfully: {data}')
 
@@ -152,8 +154,9 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
                               f'{submission_data["amount"]} + {submission_data["fee"]}')
             return False
 
-        dest = swap_data['destination']
-        if dest != submission_data['dest']:
+        # explicitly convert to checksum in case one side isn't checksum address
+        dest = self.multisig_contract.provider.toChecksumAddress(swap_data['destination'])
+        if dest != self.multisig_contract.provider.toChecksumAddress(submission_data['dest']):
             self.logger.error(f'Invalid transaction - {dest} does not match {submission_data["dest"]}')
             return False
 
