@@ -4,7 +4,7 @@ use crate::msg::{HandleAnswer, HandleMsg, InitMsg, QueryAnswer, QueryMsg};
 use crate::state::{config, config_read, Contract, Mint, State, Swap, TokenWhiteList};
 use crate::token_messages::TokenMsgs;
 use cosmwasm_std::{
-    to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
+    log, to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
     StdError, StdResult, Storage, Uint128,
 };
 
@@ -241,7 +241,7 @@ fn burn_token<S: Storage, A: Api, Q: Querier>(
     let contract_addr = deps.api.human_address(&params.address)?;
     Ok(HandleResponse {
         messages: vec![burn.to_cosmos_msg(contract_addr, params.code_hash)?],
-        log: vec![],
+        log: vec![log("tx_id", nonce)],
         data: Some(to_binary(&HandleAnswer::Receive {
             status: Success,
             nonce,

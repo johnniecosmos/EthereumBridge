@@ -191,6 +191,10 @@ def test_3_confirm_and_finalize_eth_tx(web3_provider, ethr_signers, configuratio
     bal = web3_provider.eth.getBalance(zero_address, "latest")
     assert bal > prev_bal
 
+    last_nonce = SwapTrackerObject.last_processed(secret_token_addr)
+
+    swap = Swap.objects().get(src_tx_hash=f'{last_nonce}|{secret_token_addr}')
+    assert swap.status == Status.SWAP_CONFIRMED
     configuration.eth_start_block = web3_provider.eth.blockNumber
 
 
@@ -337,6 +341,13 @@ def test_3_confirm_tx(web3_provider, ethr_signers, configuration: Config, erc20_
     fee = erc20_contract.contract.functions.balanceOf(PAYABLE_ADDRESS).call()
     assert fee > 0
     assert TRANSFER_AMOUNT_ERC == erc20_contract.contract.functions.balanceOf(ethr_leader.signer.address).call() + fee
+
+    assert increase_block_number(web3_provider, configuration.eth_confirmations)
+    sleep(configuration.sleep_interval)
+
+    last_nonce = SwapTrackerObject.last_processed(secret_token_addr)
+    swap = Swap.objects().get(src_tx_hash=f'{last_nonce}|{secret_token_addr}')
+    assert swap.status == Status.SWAP_CONFIRMED
 
 
 def increase_block_number(web3_provider: Web3, increment: int) -> True:

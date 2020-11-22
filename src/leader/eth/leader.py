@@ -1,5 +1,6 @@
 from subprocess import CalledProcessError
 from threading import Event, Thread
+from typing import List
 
 from mongoengine.errors import NotUniqueError
 from pymongo.errors import DuplicateKeyError
@@ -7,11 +8,13 @@ from web3.exceptions import TransactionNotFound
 
 import src.contracts.ethereum.message as message
 from src.contracts.ethereum.ethr_contract import broadcast_transaction
+from src.contracts.ethereum.event_listener import EthEventListener
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res, get_swap_id
 from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.swaptrackerobject import SwapTrackerObject
 from src.db.collections.token_map import TokenPairing
+from src.leader.eth.eth_confirmationer import EthConfirmer
 from src.util.coins import Erc20Info, Coin
 from src.util.common import Token
 from src.util.config import Config
@@ -44,29 +47,42 @@ class EtherLeader(Thread):
         self.config = config
         self.multisig_wallet = multisig_wallet
         self.erc20 = erc20_contract()
-
+        self.pending_txs: List[str] = []
         token_map = {}
+        confirmer_token_map = {}
         pairs = TokenPairing.objects(dst_network=dst_network, src_network=self.network)
         for pair in pairs:
             token_map.update({pair.dst_address: Token(pair.src_address, pair.src_coin)})
+            confirmer_token_map.update({pair.src_address: Token(pair.dst_address, pair.dst_coin)})
         self.signer = signer
-        # self.private_key = private_key
-        # self.default_account = account
         self.token_map = token_map
+
         self.logger = get_logger(
             db_name=config.db_name,
             loglevel=config.log_level,
             logger_name=config.logger_name or self.__class__.__name__
         )
         self.stop_event = Event()
+
+        self.confirmer = EthConfirmer(self.multisig_wallet, confirmer_token_map)
+        self.event_listener = EthEventListener(self.multisig_wallet, config)
+
+        self.stop_event = Event()
         super().__init__(group=None, name="EtherLeader", target=self.run, **kwargs)
 
     def stop(self):
         self.logger.info("Stopping")
+        self.event_listener.stop()
         self.stop_event.set()
 
     def run(self):
         self.logger.info("Starting")
+
+        # todo: fix so tracker doesn't start from 0
+        self.event_listener.register(self.confirmer.withdraw, ['Withdraw'], from_block=0)
+        self.event_listener.register(self.confirmer.failed_withdraw, ['WithdrawFailure'], from_block=0)
+        self.event_listener.start()
+
         self._scan_swap()
 
     def _scan_swap(self):
@@ -174,7 +190,9 @@ class EtherLeader(Thread):
         try:
             tx_hash = self._broadcast_transaction(msg)
             swap.dst_tx_hash = tx_hash
+            # todo: add confirmation handler, error handler, etc.
             swap.status = Status.SWAP_SUBMITTED
+            self.pending_txs.append(swap_id)
         except (ValueError, TransactionNotFound) as e:
             self.logger.critical(f"Failed to broadcast transaction for msg {repr(msg)}: {e}")
         finally:
