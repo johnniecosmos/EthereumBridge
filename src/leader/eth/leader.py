@@ -11,9 +11,7 @@ from src.contracts.ethereum.ethr_contract import broadcast_transaction
 from src.contracts.ethereum.event_listener import EthEventListener
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res, get_swap_id
-from src.db.collections.eth_swap import Swap, Status
-from src.db.collections.swaptrackerobject import SwapTrackerObject
-from src.db.collections.token_map import TokenPairing
+from src.db import Swap, Status, SwapTrackerObject, TokenPairing
 from src.leader.eth.eth_confirmationer import EthConfirmer
 from src.util.coins import Erc20Info, Coin
 from src.util.common import Token
@@ -47,15 +45,18 @@ class EtherLeader(Thread):
         self.config = config
         self.multisig_wallet = multisig_wallet
         self.erc20 = erc20_contract()
+
         self.pending_txs: List[str] = []
-        token_map = {}
-        confirmer_token_map = {}
         pairs = TokenPairing.objects(dst_network=dst_network, src_network=self.network)
+        self.token_map = {}
+        confirmer_token_map = {}
         for pair in pairs:
-            token_map.update({pair.dst_address: Token(pair.src_address, pair.src_coin)})
-            confirmer_token_map.update({pair.src_address: Token(pair.dst_address, pair.dst_coin)})
+            self.token_map[pair.dst_address] = Token(pair.src_address, pair.src_coin)
+            confirmer_token_map[pair.src_address] = Token(pair.dst_address, pair.dst_coin)
+
+        self.swap_tracker = {token: SwapTrackerObject.get_or_create(src=token) for token in self.token_map}
+
         self.signer = signer
-        self.token_map = token_map
 
         self.logger = get_logger(
             db_name=config.db_name,
@@ -79,6 +80,7 @@ class EtherLeader(Thread):
         self.logger.info("Starting")
 
         # todo: fix so tracker doesn't start from 0
+        # todo do this like the eth signer does, preferably with a new model
         self.event_listener.register(self.confirmer.withdraw, ['Withdraw'], from_block=0)
         self.event_listener.register(self.confirmer.failed_withdraw, ['WithdrawFailure'], from_block=0)
         self.event_listener.start()
@@ -91,17 +93,16 @@ class EtherLeader(Thread):
         while not self.stop_event.is_set():
             for token in self.token_map:
                 try:
-                    swap_tracker = SwapTrackerObject.get_or_create(src=token)
+                    # Get a new swap event
+                    swap_tracker = self.swap_tracker[token]
                     next_nonce = swap_tracker.nonce + 1
-
                     self.logger.debug(f'Scanning token {token} for query #{next_nonce}')
-
                     swap_data = query_scrt_swap(next_nonce, self.config.scrt_swap_address, token)
 
                     self._handle_swap(swap_data, token, self.token_map[token].address)
+
                     swap_tracker.nonce = next_nonce
                     swap_tracker.save()
-                    next_nonce += 1
 
                 except CalledProcessError as e:
                     if b'ERROR: query result: encrypted: Failed to get swap for token' not in e.stderr:
@@ -134,11 +135,7 @@ class EtherLeader(Thread):
             decimals = Erc20Info.decimals(dst_token)
             x_rate = BridgeOracle.x_rate(Coin.Ethereum, Erc20Info.coin(dst_token))
             gas_price = BridgeOracle.gas_price()
-            fee = BridgeOracle.calculate_fee(self.multisig_wallet.SUBMIT_GAS,
-                                             gas_price,
-                                             decimals,
-                                             x_rate,
-                                             amount)
+            fee = BridgeOracle.calculate_fee(self.multisig_wallet.SUBMIT_GAS, gas_price, decimals, x_rate, amount)
         # for testing mostly
         else:
             fee = 1
@@ -177,12 +174,8 @@ class EtherLeader(Thread):
                 pass
             return
 
-        msg = message.Submit(tx_dest,
-                             tx_amount,  # if we are swapping token, no ether should be rewarded
-                             int(swap_json['nonce']),
-                             tx_token,
-                             fee,
-                             data)
+        # if we are swapping token, no ether should be rewarded
+        msg = message.Submit(tx_dest, tx_amount, int(swap_json['nonce']), tx_token, fee, data)
         # todo: check we have enough ETH
         swap = Swap(src_network="Secret", src_tx_hash=swap_id, unsigned_tx=data, src_coin=src_token,
                     dst_coin=dst_token, dst_address=dest_address, amount=str(amount), dst_network="Ethereum",

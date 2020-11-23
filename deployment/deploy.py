@@ -4,7 +4,7 @@ import string
 import subprocess
 
 from src.db import database
-from src.db.collections.token_map import TokenPairing
+from src.db import TokenPairing
 from src.util.config import config
 from src.util.web3 import web3_provider
 

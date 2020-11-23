@@ -8,7 +8,7 @@ import src.contracts.ethereum.message as message
 from src.contracts.ethereum.ethr_contract import broadcast_transaction
 from src.contracts.ethereum.multisig_wallet import MultisigWallet
 from src.contracts.secret.secret_contract import swap_query_res
-from src.db.collections.token_map import TokenPairing
+from src.db import TokenPairing
 from src.util.common import Token
 from src.util.config import Config
 from src.util.crypto_store.crypto_manager import CryptoManagerBase
@@ -16,7 +16,7 @@ from src.util.logger import get_logger
 from src.util.oracle.oracle import BridgeOracle
 from src.util.secretcli import query_scrt_swap
 from src.util.web3 import erc20_contract, w3
-from src.db.collections.swaptrackerobject import SwapTrackerObject
+from src.db import SwapTrackerObject
 
 
 def signer_id(account):
@@ -108,8 +108,7 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
             # either way we want to continue on
             finally:
                 obj = SwapTrackerObject.objects().get(src=signer_id(self.account))
-                if obj.nonce == -1:
-                    obj.update(nonce=submission_event["blockNumber"])
+                obj.update(nonce=submission_event["blockNumber"])
 
         self.logger.info(f'Swap from secret network to ethereum signed successfully: {data}')
 

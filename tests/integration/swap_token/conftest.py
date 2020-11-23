@@ -12,7 +12,7 @@ from brownie import project, network, accounts
 from pytest import fixture
 
 from src.contracts.ethereum.erc20 import Erc20
-from src.db.collections.token_map import TokenPairing
+from src.db import TokenPairing
 from src.leader.eth.leader import EtherLeader
 from src.leader.secret20 import Secret20Leader
 from src.signer.eth.signer import EtherSigner
