@@ -9,7 +9,6 @@ from src.util.common import Token
 
 
 def build_hash(nonce, token):
-    print(f'{nonce}|{token}')
     return f'{nonce}|{token}'
 
 
@@ -31,7 +30,6 @@ class EthConfirmer:
         nonce = data['nonce']
         token = data['token']
 
-        print(f'{self.token_map=}')
         if token == '0x0000000000000000000000000000000000000000':
             scrt_token = self.token_map['native'].address
         else:
