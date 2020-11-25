@@ -108,8 +108,7 @@ class EthSignerImpl:  # pylint: disable=too-many-instance-attributes, too-many-a
             # either way we want to continue on
             finally:
                 obj = SwapTrackerObject.objects().get(src=signer_id(self.account))
-                if obj.nonce == -1:
-                    obj.update(nonce=submission_event["blockNumber"])
+                obj.update(nonce=submission_event["blockNumber"])
 
         self.logger.info(f'Swap from secret network to ethereum signed successfully: {data}')
 

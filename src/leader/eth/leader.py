@@ -64,7 +64,7 @@ class EtherLeader(Thread):
         )
         self.stop_event = Event()
 
-        self.confirmer = EthConfirmer(self.multisig_wallet, confirmer_token_map)
+        self.confirmer = EthConfirmer(self.multisig_wallet, confirmer_token_map, self.logger)
         self.event_listener = EthEventListener(self.multisig_wallet, config)
 
         self.stop_event = Event()

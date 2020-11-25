@@ -7,6 +7,7 @@ from src.db.collections.eth_swap import Swap, Status
 from src.db.collections.swaptrackerobject import SwapTrackerObject
 from src.util.common import Token
 
+from logging import Logger
 
 def build_hash(nonce, token):
     return f'{nonce}|{token}'
@@ -14,9 +15,10 @@ def build_hash(nonce, token):
 
 class EthConfirmer:
 
-    def __init__(self, multisig_contract: MultisigWallet, token_map: Dict[str, Token]):
+    def __init__(self, multisig_contract: MultisigWallet, token_map: Dict[str, Token], logger: Logger):
         self.multisig_contract = multisig_contract
         self.token_map = token_map
+        self.logger = logger
 
     def withdraw(self, event: AttributeDict):
         self._handle(event, True)
@@ -46,7 +48,12 @@ class EthConfirmer:
         return Swap.objects().get(src_tx_hash=build_hash(nonce, token))
 
     def _set_tx_result(self, nonce, token, success=True):
-        swap = self.get_swap(nonce, token)
+        try:
+            swap = self.get_swap(nonce, token)
+        except Exception as e:
+            self.logger.error(f'Error handling swap {build_hash(nonce, token)}: {e}')
+            return
+
         if swap.status != Status.SWAP_SUBMITTED:
             return
         if success:
